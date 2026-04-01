@@ -1679,6 +1679,19 @@
   resolved "https://registry.npmjs.org/@react-native/js-polyfills/-/js-polyfills-0.81.5.tgz"
   integrity sha512-fB7M1CMOCIUudTRuj7kzxIBTVw2KXnsgbQ6+4cbqSxo8NmRRhA0Ul4ZUzZj3rFd3VznTL4Brmocv1oiN0bWZ8w==
 
+<<<<<<< HEAD
+=======
+"@react-native/normalize-colors@0.81.5":
+  version "0.81.5"
+  resolved "https://registry.npmjs.org/@react-native/normalize-colors/-/normalize-colors-0.81.5.tgz"
+  integrity sha512-0HuJ8YtqlTVRXGZuGeBejLE04wSQsibpTI+RGOyVqxZvgtlLLC/Ssw0UmbHhT4lYMp2fhdtvKZSs5emWB1zR/g==
+
+"@react-native/normalize-colors@^0.74.1":
+  version "0.74.89"
+  resolved "https://registry.npmjs.org/@react-native/normalize-colors/-/normalize-colors-0.74.89.tgz"
+  integrity sha512-qoMMXddVKVhZ8PA1AbUCk83trpd6N+1nF2A6k1i6LsQObyS92fELuk8kU/lQs6M7BsMHwqyLCpQJ1uFgNvIQXg==
+
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
 "@react-native/normalize-colors@0.81.5":
   version "0.81.5"
   resolved "https://registry.npmjs.org/@react-native/normalize-colors/-/normalize-colors-0.81.5.tgz"
@@ -1781,6 +1794,21 @@
   dependencies:
     "@sinonjs/commons" "^3.0.0"
 
+<<<<<<< HEAD
+=======
+"@tanstack/query-core@5.96.0":
+  version "5.96.0"
+  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.96.0.tgz"
+  integrity sha512-sfO3uQeol1BU7cRP6NYY7nAiX3GiNY20lI/dtSbKLwcIkYw/X+w/tEsQAkc544AfIhBX/IvH/QYtPHrPhyAKGw==
+
+"@tanstack/react-query@^5.96.0":
+  version "5.96.0"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.96.0.tgz#d471a42a9100937c6b6b81052ab5866083eac983"
+  integrity sha512-6qbjdm1K5kizVKv9TNqhIN3doq2anRhdF2XaFMFSn4m8L22S69RV+FilvlyVT4RoJyMxtPU5rs4RpdFa/PEC7A==
+  dependencies:
+    "@tanstack/query-core" "5.96.0"
+
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
 "@tybys/wasm-util@^0.10.0":
   version "0.10.1"
   resolved "https://registry.yarnpkg.com/@tybys/wasm-util/-/wasm-util-0.10.1.tgz#ecddd3205cf1e2d5274649ff0eedd2991ed7f414"
@@ -2536,6 +2564,23 @@ bplist-creator@0.1.0:
   dependencies:
     stream-buffers "2.2.x"
 
+<<<<<<< HEAD
+=======
+bplist-parser@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.3.1.tgz"
+  integrity sha512-PyJxiNtA5T2PlLIeBot4lbp7rj4OadzjnMZD/G5zuBNt8ei/yCU7+wW0h2bag9vr8c+/WuRWmSxbqAl9hL1rBA==
+  dependencies:
+    big-integer "1.6.x"
+
+bplist-parser@^0.3.1:
+  version "0.3.2"
+  resolved "https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.3.2.tgz"
+  integrity sha512-apC2+fspHGI3mMKj+dGevkGo/tCqVB8jMb6i+OX+E29p0Iposz07fABkRIfVUPNd5A5VbuOz1bZbnmkKLYF+wQ==
+  dependencies:
+    big-integer "1.6.x"
+
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
 bplist-parser@0.3.1:
   version "0.3.1"
   resolved "https://registry.npmjs.org/bplist-parser/-/bplist-parser-0.3.1.tgz"
@@ -2710,7 +2755,11 @@ ci-info@^2.0.0:
   resolved "https://registry.npmjs.org/ci-info/-/ci-info-2.0.0.tgz"
   integrity sha512-5tK7EtrZ0N+OLFMthtqOj4fI2Jeb88C4CAZPu25LDVUgXJ0A3Js4PMGqrn0JU1W0Mh1/Z8wZzYPxqUrXeBboCQ==
 
+<<<<<<< HEAD
 ci-info@^3.2.0, ci-info@^3.3.0:
+=======
+ci-info@^3.2.0:
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
   version "3.9.0"
   resolved "https://registry.npmjs.org/ci-info/-/ci-info-3.9.0.tgz"
   integrity sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==
@@ -2760,6 +2809,19 @@ color-convert@^2.0.1:
   dependencies:
     color-name "~1.1.4"
 
+<<<<<<< HEAD
+=======
+color-name@1.1.3:
+  version "1.1.3"
+  resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.3.tgz"
+  integrity sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==
+
+color-name@^1.0.0, color-name@~1.1.4:
+  version "1.1.4"
+  resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz"
+  integrity sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==
+
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
 color-name@1.1.3:
   version "1.1.3"
   resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.3.tgz"
@@ -2916,6 +2978,23 @@ debug@2.6.9, debug@^2.6.9:
     ms "2.0.0"
 
 debug@4, debug@^4.1.0, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5, debug@^4.4.0, debug@^4.4.3:
+<<<<<<< HEAD
+=======
+  version "4.4.3"
+  resolved "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz"
+  integrity sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==
+  dependencies:
+    ms "^2.1.1"
+
+debug@^3.2.7:
+  version "3.2.7"
+  resolved "https://registry.npmjs.org/debug/-/debug-3.2.7.tgz"
+  integrity sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==
+  dependencies:
+    ms "^2.1.1"
+
+debug@^4.1.0, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5, debug@^4.4.0, debug@^4.4.3, debug@4:
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
   version "4.4.3"
   resolved "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz"
   integrity sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==
@@ -3449,7 +3528,7 @@ expo-constants@~18.0.12, expo-constants@~18.0.13:
   version "18.0.13"
   resolved "https://registry.npmjs.org/expo-constants/-/expo-constants-18.0.13.tgz"
   integrity sha512-FnZn12E1dRYKDHlAdIyNFhBurKTS3F9CrfrBDJI5m3D7U17KBHMQ6JEfYlSj7LG7t+Ulr+IKaj58L1k5gBwTcQ==
-  dependencies:
+dependencies:
     "@expo/config" "~12.0.13"
     "@expo/env" "~2.0.8"
 
@@ -4676,7 +4755,11 @@ loose-envify@^1.0.0, loose-envify@^1.4.0:
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
 
+<<<<<<< HEAD
 lottie-react-native@~7.3.1:
+=======
+lottie-react-native@^7.3.6:
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
   version "7.3.6"
   resolved "https://registry.yarnpkg.com/lottie-react-native/-/lottie-react-native-7.3.6.tgz#b5ab46bff3ec9e48d5efa8d31166dd53758a1aa9"
   integrity sha512-TevFHRvFURh6GlaqLKrSNXuKAxvBvFCiXfS7FXQI1K/ikOStgAwWLFPGjW0i1qB2/VzPACKmRs+535VjHUZZZQ==
@@ -4816,6 +4899,18 @@ metro-core@0.83.3:
   version "0.83.3"
   resolved "https://registry.npmjs.org/metro-core/-/metro-core-0.83.3.tgz"
   integrity sha512-M+X59lm7oBmJZamc96usuF1kusd5YimqG/q97g4Ac7slnJ3YiGglW5CsOlicTR5EWf8MQFxxjDoB6ytTqRe8Hw==
+<<<<<<< HEAD
+=======
+  dependencies:
+    flow-enums-runtime "^0.0.6"
+    lodash.throttle "^4.1.1"
+    metro-resolver "0.83.5"
+
+metro-core@0.83.5, metro-core@^0.83.1:
+  version "0.83.5"
+  resolved "https://registry.npmjs.org/metro-core/-/metro-core-0.83.5.tgz"
+  integrity sha512-YcVcLCrf0ed4mdLa82Qob0VxYqfhmlRxUS8+TO4gosZo/gLwSvtdeOjc/Vt0pe/lvMNrBap9LlmvZM8FIsMgJQ==
+>>>>>>> 59c572f27004fd8269832c0a145b551ad151a084
   dependencies:
     flow-enums-runtime "^0.0.6"
     lodash.throttle "^4.1.1"
