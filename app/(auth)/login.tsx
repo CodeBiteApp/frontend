@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -35,8 +36,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.inner}>
-        <Text style={styles.logo}>🧠</Text>
-        <Text style={styles.title}>CodeBite</Text>
+        <Image
+          source={require("@/assets/images/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.subtitle}>퀴즈로 지식을 쌓아보세요</Text>
 
         <View style={styles.form}>
@@ -57,7 +61,11 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={handleLogin}
+            activeOpacity={0.85}
+          >
             <Text style={styles.loginText}>로그인</Text>
           </TouchableOpacity>
         </View>
@@ -76,9 +84,14 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   inner: { flex: 1, justifyContent: "center", paddingHorizontal: 28 },
-  logo: { fontSize: 64, textAlign: "center", marginBottom: 8 },
-  title: { fontSize: 32, fontWeight: "bold", textAlign: "center", color: "#1a1a1a" },
-  subtitle: { fontSize: 14, textAlign: "center", color: "#888", marginTop: 6, marginBottom: 40 },
+  logo: { width: "100%", height: 200, alignSelf: "center", marginBottom: 8 },
+  subtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    color: "#888",
+    marginTop: 6,
+    marginBottom: 40,
+  },
   form: { gap: 14 },
   input: {
     borderWidth: 1.5,
