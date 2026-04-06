@@ -7,6 +7,7 @@ type UserState = {
   level: number;
   streak: number;
   isLoggedIn: boolean;
+  hasOnboarded: boolean;
 
   login: (name: string, email: string) => void;
   logout: () => void;
@@ -14,6 +15,7 @@ type UserState = {
   addPoints: (points: number) => void;
   incrementStreak: () => void;
   resetStreak: () => void;
+  completeOnboarding: () => void;
 };
 
 function calcLevel(points: number): number {
@@ -27,9 +29,11 @@ export const useUserStore = create<UserState>((set, get) => ({
   level: 1,
   streak: 0,
   isLoggedIn: false,
+  hasOnboarded: false,
 
   login: (name, email) => set({ name, email, isLoggedIn: true }),
-  logout: () => set({ name: "", email: "", totalPoints: 0, level: 1, streak: 0, isLoggedIn: false }),
+  logout: () =>
+    set({ name: "", email: "", totalPoints: 0, level: 1, streak: 0, isLoggedIn: false }),
 
   setName: (name) => set({ name }),
 
@@ -40,4 +44,6 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   incrementStreak: () => set((s) => ({ streak: s.streak + 1 })),
   resetStreak: () => set({ streak: 0 }),
+
+  completeOnboarding: () => set({ hasOnboarded: true }),
 }));

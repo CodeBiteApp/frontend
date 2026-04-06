@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -36,7 +37,7 @@ export default function SignupScreen() {
     }
     // 실제 앱에서는 API 호출로 교체
     login(name, email);
-    router.replace("/(tabs)");
+    router.replace("/(onboarding)" as never);
   };
 
   return (
@@ -44,8 +45,15 @@ export default function SignupScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>🧠</Text>
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Image
+          source={require("@/assets/images/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>회원가입</Text>
         <Text style={styles.subtitle}>CodeBite와 함께 시작하세요</Text>
 
@@ -82,7 +90,11 @@ export default function SignupScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.signupBtn} onPress={handleSignup} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.signupBtn}
+          onPress={handleSignup}
+          activeOpacity={0.85}
+        >
           <Text style={styles.signupText}>가입하기</Text>
         </TouchableOpacity>
 
@@ -96,10 +108,26 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  inner: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 28, paddingVertical: 48, gap: 14 },
-  logo: { fontSize: 56, textAlign: "center", marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: "bold", textAlign: "center", color: "#1a1a1a" },
-  subtitle: { fontSize: 14, textAlign: "center", color: "#888", marginBottom: 12 },
+  inner: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    paddingVertical: 48,
+    gap: 14,
+  },
+  logo: { width: "100%", height: 200 },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#1a1a1a",
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    color: "#888",
+    marginBottom: 12,
+  },
   input: {
     borderWidth: 1.5,
     borderColor: "#e0e0e0",
