@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -16,6 +15,7 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const login = useUserStore((s) => s.login);
+  const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +27,7 @@ export default function LoginScreen() {
     }
     // 실제 앱에서는 API 호출로 교체
     login(email.split("@")[0], email);
-    router.replace("/(tabs)");
+    router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
   };
 
   return (
@@ -36,12 +36,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.inner}>
-        <Image
-          source={require("@/assets/images/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.subtitle}>퀴즈로 지식을 쌓아보세요</Text>
+        <Text style={styles.title}>이메일로 로그인</Text>
 
         <View style={styles.form}>
           <TextInput
@@ -84,13 +79,12 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   inner: { flex: 1, justifyContent: "center", paddingHorizontal: 28 },
-  logo: { width: "100%", height: 200, alignSelf: "center", marginBottom: 8 },
-  subtitle: {
-    fontSize: 14,
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 32,
     textAlign: "center",
-    color: "#888",
-    marginTop: 6,
-    marginBottom: 40,
   },
   form: { gap: 14 },
   input: {
