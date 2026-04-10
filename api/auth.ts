@@ -15,4 +15,9 @@ async function register(body: RegisterRequest): Promise<AuthResponse> {
   return data;
 }
 
-export { login, register };
+// 로그아웃
+async function logout(): Promise<void> {
+  await api.post("/api/auth/logout");
+}
+
+export { login, logout, register };
