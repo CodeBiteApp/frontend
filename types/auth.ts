@@ -13,11 +13,7 @@ export type AuthResponse = {
   accessToken: string;
   tokenType: "Bearer";
   expiresIn: number; // 초 단위 (1500 = 25분)
-  user: {
-    id: number;
-    email: string;
-    nickname: string;
-  };
+  user: UserSummary;
 };
 
 export type User = {
@@ -33,4 +29,10 @@ export type User = {
   studiedConceptCount: number;
   followingCount: number;
   followerCount: number;
+};
+
+export type UserSummary = {
+  id: number;
+  email: string;
+  nickname: string;
 };
