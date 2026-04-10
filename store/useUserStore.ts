@@ -3,7 +3,7 @@ import {
   logout as logoutApi,
   register as registerApi,
 } from "@/api/auth";
-import type { LoginRequest, RegisterRequest, User } from "@/types/auth";
+import type { LoginRequest, RegisterRequest, UserSummary } from "@/types/auth";
 import {
   deleteSecureStore,
   getSecureStore,
@@ -16,7 +16,7 @@ import {
 import { create } from "zustand";
 
 type UserState = {
-  user: User | null;
+  user: UserSummary | null;
   isLoggedIn: boolean;
   hasOnboarded: boolean;
   isLoading: boolean;
@@ -29,7 +29,7 @@ type UserState = {
   setUnauthorized: () => void; // interceptor에서 호출
 };
 
-export const useUserStore = create<UserState>((set, get) => ({
+export const useUserStore = create<UserState>((set) => ({
   user: null,
   isLoggedIn: false,
   hasOnboarded: false,
@@ -40,7 +40,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const response = await loginApi(body);
       await saveSecureStore("accessToken", response.accessToken);
-      set({ user: response.user as any, isLoggedIn: true });
+      set({ user: response.user, isLoggedIn: true });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -52,7 +52,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const response = await registerApi(body);
       await saveSecureStore("accessToken", response.accessToken);
-      set({ user: response.user as any, isLoggedIn: true });
+      set({ user: response.user, isLoggedIn: true });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -70,18 +70,21 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   restoreSession: async () => {
-    const token = await getSecureStore("accessToken");
-    if (!token) return false;
-
     try {
+      const token = await getSecureStore("accessToken");
+      if (!token) return false;
+
       // GET /api/users/me 로 유저 정보 복원
+      // _skipUnauthorizedCallback: 세션 복원 실패 시 로그인 화면으로 강제 이동하지 않도록
       const api = (await import("@/api/axios")).default;
-      const { data } = await api.get("/api/users/me");
+      const { data } = await api.get("/api/users/me", {
+        _skipUnauthorizedCallback: true,
+      } as any);
       set({ user: data, isLoggedIn: true });
       scheduleTokenRefresh();
       return true;
     } catch {
-      await deleteSecureStore("accessToken");
+      await deleteSecureStore("accessToken").catch(() => {});
       return false;
     }
   },

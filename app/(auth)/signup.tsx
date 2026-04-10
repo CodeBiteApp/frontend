@@ -1,5 +1,5 @@
 import { useUserStore } from "@/store/useUserStore";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,12 +13,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-const PASSWORD_PATTERN =
-  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export default function SignupScreen() {
-  const router = useRouter();
   const register = useUserStore((s) => s.register);
+  // 나중에 제대로된 값을 받아야함.
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [name, setName] = useState("");
@@ -26,7 +25,9 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
+  // 회원가입
   const handleSignup = async () => {
+    // 유효성 검사
     const nickname = name.trim();
     const emailTrim = email.trim();
     if (!nickname || !emailTrim || !password) {
