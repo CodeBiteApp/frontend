@@ -5,9 +5,16 @@ import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } f
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { name, level, totalPoints, logout } = useUserStore();
+  const user = useUserStore((s) => s.user);
+  const logout = useUserStore((s) => s.logout);
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
+
+  const displayName =
+    user?.nickname?.trim() ||
+    user?.email?.split("@")[0] ||
+    "사용자";
+  const avatarChar = displayName.charAt(0).toUpperCase();
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
@@ -16,8 +23,7 @@ export default function SettingsScreen() {
         text: "로그아웃",
         style: "destructive",
         onPress: () => {
-          logout();
-          router.replace("/(auth)/login");
+          void logout().then(() => router.replace("/(auth)/login"));
         },
       },
     ]);
@@ -29,11 +35,13 @@ export default function SettingsScreen() {
 
       <View style={styles.profileBox}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+          <Text style={styles.avatarText}>{avatarChar}</Text>
         </View>
         <View>
-          <Text style={styles.username}>{name}</Text>
-          <Text style={styles.userLevel}>레벨 {level} · {totalPoints}P</Text>
+          <Text style={styles.username}>{displayName}</Text>
+          <Text style={styles.userLevel}>
+            연속 {user?.currentStreak ?? 0}일 · 쿠키 {user?.cookie ?? 0}
+          </Text>
         </View>
       </View>
 

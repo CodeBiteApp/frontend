@@ -13,31 +13,54 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+const PASSWORD_PATTERN =
+  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
 export default function SignupScreen() {
   const router = useRouter();
-  const login = useUserStore((s) => s.login);
+  const register = useUserStore((s) => s.register);
+  const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
-  const handleSignup = () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+  const handleSignup = async () => {
+    const nickname = name.trim();
+    const emailTrim = email.trim();
+    if (!nickname || !emailTrim || !password) {
       Alert.alert("알림", "모든 항목을 입력해주세요.");
+      return;
+    }
+    if (nickname.length < 2 || nickname.length > 20) {
+      Alert.alert("알림", "닉네임은 2~20자여야 합니다.");
       return;
     }
     if (password !== confirm) {
       Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("알림", "비밀번호는 6자 이상이어야 합니다.");
+    if (!PASSWORD_PATTERN.test(password)) {
+      Alert.alert(
+        "알림",
+        "비밀번호는 8자 이상이며 영문, 숫자, 특수문자를 모두 포함해야 합니다.",
+      );
       return;
     }
-    // 실제 앱에서는 API 호출로 교체
-    login(name, email);
-    router.replace("/(onboarding)" as never);
+    try {
+      await register({
+        email: emailTrim,
+        password,
+        nickname,
+      });
+      router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
+    } catch {
+      Alert.alert(
+        "회원가입 실패",
+        "이미 가입된 이메일이거나 입력 형식을 확인해주세요.",
+      );
+    }
   };
 
   return (
@@ -75,7 +98,7 @@ export default function SignupScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="비밀번호 (6자 이상)"
+          placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
           placeholderTextColor="#aaa"
           value={password}
           onChangeText={setPassword}

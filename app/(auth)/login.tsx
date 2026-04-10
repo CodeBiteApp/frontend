@@ -20,14 +20,17 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
       return;
     }
-    // 실제 앱에서는 API 호출로 교체
-    login(email.split("@")[0], email);
-    router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
+    try {
+      await login({ email: email.trim(), password });
+      router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
+    } catch {
+      Alert.alert("로그인 실패", "이메일 또는 비밀번호를 확인해주세요.");
+    }
   };
 
   return (
