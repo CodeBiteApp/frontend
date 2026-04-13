@@ -33,7 +33,7 @@ export const useUserStore = create<UserState>((set) => ({
   user: null,
   isLoggedIn: false,
   hasOnboarded: false,
-  isLoading: false,
+  isLoading: true, // 앱 시작 시 세션 복원 전까지 true
 
   login: async (body) => {
     set({ isLoading: true });
@@ -70,6 +70,7 @@ export const useUserStore = create<UserState>((set) => ({
   },
 
   restoreSession: async () => {
+    set({ isLoading: true });
     try {
       const token = await getSecureStore("accessToken");
       if (!token) return false;
@@ -86,6 +87,8 @@ export const useUserStore = create<UserState>((set) => ({
     } catch {
       await deleteSecureStore("accessToken").catch(() => {});
       return false;
+    } finally {
+      set({ isLoading: false });
     }
   },
 

@@ -16,14 +16,8 @@ export default function RootLayout() {
       router.replace("/(auth)/login");
     });
 
-    // 앱 시작 시 세션 복원 - 성공하면 탭으로, 실패하면 로그인 유지
-    restoreSession()
-      .then((restored) => {
-        if (restored) {
-          router.replace("/(tabs)");
-        }
-      })
-      .catch(() => {});
+    // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
+    restoreSession().catch(() => {});
 
     // 백그라운드 → 포그라운드 전환 시 자동 로그인 시도
     const subscription = AppState.addEventListener(
@@ -52,7 +46,8 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack screenOptions={{ headerShown: false }} initialRouteName="(auth)">
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
