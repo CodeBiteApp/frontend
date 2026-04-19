@@ -1,54 +1,281 @@
-import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Easing,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 const MOCK_RANKING = [
-  { rank: 1, name: "퀴즈왕", score: 980, emoji: "🥇" },
-  { rank: 2, name: "지식인", score: 870, emoji: "🥈" },
-  { rank: 3, name: "천재소년", score: 760, emoji: "🥉" },
-  { rank: 4, name: "공부벌레", score: 650, emoji: "🏅" },
-  { rank: 5, name: "나", score: 540, emoji: "🏅" },
+  { rank: 1, name: "퀴즈왕",    score: 4280, dotori: 980 },
+  { rank: 2, name: "지식인",    score: 3970, dotori: 870 },
+  { rank: 3, name: "천재소년",  score: 3650, dotori: 760 },
+  { rank: 4, name: "공부벌레",  score: 3100, dotori: 650 },
+  { rank: 5, name: "알고왕",    score: 2880, dotori: 540 },
+  { rank: 6, name: "코딩마스터",score: 2470, dotori: 490 },
+  { rank: 7, name: "나",        score: 2200, dotori: 300, isMe: true },
+  { rank: 8, name: "열공중",    score: 1950, dotori: 270 },
+  { rank: 9, name: "뉴비",      score: 1340, dotori: 180 },
+  { rank: 10, name: "도전자",   score:  890, dotori: 120 },
 ];
 
-export default function RankingScreen() {
+const TOP3_COLORS  = ["#FFC800", "#C0C0C0", "#CD7F32"] as const;
+const TOP3_LABELS  = ["1st", "2nd", "3rd"] as const;
+const TOP3_HEIGHTS = [110, 80, 60] as const;
+const SPOKE_COUNT  = 8;
+
+// ────────────────────────────────────────────────────────────
+// 쳇바퀴 컴포넌트
+// ────────────────────────────────────────────────────────────
+function Wheel({ size = 120 }: { size?: number }) {
+  const rot = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rot, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [rot]);
+
+  const rotate = rot.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>랭킹</Text>
-      <FlatList
-        data={MOCK_RANKING}
-        keyExtractor={(item) => String(item.rank)}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <View style={[styles.row, item.rank <= 3 && styles.topRow]}>
-            <Text style={styles.emoji}>{item.emoji}</Text>
-            <Text style={styles.rank}>{item.rank}위</Text>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.score}>{item.score}점</Text>
-          </View>
-        )}
+    <Animated.View style={[{ width: size, height: size }, { transform: [{ rotate }] }]}>
+      {/* 바깥 원 */}
+      <View
+        style={{
+          position: "absolute",
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 5,
+          borderColor: "#C68B3A",
+        }}
       />
-    </View>
+      {/* 안쪽 원 */}
+      <View
+        style={{
+          position: "absolute",
+          width: size * 0.2,
+          height: size * 0.2,
+          borderRadius: (size * 0.2) / 2,
+          backgroundColor: "#C68B3A",
+          top: size * 0.4,
+          left: size * 0.4,
+        }}
+      />
+      {/* 살대 */}
+      {Array.from({ length: SPOKE_COUNT }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            width: size - 10,
+            height: 3,
+            backgroundColor: "#C68B3A",
+            borderRadius: 2,
+            top: (size - 3) / 2,
+            left: 5,
+            opacity: 0.7,
+            transform: [{ rotate: `${(180 / SPOKE_COUNT) * i}deg` }],
+            transformOrigin: "center",
+          }}
+        />
+      ))}
+    </Animated.View>
   );
 }
 
+// ────────────────────────────────────────────────────────────
+// 메인 스크린
+// ────────────────────────────────────────────────────────────
+export default function RankingScreen() {
+  const me = MOCK_RANKING.find((u) => u.isMe);
+  const top3 = MOCK_RANKING.slice(0, 3);
+  const rest = MOCK_RANKING.slice(3).filter((u) => !u.isMe);
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── 헤더: 쳇바퀴 + 코비 ── */}
+      <View style={styles.wheelSection}>
+        <View style={styles.wheelWrapper}>
+          <Wheel size={110} />
+        </View>
+        <Image
+          source={require("@/assets/images/cobi-1.png")}
+          style={styles.cobiImg}
+          resizeMode="contain"
+        />
+        <View style={styles.wheelTextBox}>
+          <Text style={styles.wheelTitle}>이번 주 랭킹</Text>
+          <Text style={styles.wheelSub}>열심히 달리는 중 🐿️</Text>
+        </View>
+      </View>
+
+      {/* ── 시상대 TOP 3 ── */}
+      <View style={styles.podiumRow}>
+        {/* 2위를 왼쪽에 */}
+        {[1, 0, 2].map((idx) => {
+          const user = top3[idx];
+          const color = TOP3_COLORS[idx];
+          const label = TOP3_LABELS[idx];
+          const barH = TOP3_HEIGHTS[idx];
+          return (
+            <View key={user.rank} style={styles.podiumItem}>
+              <Text style={styles.podiumName}>{user.name}</Text>
+              <View style={styles.podiumDotoriRow}>
+                <Image
+                  source={require("@/assets/images/dotori-1.png")}
+                  style={styles.dotoriTiny}
+                  resizeMode="contain"
+                />
+                <Text style={styles.podiumDotori}>{user.dotori}</Text>
+              </View>
+              <View style={[styles.podiumBar, { height: barH, backgroundColor: color }]}>
+                <Text style={styles.podiumLabel}>{label}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ── 4위~ 리스트 ── */}
+      <View style={styles.listBox}>
+        {rest.map((user) => (
+          <View key={user.rank} style={styles.row}>
+            <Text style={styles.rowRank}>{user.rank}</Text>
+            <Text style={styles.rowName}>{user.name}</Text>
+            <View style={styles.rowRight}>
+              <Image
+                source={require("@/assets/images/dotori-1.png")}
+                style={styles.dotoriTiny}
+                resizeMode="contain"
+              />
+              <Text style={styles.rowDotori}>{user.dotori}</Text>
+              <Text style={styles.rowScore}>{user.score.toLocaleString()}점</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* ── 내 순위 고정 카드 ── */}
+      {me && (
+        <View style={styles.meCard}>
+          <View style={styles.meLeft}>
+            <Text style={styles.meRank}>{me.rank}위</Text>
+            <Text style={styles.meName}>나  ({me.name})</Text>
+          </View>
+          <View style={styles.rowRight}>
+            <Image
+              source={require("@/assets/images/dotori-1.png")}
+              style={styles.dotoriTiny}
+              resizeMode="contain"
+            />
+            <Text style={styles.rowDotori}>{me.dotori}</Text>
+            <Text style={styles.rowScore}>{me.score.toLocaleString()}점</Text>
+          </View>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// 스타일
+// ────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5", paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: "bold", textAlign: "center", color: "#1a1a1a", marginBottom: 24 },
-  list: { paddingHorizontal: 20, gap: 12 },
+  container: { flex: 1, backgroundColor: "#191A1C" },
+  content:   { paddingTop: 56, paddingBottom: 40 },
+
+  // 헤더
+  wheelSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    marginBottom: 32,
+    gap: 16,
+  },
+  wheelWrapper: {
+    padding: 6,
+  },
+  cobiImg: {
+    width: 90,
+    height: 90,
+    marginLeft: -10,
+  },
+  wheelTextBox: { flex: 1 },
+  wheelTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 4 },
+  wheelSub:   { color: "#aaa", fontSize: 13 },
+
+  // 시상대
+  podiumRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "center",
+    marginHorizontal: 20,
+    marginBottom: 24,
+    gap: 8,
+  },
+  podiumItem: { flex: 1, alignItems: "center" },
+  podiumName: { color: "#fff", fontSize: 13, fontWeight: "700", marginBottom: 2, textAlign: "center" },
+  podiumDotoriRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 6 },
+  podiumDotori: { color: "#FFC800", fontSize: 12, fontWeight: "700" },
+  podiumBar: {
+    width: "100%",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  podiumLabel: { color: "#191A1C", fontSize: 14, fontWeight: "800", paddingVertical: 8 },
+
+  // 리스트
+  listBox: {
+    marginHorizontal: 20,
+    backgroundColor: "#242628",
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#2e3032",
   },
-  topRow: { borderLeftWidth: 4, borderLeftColor: "#f5a623" },
-  emoji: { fontSize: 24 },
-  rank: { fontSize: 16, fontWeight: "700", color: "#333", width: 30 },
-  name: { flex: 1, fontSize: 16, color: "#1a1a1a" },
-  score: { fontSize: 16, fontWeight: "600", color: "#0a7ea4" },
+  rowRank:   { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
+  rowName:   { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
+  rowRight:  { flexDirection: "row", alignItems: "center", gap: 4 },
+  dotoriTiny: { width: 16, height: 16 },
+  rowDotori: { color: "#FFC800", fontSize: 13, fontWeight: "700", marginRight: 8 },
+  rowScore:  { color: "#aaa", fontSize: 13 },
+
+  // 내 순위 카드
+  meCard: {
+    marginHorizontal: 20,
+    backgroundColor: "#2C2A1E",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#FFC800",
+  },
+  meLeft:  { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  meRank:  { color: "#FFC800", fontSize: 16, fontWeight: "800" },
+  meName:  { color: "#fff", fontSize: 15, fontWeight: "700" },
 });

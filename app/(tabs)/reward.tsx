@@ -1,73 +1,245 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const REWARDS = [
-  { id: "1", title: "첫 퀴즈 완료", description: "처음으로 퀴즈를 완료했어요!", points: 100, unlocked: true },
-  { id: "2", title: "연속 3일", description: "3일 연속으로 퀴즈를 풀었어요!", points: 200, unlocked: true },
-  { id: "3", title: "만점왕", description: "퀴즈에서 만점을 받았어요!", points: 500, unlocked: false },
-  { id: "4", title: "퀴즈 마스터", description: "모든 카테고리를 완료했어요!", points: 1000, unlocked: false },
+type ShopItem = {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  price: number;
+};
+
+const SHOP_ITEMS: ShopItem[] = [
+  { id: "1", emoji: "💡", title: "힌트 사용권", description: "퀴즈 풀이 중 힌트를 1회 사용할 수 있어요.", price: 50 },
+  { id: "2", emoji: "🔍", title: "정답 보기권", description: "틀린 문제의 정답을 바로 확인할 수 있어요.", price: 80 },
+  { id: "3", emoji: "⏭️", title: "스테이지 건너뛰기", description: "원하는 스테이지 1개를 건너뛸 수 있어요.", price: 150 },
+  { id: "4", emoji: "⚡", title: "경험치 2배 (1시간)", description: "1시간 동안 획득 경험치가 2배가 돼요.", price: 200 },
+  { id: "5", emoji: "🛡️", title: "오답 보호권", description: "틀려도 하트가 차감되지 않아요. (1회)", price: 120 },
+  { id: "6", emoji: "🎯", title: "연습 모드 해금", description: "제한 없이 스테이지를 반복 연습할 수 있어요.", price: 300 },
 ];
 
 export default function RewardScreen() {
+  const [dotori] = useState(300);
+  const [selected, setSelected] = useState<ShopItem | null>(null);
+  const [purchased, setPurchased] = useState<string[]>([]);
+
+  const handleBuy = () => {
+    if (!selected) return;
+    setPurchased((prev) => [...prev, selected.id]);
+    setSelected(null);
+  };
+
+  const canAfford = selected ? dotori >= selected.price : false;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>퀴즈 보상</Text>
-      <View style={styles.pointBox}>
-        <Text style={styles.pointLabel}>보유 포인트</Text>
-        <Text style={styles.pointValue}>300 P</Text>
-      </View>
-      {REWARDS.map((reward) => (
-        <View key={reward.id} style={[styles.card, !reward.unlocked && styles.locked]}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{reward.unlocked ? "✅" : "🔒"} {reward.title}</Text>
-            <Text style={styles.points}>+{reward.points}P</Text>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 헤더 */}
+        <Text style={styles.header}>상점</Text>
+
+        {/* 도토리 잔액 */}
+        <View style={styles.balanceCard}>
+          <Image
+            source={require("@/assets/images/dotori-1.png")}
+            style={styles.dotoriImg}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.balanceLabel}>보유 도토리</Text>
+            <Text style={styles.balanceValue}>{dotori.toLocaleString()}</Text>
           </View>
-          <Text style={styles.desc}>{reward.description}</Text>
-          {reward.unlocked && (
-            <TouchableOpacity style={styles.claimBtn}>
-              <Text style={styles.claimText}>수령하기</Text>
-            </TouchableOpacity>
-          )}
         </View>
-      ))}
-    </ScrollView>
+
+        {/* 아이템 목록 */}
+        <Text style={styles.sectionTitle}>아이템</Text>
+        <View style={styles.grid}>
+          {SHOP_ITEMS.map((item) => {
+            const isBought = purchased.includes(item.id);
+            const affordable = dotori >= item.price;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.card, isBought && styles.cardBought]}
+                activeOpacity={0.75}
+                onPress={() => !isBought && setSelected(item)}
+                disabled={isBought}
+              >
+                <Text style={styles.cardEmoji}>{item.emoji}</Text>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <View style={styles.priceRow}>
+                  <Image
+                    source={require("@/assets/images/dotori-1.png")}
+                    style={styles.dotoriSmall}
+                    resizeMode="contain"
+                  />
+                  <Text style={[styles.priceText, !affordable && !isBought && styles.priceInsufficient]}>
+                    {isBought ? "구매완료" : item.price.toLocaleString()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* 구매 확인 모달 */}
+      <Modal
+        visible={!!selected}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelected(null)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setSelected(null)} />
+        {selected && (
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetEmoji}>{selected.emoji}</Text>
+            <Text style={styles.sheetTitle}>{selected.title}</Text>
+            <Text style={styles.sheetDesc}>{selected.description}</Text>
+
+            <View style={styles.sheetPriceRow}>
+              <Image
+                source={require("@/assets/images/dotori-1.png")}
+                style={styles.dotoriMedium}
+                resizeMode="contain"
+              />
+              <Text style={styles.sheetPrice}>{selected.price.toLocaleString()} 도토리</Text>
+            </View>
+
+            {!canAfford && (
+              <Text style={styles.insufficientText}>도토리가 부족해요</Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.buyBtn, !canAfford && styles.buyBtnDisabled]}
+              activeOpacity={0.85}
+              onPress={handleBuy}
+              disabled={!canAfford}
+            >
+              <Text style={styles.buyBtnText}>구매하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelected(null)}>
+              <Text style={styles.cancelText}>취소</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
-  content: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 40 },
-  title: { fontSize: 28, fontWeight: "bold", textAlign: "center", color: "#1a1a1a", marginBottom: 20 },
-  pointBox: {
-    backgroundColor: "#0a7ea4",
+  container: { flex: 1, backgroundColor: "#191A1C" },
+  content: { paddingTop: 56, paddingHorizontal: 20, paddingBottom: 40 },
+
+  header: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#ffffff",
+    textAlign: "center",
+    marginBottom: 24,
+    letterSpacing: 1,
+  },
+
+  // 잔액 카드
+  balanceCard: {
+    backgroundColor: "#242628",
     borderRadius: 16,
     padding: 20,
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    gap: 16,
+    marginBottom: 28,
+    borderWidth: 1.5,
+    borderColor: "#C68B3A",
   },
-  pointLabel: { color: "rgba(255,255,255,0.8)", fontSize: 14 },
-  pointValue: { color: "#fff", fontSize: 36, fontWeight: "bold", marginTop: 4 },
+  dotoriImg: { width: 52, height: 52 },
+  balanceLabel: { color: "#aaa", fontSize: 13, marginBottom: 2 },
+  balanceValue: { color: "#FFC800", fontSize: 30, fontWeight: "800" },
+
+  sectionTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 14,
+    letterSpacing: 0.4,
+  },
+
+  // 그리드
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    width: "47%",
+    backgroundColor: "#242628",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    alignItems: "flex-start",
+    borderWidth: 1.5,
+    borderColor: "#333537",
   },
-  locked: { opacity: 0.5 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: "#1a1a1a" },
-  points: { fontSize: 14, fontWeight: "700", color: "#f5a623" },
-  desc: { fontSize: 13, color: "#888", marginTop: 6 },
-  claimBtn: {
-    marginTop: 12,
-    backgroundColor: "#0a7ea4",
-    borderRadius: 8,
-    paddingVertical: 8,
+  cardBought: {
+    opacity: 0.45,
+    borderColor: "#444",
+  },
+  cardEmoji: { fontSize: 28, marginBottom: 8 },
+  cardTitle: { color: "#ffffff", fontSize: 14, fontWeight: "700", marginBottom: 12, lineHeight: 20 },
+  priceRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  dotoriSmall: { width: 16, height: 16 },
+  priceText: { color: "#FFC800", fontSize: 14, fontWeight: "700" },
+  priceInsufficient: { color: "#ff4b4b" },
+
+  // 모달
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
+  sheet: {
+    backgroundColor: "#242628",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 40,
     alignItems: "center",
   },
-  claimText: { color: "#fff", fontWeight: "600" },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#444",
+    borderRadius: 2,
+    marginBottom: 20,
+  },
+  sheetEmoji: { fontSize: 52, marginBottom: 12 },
+  sheetTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 8 },
+  sheetDesc: { color: "#aaa", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 20 },
+  sheetPriceRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
+  dotoriMedium: { width: 24, height: 24 },
+  sheetPrice: { color: "#FFC800", fontSize: 22, fontWeight: "800" },
+  insufficientText: { color: "#ff4b4b", fontSize: 13, marginBottom: 4 },
+  buyBtn: {
+    width: "100%",
+    backgroundColor: "#FFC800",
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  buyBtnDisabled: { backgroundColor: "#3a3a3a" },
+  buyBtnText: { color: "#191A1C", fontSize: 16, fontWeight: "800" },
+  cancelBtn: { paddingVertical: 8 },
+  cancelText: { color: "#888", fontSize: 14 },
 });

@@ -17,7 +17,8 @@
         "backgroundColor": "#FFB6C1"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.hwanghotae.codebite"
     },
     "web": {
       "output": "static",
