@@ -1,9 +1,9 @@
 import { Button } from "@/components/common/Button";
-import { DaramRat } from "@/components/common/DaramRat";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { QuizOption } from "@/components/quiz/QuizOption";
+import { QuizResultCharacter } from "@/components/quiz/QuizResultCharacter";
 import { useQuizStore } from "@/store/useQuizStore";
-import { useUserStore } from "@/store/useUserStore";
+import { useStageStore } from "@/store/useStageStore";
 import type { QuizQuestion } from "@/types/quiz";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
@@ -66,8 +66,7 @@ export default function QuizScreen() {
     finishQuiz,
     resetQuiz,
   } = useQuizStore();
-  const addPoints = useUserStore((s) => s.addPoints);
-
+  const { triggerEating } = useStageStore();
   useEffect(() => {
     const qs = MOCK_QUESTIONS[id ?? "1"] ?? [];
     setQuestions(qs);
@@ -84,7 +83,7 @@ export default function QuizScreen() {
     const points = correct * 10;
     return (
       <View style={styles.resultContainer}>
-        <DaramRat />
+        <QuizResultCharacter />
         <Text style={styles.resultTitle}>퀴즈 완료!</Text>
         <Text style={styles.resultScore}>
           {correct} / {questions.length} 정답
@@ -93,7 +92,6 @@ export default function QuizScreen() {
         <Button
           title="다음"
           onPress={() => {
-            addPoints(points);
             router.back();
           }}
           style={styles.btn}
@@ -109,6 +107,7 @@ export default function QuizScreen() {
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
       finishQuiz(id ?? "1");
+      triggerEating(id ?? "1");
     } else {
       nextQuestion();
     }

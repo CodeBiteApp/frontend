@@ -1,5 +1,8 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { ACORN_H, ACORN_W, AcornButton } from "@/components/common/AcornButton";
+import { EatingAnimation } from "@/components/quiz/EatingAnimation";
+import { useStageStore } from "@/store/useStageStore";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -12,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const CHAPTER_COLORS = [
   "#58CC02",
@@ -40,7 +43,6 @@ const CHAPTER_NAMES = [
   "컴퓨터구조",
 ];
 
-// 스테이지별 제목/설명 (70개)
 const STAGE_INFO: Record<number, { title: string; content: string }> = Object.fromEntries(
   Array.from({ length: 70 }, (_, i) => {
     const id = i + 1;
@@ -71,20 +73,76 @@ const MASCOT_IMAGES = {
 };
 
 const ZIGZAG = [0.5, 0.68, 0.6, 0.42, 0.32, 0.52, 0.5];
-const BUTTON_SIZE = 64;
 const ROW_HEIGHT = 90;
 
+// 배너 높이 추정값 (useFocusEffect 스크롤 위치 계산용)
+const BANNER_H_EST = 68;
+const HEADER_AREA = 110;
+
 type SelectedStage = { id: number; color: string };
+type AnimatingStage = {
+  stageId: string;
+  color: string;
+  darkColor: string;
+  position: { x: number; y: number; width: number; height: number };
+};
 
 export default function HomeScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<SelectedStage | null>(null);
+  const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
+
+  const { completedStages, justCompletedStageId, confirmComplete } = useStageStore();
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const buttonRefs = useRef<Record<number, View | null>>({});
 
   const info = selected ? STAGE_INFO[selected.id] : null;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!justCompletedStageId) return;
+
+      const stageId = Number(justCompletedStageId);
+      const chapterIdx = Math.floor((stageId - 1) / 7);
+      const stageInChapter = (stageId - 1) % 7;
+
+      const estimatedStageY =
+        HEADER_AREA + chapterIdx * (BANNER_H_EST + ROW_HEIGHT * 7) + BANNER_H_EST + stageInChapter * ROW_HEIGHT;
+
+      const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
+      scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
+
+      setTimeout(() => {
+        const ref = buttonRefs.current[stageId];
+        if (!ref) return;
+        ref.measureInWindow((x, y, w, h) => {
+          if (w > 0 && h > 0) {
+            const chapterIdx2 = Math.floor((stageId - 1) / 7);
+            const color = CHAPTER_COLORS[chapterIdx2];
+            setAnimatingStage({
+              stageId: justCompletedStageId,
+              color,
+              darkColor: darken(color, 0.25),
+              position: { x, y, width: w, height: h },
+            });
+          }
+        });
+      }, 650);
+    }, [justCompletedStageId])
+  );
+
+  const handleEatingFinish = useCallback(() => {
+    if (animatingStage) {
+      confirmComplete(animatingStage.stageId);
+      setAnimatingStage(null);
+    }
+  }, [animatingStage, confirmComplete]);
 
   return (
     <>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -109,9 +167,11 @@ export default function HomeScreen() {
                 {Array.from({ length: 7 }, (_, s) => {
                   const stageId = c * 7 + s + 1;
                   const xRatio = ZIGZAG[s];
-                  const x = xRatio * (SCREEN_WIDTH - BUTTON_SIZE);
+                  const x = xRatio * (SCREEN_WIDTH - ACORN_W);
                   const y = s * ROW_HEIGHT;
                   const side = x > SCREEN_WIDTH / 2 ? "left" : "right";
+                  const isCompleted = completedStages.includes(String(stageId));
+                  const isAnimating = animatingStage?.stageId === String(stageId);
 
                   return (
                     <React.Fragment key={stageId}>
@@ -139,17 +199,21 @@ export default function HomeScreen() {
                           resizeMode="contain"
                         />
                       )}
-                      <TouchableOpacity
-                        style={[
-                          styles.stageBtn,
-                          { left: x, top: y, backgroundColor: color, borderColor: darkColor },
-                        ]}
-                        activeOpacity={0.8}
+                      <AcornButton
+                        ref={(r) => {
+                          buttonRefs.current[stageId] = r;
+                        }}
+                        stageNum={stageId}
+                        color={color}
+                        darkColor={darkColor}
+                        completed={isCompleted}
+                        style={{
+                          left: x,
+                          top: y,
+                          opacity: isAnimating ? 0 : 1,
+                        }}
                         onPress={() => setSelected({ id: stageId, color })}
-                      >
-                        <Text style={styles.stageStar}>★</Text>
-                        <Text style={styles.stageNum}>{stageId}</Text>
-                      </TouchableOpacity>
+                      />
                     </React.Fragment>
                   );
                 })}
@@ -161,7 +225,7 @@ export default function HomeScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Stage Modal */}
+      {/* 스테이지 모달 */}
       <Modal
         visible={!!selected}
         transparent
@@ -195,6 +259,17 @@ export default function HomeScreen() {
           )}
         </View>
       </Modal>
+
+      {/* 다람쥐 먹기 애니메이션 */}
+      {animatingStage && (
+        <EatingAnimation
+          stageId={animatingStage.stageId}
+          position={animatingStage.position}
+          color={animatingStage.color}
+          darkColor={animatingStage.darkColor}
+          onFinish={handleEatingFinish}
+        />
+      )}
     </>
   );
 }
@@ -237,43 +312,17 @@ const styles = StyleSheet.create({
   },
   chapterBadgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   chapterName: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-  stageBtn: {
-    position: "absolute",
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: BUTTON_SIZE / 2,
-    borderBottomWidth: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  stageStar: { color: "#fff", fontSize: 16, lineHeight: 18 },
-  stageNum: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 11,
-    fontWeight: "700",
-    lineHeight: 13,
-  },
   cobiImg: { position: "absolute", width: 180, height: 180, opacity: 0.92 },
   dotoriImg: { position: "absolute", width: 72, height: 72, opacity: 0.88 },
 
-  // Modal
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
   sheet: {
     backgroundColor: "#242628",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: "hidden",
   },
-  sheetAccent: {
-    height: 6,
-  },
+  sheetAccent: { height: 6 },
   sheetBody: {
     paddingHorizontal: 28,
     paddingTop: 24,
