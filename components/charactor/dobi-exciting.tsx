@@ -1,6 +1,6 @@
 import { DobiAnimatedProps } from "@/types/dobi";
 import React from "react";
-import { Path, Svg } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
 export default function DobiExciting({ size = 300 }: DobiAnimatedProps) {
   return (
@@ -24,6 +24,7 @@ export default function DobiExciting({ size = 300 }: DobiAnimatedProps) {
         d="M216.5 173C232.24 173 245 160.016 245 144C245 127.984 232.24 115 216.5 115C200.76 115 188 127.984 188 144C188 160.016 200.76 173 216.5 173Z"
         fill="#EFAC00"
       />
+
       <Path
         d="M194.649 150.018C200.865 146.429 200.668 134.449 194.208 123.26C187.748 112.071 177.472 105.909 171.255 109.498C165.039 113.087 165.237 125.067 171.697 136.256C178.157 147.445 188.433 153.607 194.649 150.018Z"
         fill="#EFAC00"
