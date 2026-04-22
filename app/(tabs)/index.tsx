@@ -1,5 +1,5 @@
+import { AnimatedDobiEatting } from "@/components/charactor/AnimatedDobiEatting";
 import { ACORN_H, ACORN_W, AcornButton } from "@/components/common/AcornButton";
-import { EatingAnimation } from "@/components/quiz/EatingAnimation";
 import { useStageStore } from "@/store/useStageStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
@@ -43,24 +43,33 @@ const CHAPTER_NAMES = [
   "컴퓨터구조",
 ];
 
-const STAGE_INFO: Record<number, { title: string; content: string }> = Object.fromEntries(
-  Array.from({ length: 70 }, (_, i) => {
-    const id = i + 1;
-    const chapter = Math.floor(i / 7);
-    const stage = (i % 7) + 1;
-    return [
-      id,
-      {
-        title: `${CHAPTER_NAMES[chapter]} ${stage}단계`,
-        content: `챕터 ${chapter + 1}의 ${stage}번째 스테이지입니다.\n이 단계에서는 ${CHAPTER_NAMES[chapter]}의 핵심 개념을 퀴즈로 확인합니다.`,
-      },
-    ];
-  })
-);
+const STAGE_INFO: Record<number, { title: string; content: string }> =
+  Object.fromEntries(
+    Array.from({ length: 70 }, (_, i) => {
+      const id = i + 1;
+      const chapter = Math.floor(i / 7);
+      const stage = (i % 7) + 1;
+      return [
+        id,
+        {
+          title: `${CHAPTER_NAMES[chapter]} ${stage}단계`,
+          content: `챕터 ${chapter + 1}의 ${stage}번째 스테이지입니다.\n이 단계에서는 ${CHAPTER_NAMES[chapter]}의 핵심 개념을 퀴즈로 확인합니다.`,
+        },
+      ];
+    }),
+  );
 
 const COBI_VARIANTS: Record<number, "cobi-1" | "cobi-2"> = {
-  0: "cobi-1", 1: "cobi-2", 2: "cobi-1", 3: "cobi-2", 4: "cobi-1",
-  5: "cobi-2", 6: "cobi-1", 7: "cobi-2", 8: "cobi-1", 9: "cobi-2",
+  0: "cobi-1",
+  1: "cobi-2",
+  2: "cobi-1",
+  3: "cobi-2",
+  4: "cobi-1",
+  5: "cobi-2",
+  6: "cobi-1",
+  7: "cobi-2",
+  8: "cobi-1",
+  9: "cobi-2",
 };
 
 const COBI_STAGE_IDX = 1;
@@ -90,9 +99,12 @@ type AnimatingStage = {
 export default function HomeScreen() {
   const router = useRouter();
   const [selected, setSelected] = useState<SelectedStage | null>(null);
-  const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
+  const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(
+    null,
+  );
 
-  const { completedStages, justCompletedStageId, confirmComplete } = useStageStore();
+  const { completedStages, justCompletedStageId, confirmComplete } =
+    useStageStore();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const buttonRefs = useRef<Record<number, View | null>>({});
@@ -108,9 +120,15 @@ export default function HomeScreen() {
       const stageInChapter = (stageId - 1) % 7;
 
       const estimatedStageY =
-        HEADER_AREA + chapterIdx * (BANNER_H_EST + ROW_HEIGHT * 7) + BANNER_H_EST + stageInChapter * ROW_HEIGHT;
+        HEADER_AREA +
+        chapterIdx * (BANNER_H_EST + ROW_HEIGHT * 7) +
+        BANNER_H_EST +
+        stageInChapter * ROW_HEIGHT;
 
-      const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
+      const scrollTarget = Math.max(
+        0,
+        estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2,
+      );
       scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
 
       setTimeout(() => {
@@ -129,7 +147,7 @@ export default function HomeScreen() {
           }
         });
       }, 650);
-    }, [justCompletedStageId])
+    }, [justCompletedStageId]),
   );
 
   const handleEatingFinish = useCallback(() => {
@@ -147,7 +165,21 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.header}>CodeBite</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>CodeBite</Text>
+          {/* 임시 테스트 버튼 - 삭제 필요 */}
+          <TouchableOpacity
+            style={styles.devBtn}
+            onPress={() => {
+              useStageStore.setState((s) => ({
+                completedStages: s.completedStages.filter((id) => id !== "3"),
+                justCompletedStageId: "3",
+              }));
+            }}
+          >
+            <Text style={styles.devBtnText}>3 클리어</Text>
+          </TouchableOpacity>
+        </View>
 
         {Array.from({ length: 10 }, (_, c) => {
           const color = CHAPTER_COLORS[c];
@@ -171,7 +203,8 @@ export default function HomeScreen() {
                   const y = s * ROW_HEIGHT;
                   const side = x > SCREEN_WIDTH / 2 ? "left" : "right";
                   const isCompleted = completedStages.includes(String(stageId));
-                  const isAnimating = animatingStage?.stageId === String(stageId);
+                  const isAnimating =
+                    animatingStage?.stageId === String(stageId);
 
                   return (
                     <React.Fragment key={stageId}>
@@ -236,9 +269,16 @@ export default function HomeScreen() {
         <View style={styles.sheet}>
           {selected && info && (
             <>
-              <View style={[styles.sheetAccent, { backgroundColor: selected.color }]} />
+              <View
+                style={[
+                  styles.sheetAccent,
+                  { backgroundColor: selected.color },
+                ]}
+              />
               <View style={styles.sheetBody}>
-                <Text style={styles.sheetStageLabel}>스테이지 {selected.id}</Text>
+                <Text style={styles.sheetStageLabel}>
+                  스테이지 {selected.id}
+                </Text>
                 <Text style={styles.sheetTitle}>{info.title}</Text>
                 <Text style={styles.sheetContent}>{info.content}</Text>
                 <TouchableOpacity
@@ -251,7 +291,10 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.startBtnText}>시작하기</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelected(null)}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setSelected(null)}
+                >
                   <Text style={styles.cancelBtnText}>닫기</Text>
                 </TouchableOpacity>
               </View>
@@ -262,7 +305,7 @@ export default function HomeScreen() {
 
       {/* 다람쥐 먹기 애니메이션 */}
       {animatingStage && (
-        <EatingAnimation
+        <AnimatedDobiEatting
           stageId={animatingStage.stageId}
           position={animatingStage.position}
           color={animatingStage.color}
@@ -285,14 +328,26 @@ function darken(hex: string, amount: number): string {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
   content: { paddingTop: 56, paddingBottom: 24 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+    gap: 12,
+  },
   header: {
     fontSize: 26,
     fontWeight: "800",
     color: "#ffffff",
-    textAlign: "center",
-    marginBottom: 24,
     letterSpacing: 1,
   },
+  devBtn: {
+    backgroundColor: "#FF4B4B",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  devBtnText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   chapterBanner: {
     marginHorizontal: 20,
     borderRadius: 14,

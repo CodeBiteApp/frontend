@@ -1,12 +1,12 @@
-import { AnimatedDobi } from "@/components/common/AnimatedDobi";
-import { DaramRat } from "@/components/common/DaramRat";
+import { AnimatedDobi } from "@/components/charactor/AnimatedDobi";
+import { AnimatedDobiExciting } from "@/components/charactor/AnimatedDobiExciting";
+import { AnimatedDobiHappy } from "@/components/charactor/AnimatedDobiHappy";
 import { getDailyCharacterIndex } from "@/utils/dailyCharacter";
 import React from "react";
 
 const CHARACTERS = [
-  () => <AnimatedDobi />,
-  () => <DaramRat />,
-  // C 캐릭터 추가 시 여기에 넣기
+  () => <AnimatedDobiExciting />,
+  () => <AnimatedDobiHappy />,
   () => <AnimatedDobi />,
 ];
 

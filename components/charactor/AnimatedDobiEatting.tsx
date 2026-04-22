@@ -1,3 +1,4 @@
+import { AcornSvg } from "@/components/common/AcornButton";
 import LottieView from "lottie-react-native";
 import React, { useEffect } from "react";
 import { Dimensions, Modal, View } from "react-native";
@@ -9,7 +10,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { AcornSvg } from "@/components/common/AcornButton";
 
 const { width: SW } = Dimensions.get("window");
 const SQUIRREL_SIZE = 120;
@@ -22,31 +22,42 @@ interface Props {
   onFinish: () => void;
 }
 
-export function EatingAnimation({ stageId, position, color, darkColor, onFinish }: Props) {
+export function AnimatedDobiEatting({
+  stageId,
+  position,
+  color,
+  darkColor,
+  onFinish,
+}: Props) {
   const acornScale = useSharedValue(1);
   const squirrelLeft = useSharedValue(SW);
   const squirrelOpacity = useSharedValue(1);
 
-  const squirrelTargetLeft = position.x + position.width / 2 - SQUIRREL_SIZE / 2;
+  const squirrelTargetLeft =
+    position.x + position.width / 2 - SQUIRREL_SIZE / 2;
   const squirrelTop = position.y + position.height / 2 - SQUIRREL_SIZE / 2;
 
   useEffect(() => {
     // 1. 다람쥐 오른쪽에서 슬라이드인 (500ms)
-    squirrelLeft.value = withTiming(squirrelTargetLeft, { duration: 500 }, () => {
-      // 2. 도토리 팝 → 사라짐 (350ms)
-      acornScale.value = withSequence(
-        withTiming(1.2, { duration: 100 }),
-        withTiming(0, { duration: 250 }, () => {
-          // 3. 잠깐 뜸 들이다가 다람쥐 퇴장 (650ms 후)
-          squirrelOpacity.value = withDelay(
-            350,
-            withTiming(0, { duration: 300 }, () => {
-              runOnJS(onFinish)();
-            })
-          );
-        })
-      );
-    });
+    squirrelLeft.value = withTiming(
+      squirrelTargetLeft,
+      { duration: 500 },
+      () => {
+        // 2. 도토리 팝 → 사라짐 (350ms)
+        acornScale.value = withSequence(
+          withTiming(1.2, { duration: 100 }),
+          withTiming(0, { duration: 250 }, () => {
+            // 3. 잠깐 뜸 들이다가 다람쥐 퇴장 (650ms 후)
+            squirrelOpacity.value = withDelay(
+              350,
+              withTiming(0, { duration: 300 }, () => {
+                runOnJS(onFinish)();
+              }),
+            );
+          }),
+        );
+      },
+    );
   }, []);
 
   const acornStyle = useAnimatedStyle(() => ({
