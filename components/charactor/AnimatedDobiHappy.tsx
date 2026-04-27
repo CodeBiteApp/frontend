@@ -7,7 +7,10 @@ interface DaramRatProps {
   loop?: boolean;
 }
 
-export function DaramRat({ autoPlay = true, loop = true }: DaramRatProps) {
+export function AnimatedDobiHappy({
+  autoPlay = true,
+  loop = true,
+}: DaramRatProps) {
   const { width, height } = useWindowDimensions();
   const size = Math.min(width, height) * 0.55;
 

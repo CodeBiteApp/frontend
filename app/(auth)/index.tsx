@@ -1,7 +1,9 @@
+import api from "@/api/axios";
 import { useUserStore } from "@/store/useUserStore";
 import { Redirect, useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -13,10 +15,25 @@ export default function AuthIndexScreen() {
   const router = useRouter();
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
+  const [checking, setChecking] = useState(false);
 
   if (isLoggedIn && hasOnboarded) return <Redirect href="/(tabs)" />;
   if (isLoggedIn && !hasOnboarded) return <Redirect href="/(onboarding)" />;
 
+  const handleServerCheck = async () => {
+    setChecking(true);
+    try {
+      await api.get("/api/health");
+      Alert.alert("서버 연결 성공", "서버가 정상적으로 응답했습니다.");
+    } catch (e: any) {
+      Alert.alert(
+        "서버 연결 실패",
+        `서버에 접근할 수 없습니다.\n${e?.message ?? ""}`,
+      );
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -45,6 +62,17 @@ export default function AuthIndexScreen() {
         <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85}>
           <Text style={styles.googleBtnText}>구글로 시작하기</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.serverCheckBtn}
+          onPress={handleServerCheck}
+          activeOpacity={0.85}
+          disabled={checking}
+        >
+          <Text style={styles.serverCheckBtnText}>
+            {checking ? "확인 중..." : "서버 연결 확인"}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -53,7 +81,7 @@ export default function AuthIndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#191A1C",
     justifyContent: "center",
     paddingHorizontal: 28,
   },
@@ -69,26 +97,35 @@ const styles = StyleSheet.create({
   },
   buttons: { gap: 12 },
   emailBtn: {
-    backgroundColor: "#0a7ea4",
-    borderRadius: 12,
+    backgroundColor: "#58CC02",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
   },
   emailBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   kakaoBtn: {
     backgroundColor: "#FEE500",
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
   },
   kakaoBtnText: { color: "#191919", fontSize: 16, fontWeight: "700" },
   googleBtn: {
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#242628",
   },
-  googleBtnText: { color: "#1a1a1a", fontSize: 16, fontWeight: "700" },
+  googleBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  serverCheckBtn: {
+    borderWidth: 1,
+    borderColor: "#333537",
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#242628",
+  },
+  serverCheckBtnText: { color: "#888", fontSize: 14 },
 });

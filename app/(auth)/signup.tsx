@@ -1,5 +1,5 @@
 import { useUserStore } from "@/store/useUserStore";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -13,31 +13,48 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
 export default function SignupScreen() {
-  const router = useRouter();
-  const login = useUserStore((s) => s.login);
+  const register = useUserStore((s) => s.register);
+  const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
-  const handleSignup = () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+  const handleSignup = async () => {
+    const nickname = name.trim();
+    const emailTrim = email.trim();
+    if (!nickname || !emailTrim || !password) {
       Alert.alert("알림", "모든 항목을 입력해주세요.");
+      return;
+    }
+    if (nickname.length < 2 || nickname.length > 20) {
+      Alert.alert("알림", "닉네임은 2~20자여야 합니다.");
       return;
     }
     if (password !== confirm) {
       Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("알림", "비밀번호는 6자 이상이어야 합니다.");
+    if (!PASSWORD_PATTERN.test(password)) {
+      Alert.alert(
+        "알림",
+        "비밀번호는 8자 이상이며 영문, 숫자, 특수문자를 모두 포함해야 합니다.",
+      );
       return;
     }
-    // 실제 앱에서는 API 호출로 교체
-    login(name, email);
-    router.replace("/(onboarding)" as never);
+    try {
+      await register({ email: emailTrim, password, nickname });
+      router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
+    } catch {
+      Alert.alert(
+        "회원가입 실패",
+        "이미 가입된 이메일이거나 입력 형식을 확인해주세요.",
+      );
+    }
   };
 
   return (
@@ -60,14 +77,14 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="닉네임"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={name}
           onChangeText={setName}
         />
         <TextInput
           style={styles.input}
           placeholder="이메일"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -75,8 +92,8 @@ export default function SignupScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="비밀번호 (6자 이상)"
-          placeholderTextColor="#aaa"
+          placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
+          placeholderTextColor="#888"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -84,7 +101,7 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="비밀번호 확인"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={confirm}
           onChangeText={setConfirm}
           secureTextEntry
@@ -95,11 +112,11 @@ export default function SignupScreen() {
           onPress={handleSignup}
           activeOpacity={0.85}
         >
-          <Text style={styles.signupText}>가입하기</Text>
+          <Text style={styles.signupBtnText}>가입하기</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backText}>← 로그인으로 돌아가기</Text>
+          <Text style={styles.backBtnText}>이미 계정이 있으신가요? 로그인</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -107,7 +124,7 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#191A1C" },
   inner: {
     flexGrow: 1,
     justifyContent: "center",
@@ -120,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
-    color: "#1a1a1a",
+    color: "#fff",
   },
   subtitle: {
     fontSize: 14,
@@ -130,22 +147,22 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#1a1a1a",
-    backgroundColor: "#fafafa",
+    color: "#fff",
+    backgroundColor: "#242628",
   },
   signupBtn: {
-    backgroundColor: "#0a7ea4",
-    borderRadius: 12,
+    backgroundColor: "#58CC02",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 4,
   },
-  signupText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  backBtn: { alignItems: "center", marginTop: 8 },
-  backText: { color: "#888", fontSize: 14 },
+  signupBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  backBtn: { alignItems: "center", marginTop: 4 },
+  backBtnText: { color: "#58CC02", fontSize: 14, fontWeight: "600" },
 });
