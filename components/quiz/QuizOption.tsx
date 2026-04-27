@@ -1,39 +1,76 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   label: string;
   index: number;
   selected: boolean;
-  correct?: boolean | null; // null = 아직 제출 전
+  correct?: boolean | null;
   onPress: () => void;
+  accentColor?: string;
 };
 
-export function QuizOption({ label, index, selected, correct, onPress }: Props) {
+export function QuizOption({
+  label,
+  index,
+  selected,
+  correct,
+  onPress,
+  accentColor = "#1CB0F6",
+}: Props) {
   const letters = ["A", "B", "C", "D"];
+  const answered = correct !== null && correct !== undefined;
 
-  const getStyle = () => {
-    if (correct === null || correct === undefined) {
-      return selected ? styles.selectedOption : styles.option;
-    }
-    if (correct) return styles.correctOption;
-    if (selected && !correct) return styles.wrongOption;
-    return styles.option;
+  const getBorderColor = () => {
+    if (!answered) return selected ? accentColor : "#333537";
+    if (correct) return "#58CC02";
+    if (selected && !correct) return "#FF4B4B";
+    return "#333537";
   };
 
-  const getTextStyle = () => {
-    if (correct === null || correct === undefined) {
-      return selected ? styles.selectedText : styles.optionText;
-    }
-    if (correct) return styles.correctText;
-    if (selected && !correct) return styles.wrongText;
-    return styles.optionText;
+  const getBgColor = () => {
+    if (!answered) return selected ? "#1e2022" : "#242628";
+    if (correct) return "#0A2A14";
+    if (selected && !correct) return "#2A0A0A";
+    return "#242628";
   };
+
+  const getTextColor = () => {
+    if (!answered) return selected ? accentColor : "#ccc";
+    if (correct) return "#58CC02";
+    if (selected && !correct) return "#FF4B4B";
+    return "#555";
+  };
+
+  const getBadgeBg = () => {
+    if (!answered) return selected ? accentColor : "#333537";
+    if (correct) return "#58CC02";
+    if (selected && !correct) return "#FF4B4B";
+    return "#2a2c2e";
+  };
+
+  const textColor = getTextColor();
 
   return (
-    <TouchableOpacity style={[styles.base, getStyle()]} onPress={onPress} activeOpacity={0.8}>
-      <Text style={[styles.letter, getTextStyle()]}>{letters[index]}. </Text>
-      <Text style={[styles.label, getTextStyle()]}>{label}</Text>
+    <TouchableOpacity
+      style={[
+        styles.base,
+        { backgroundColor: getBgColor(), borderColor: getBorderColor() },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.badge, { backgroundColor: getBadgeBg() }]}>
+        <Text
+          style={[
+            styles.letter,
+            { color: selected || correct ? "#fff" : "#888" },
+          ]}
+        >
+          {letters[index]}
+        </Text>
+      </View>
+      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -42,18 +79,18 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 2,
+    gap: 12,
   },
-  option: { backgroundColor: "#fff", borderColor: "#e0e0e0" },
-  selectedOption: { backgroundColor: "#e8f4f8", borderColor: "#0a7ea4" },
-  correctOption: { backgroundColor: "#e6f4ea", borderColor: "#34a853" },
-  wrongOption: { backgroundColor: "#fce8e6", borderColor: "#ea4335" },
-  optionText: { color: "#1a1a1a" },
-  selectedText: { color: "#0a7ea4" },
-  correctText: { color: "#34a853" },
-  wrongText: { color: "#ea4335" },
-  letter: { fontWeight: "700", fontSize: 15 },
-  label: { fontSize: 15, flex: 1 },
+  badge: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  letter: { fontWeight: "700", fontSize: 14 },
+  label: { fontSize: 15, flex: 1, lineHeight: 22 },
 });
