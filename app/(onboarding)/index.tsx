@@ -58,7 +58,6 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 진행 표시 */}
       <View style={styles.progressRow}>
         {STEPS.map((_, i) => (
           <View
@@ -114,7 +113,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#191A1C",
     paddingHorizontal: 28,
     paddingTop: 60,
     paddingBottom: 40,
@@ -129,19 +128,19 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
-  dotActive: { backgroundColor: "#0a7ea4" },
-  dotInactive: { backgroundColor: "#e0e0e0" },
+  dotActive: { backgroundColor: "#58CC02" },
+  dotInactive: { backgroundColor: "#333537" },
   content: { flex: 1 },
   stepLabel: {
     fontSize: 13,
-    color: "#0a7ea4",
+    color: "#58CC02",
     fontWeight: "600",
     marginBottom: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#1a1a1a",
+    color: "#fff",
     marginBottom: 8,
     lineHeight: 32,
   },
@@ -149,25 +148,25 @@ const styles = StyleSheet.create({
   options: { gap: 12 },
   option: {
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: "#fafafa",
+    backgroundColor: "#242628",
   },
   optionActive: {
-    borderColor: "#0a7ea4",
-    backgroundColor: "#f0f9fc",
+    borderColor: "#58CC02",
+    backgroundColor: "#1a2e12",
   },
-  optionText: { fontSize: 16, color: "#555" },
-  optionTextActive: { color: "#0a7ea4", fontWeight: "700" },
+  optionText: { fontSize: 16, color: "#888" },
+  optionTextActive: { color: "#58CC02", fontWeight: "700" },
   nextBtn: {
-    backgroundColor: "#0a7ea4",
-    borderRadius: 12,
+    backgroundColor: "#58CC02",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 16,
   },
-  nextBtnDisabled: { backgroundColor: "#c5dfe8" },
+  nextBtnDisabled: { backgroundColor: "#1e3a10" },
   nextBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

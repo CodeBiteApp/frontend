@@ -17,7 +17,6 @@ const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export default function SignupScreen() {
   const register = useUserStore((s) => s.register);
-  // 나중에 제대로된 값을 받아야함.
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [name, setName] = useState("");
@@ -25,9 +24,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
-  // 회원가입
   const handleSignup = async () => {
-    // 유효성 검사
     const nickname = name.trim();
     const emailTrim = email.trim();
     if (!nickname || !emailTrim || !password) {
@@ -50,11 +47,7 @@ export default function SignupScreen() {
       return;
     }
     try {
-      await register({
-        email: emailTrim,
-        password,
-        nickname,
-      });
+      await register({ email: emailTrim, password, nickname });
       router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
     } catch {
       Alert.alert(
@@ -84,14 +77,14 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="닉네임"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={name}
           onChangeText={setName}
         />
         <TextInput
           style={styles.input}
           placeholder="이메일"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -100,7 +93,7 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -108,7 +101,7 @@ export default function SignupScreen() {
         <TextInput
           style={styles.input}
           placeholder="비밀번호 확인"
-          placeholderTextColor="#aaa"
+          placeholderTextColor="#888"
           value={confirm}
           onChangeText={setConfirm}
           secureTextEntry
@@ -119,11 +112,11 @@ export default function SignupScreen() {
           onPress={handleSignup}
           activeOpacity={0.85}
         >
-          <Text style={styles.signupText}>가입하기</Text>
+          <Text style={styles.signupBtnText}>가입하기</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backText}>← 로그인으로 돌아가기</Text>
+          <Text style={styles.backBtnText}>이미 계정이 있으신가요? 로그인</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -131,7 +124,7 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#191A1C" },
   inner: {
     flexGrow: 1,
     justifyContent: "center",
@@ -144,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     textAlign: "center",
-    color: "#1a1a1a",
+    color: "#fff",
   },
   subtitle: {
     fontSize: 14,
@@ -154,22 +147,22 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#1a1a1a",
-    backgroundColor: "#fafafa",
+    color: "#fff",
+    backgroundColor: "#242628",
   },
   signupBtn: {
-    backgroundColor: "#0a7ea4",
-    borderRadius: 12,
+    backgroundColor: "#58CC02",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 4,
   },
-  signupText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  backBtn: { alignItems: "center", marginTop: 8 },
-  backText: { color: "#888", fontSize: 14 },
+  signupBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  backBtn: { alignItems: "center", marginTop: 4 },
+  backBtnText: { color: "#58CC02", fontSize: 14, fontWeight: "600" },
 });

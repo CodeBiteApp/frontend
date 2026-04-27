@@ -20,7 +20,6 @@ export default function AuthIndexScreen() {
   if (isLoggedIn && hasOnboarded) return <Redirect href="/(tabs)" />;
   if (isLoggedIn && !hasOnboarded) return <Redirect href="/(onboarding)" />;
 
-  // 서버 상태 체크 (임시 코드)
   const handleServerCheck = async () => {
     setChecking(true);
     try {
@@ -82,7 +81,7 @@ export default function AuthIndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#191A1C",
     justifyContent: "center",
     paddingHorizontal: 28,
   },
@@ -98,35 +97,35 @@ const styles = StyleSheet.create({
   },
   buttons: { gap: 12 },
   emailBtn: {
-    backgroundColor: "#0a7ea4",
-    borderRadius: 12,
+    backgroundColor: "#58CC02",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
   },
   emailBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   kakaoBtn: {
     backgroundColor: "#FEE500",
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
   },
   kakaoBtnText: { color: "#191919", fontSize: 16, fontWeight: "700" },
   googleBtn: {
     borderWidth: 1.5,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#242628",
   },
-  googleBtnText: { color: "#1a1a1a", fontSize: 16, fontWeight: "700" },
+  googleBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   serverCheckBtn: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 12,
+    borderColor: "#333537",
+    borderRadius: 14,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#242628",
   },
   serverCheckBtnText: { color: "#888", fontSize: 14 },
 });

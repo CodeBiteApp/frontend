@@ -7,10 +7,6 @@ export default function Index() {
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
   const isLoading = useUserStore((s) => s.isLoading);
 
-  // 접속 중 애니메이션 추가 예정
-  // TODO: 임시 - 아이콘 확인용 로그인 스킵
-  return <Redirect href="/(tabs)" />;
-
   if (isLoading) {
     return (
       <View style={styles.loading}>

@@ -5,9 +5,9 @@ import { getDailyCharacterIndex } from "@/utils/dailyCharacter";
 import React from "react";
 
 const CHARACTERS = [
-  () => <AnimatedDobiExciting />,
   () => <AnimatedDobiHappy />,
   () => <AnimatedDobi />,
+  () => <AnimatedDobiExciting />,
 ];
 
 export function QuizResultCharacter() {
