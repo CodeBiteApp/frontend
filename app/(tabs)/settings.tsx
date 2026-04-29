@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -258,13 +259,13 @@ export default function SettingsScreen() {
       </View>
 
       {/* ── 로그아웃 ── */}
-      <TouchableOpacity
-        style={styles.logoutBtn}
+      <Button
+        label="로그아웃"
         onPress={handleLogout}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.logoutText}>로그아웃</Text>
-      </TouchableOpacity>
+        variant="danger"
+        style={{ marginTop: 28, paddingVertical: 16 }}
+        textStyle={{ fontSize: 15 }}
+      />
     </ScrollView>
   );
 }
@@ -399,15 +400,4 @@ const styles = StyleSheet.create({
   settingValue: { color: "#888", fontSize: 14 },
   divider: { height: 1, backgroundColor: "#2e3032", marginHorizontal: 16 },
 
-  // 로그아웃
-  logoutBtn: {
-    marginTop: 28,
-    backgroundColor: "#242628",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FF4B4B33",
-  },
-  logoutText: { color: "#FF4B4B", fontSize: 15, fontWeight: "700" },
 });

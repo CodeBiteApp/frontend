@@ -1,15 +1,9 @@
 import api from "@/api/axios";
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 
 export default function AuthIndexScreen() {
   const router = useRouter();
@@ -47,32 +41,20 @@ export default function AuthIndexScreen() {
       </View>
 
       <View style={styles.buttons}>
-        <TouchableOpacity
-          style={styles.emailBtn}
+        <Button
+          label="이메일로 시작하기"
           onPress={() => router.push("/(auth)/login")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.emailBtnText}>이메일로 시작하기</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.kakaoBtn} activeOpacity={0.85}>
-          <Text style={styles.kakaoBtnText}>카카오로 시작하기</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85}>
-          <Text style={styles.googleBtnText}>구글로 시작하기</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.serverCheckBtn}
+        />
+        <Button label="카카오로 시작하기" variant="kakao" />
+        <Button label="구글로 시작하기" variant="outline" />
+        <Button
+          label={checking ? "확인 중..." : "서버 연결 확인"}
           onPress={handleServerCheck}
-          activeOpacity={0.85}
           disabled={checking}
-        >
-          <Text style={styles.serverCheckBtnText}>
-            {checking ? "확인 중..." : "서버 연결 확인"}
-          </Text>
-        </TouchableOpacity>
+          variant="outline"
+          style={{ paddingVertical: 12 }}
+          textStyle={{ fontSize: 14, color: "#888" }}
+        />
       </View>
     </View>
   );
@@ -96,36 +78,4 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   buttons: { gap: 12 },
-  emailBtn: {
-    backgroundColor: "#58CC02",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  emailBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  kakaoBtn: {
-    backgroundColor: "#FEE500",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  kakaoBtnText: { color: "#191919", fontSize: 16, fontWeight: "700" },
-  googleBtn: {
-    borderWidth: 1.5,
-    borderColor: "#333537",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-    backgroundColor: "#242628",
-  },
-  googleBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  serverCheckBtn: {
-    borderWidth: 1,
-    borderColor: "#333537",
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-    backgroundColor: "#242628",
-  },
-  serverCheckBtnText: { color: "#888", fontSize: 14 },
 });

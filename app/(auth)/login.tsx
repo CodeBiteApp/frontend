@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -10,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -69,29 +69,22 @@ export default function LoginScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity
-          style={styles.loginBtn}
-          onPress={handleLogin}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.loginBtnText}>로그인</Text>
-        </TouchableOpacity>
+        <Button label="로그인" onPress={handleLogin} style={{ marginTop: 4 }} />
 
-        <TouchableOpacity
-          style={styles.signupBtn}
+        <Button
+          label="계정이 없으신가요? 회원가입"
           onPress={() => router.push("/(auth)/signup")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.signupBtnText}>계정이 없으신가요? 회원가입</Text>
-        </TouchableOpacity>
+          variant="ghost"
+          style={{ marginTop: 4 }}
+        />
 
-        <TouchableOpacity
-          style={styles.otherLoginBtn}
+        <Button
+          label="다른 로그인 방법으로 로그인하기"
           onPress={() => router.replace("/(auth)")}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.otherLoginBtnText}>다른 로그인 방법으로 로그인하기</Text>
-        </TouchableOpacity>
+          variant="ghost"
+          style={{ marginTop: 4 }}
+          textStyle={{ color: "#888", fontSize: 14, textDecorationLine: "underline" }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -129,16 +122,4 @@ const styles = StyleSheet.create({
     color: "#fff",
     backgroundColor: "#242628",
   },
-  loginBtn: {
-    backgroundColor: "#58CC02",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  loginBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  signupBtn: { alignItems: "center", marginTop: 4 },
-  signupBtnText: { color: "#58CC02", fontSize: 14, fontWeight: "600" },
-  otherLoginBtn: { alignItems: "center", marginTop: 4 },
-  otherLoginBtnText: { color: "#888", fontSize: 14, textDecorationLine: "underline" },
 });

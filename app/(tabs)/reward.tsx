@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import React, { useState } from "react";
 import {
   Image,
@@ -123,17 +124,22 @@ export default function RewardScreen() {
               <Text style={styles.insufficientText}>도토리가 부족해요</Text>
             )}
 
-            <TouchableOpacity
-              style={[styles.buyBtn, !canAfford && styles.buyBtnDisabled]}
-              activeOpacity={0.85}
+            <Button
+              label="구매하기"
               onPress={handleBuy}
               disabled={!canAfford}
-            >
-              <Text style={styles.buyBtnText}>구매하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelected(null)}>
-              <Text style={styles.cancelText}>취소</Text>
-            </TouchableOpacity>
+              color={canAfford ? "#FFC800" : "#3a3a3a"}
+              textColor="#191A1C"
+              style={{ width: "100%", marginTop: 16, marginBottom: 10 }}
+              textStyle={{ fontWeight: "800" }}
+            />
+            <Button
+              label="취소"
+              onPress={() => setSelected(null)}
+              variant="ghost"
+              style={{ paddingVertical: 8 }}
+              textStyle={{ color: "#888", fontSize: 14 }}
+            />
           </View>
         )}
       </Modal>
@@ -229,17 +235,4 @@ const styles = StyleSheet.create({
   dotoriMedium: { width: 24, height: 24 },
   sheetPrice: { color: "#FFC800", fontSize: 22, fontWeight: "800" },
   insufficientText: { color: "#ff4b4b", fontSize: 13, marginBottom: 4 },
-  buyBtn: {
-    width: "100%",
-    backgroundColor: "#FFC800",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  buyBtnDisabled: { backgroundColor: "#3a3a3a" },
-  buyBtnText: { color: "#191A1C", fontSize: 16, fontWeight: "800" },
-  cancelBtn: { paddingVertical: 8 },
-  cancelText: { color: "#888", fontSize: 14 },
 });

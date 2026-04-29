@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -10,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
 } from "react-native";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -107,17 +107,14 @@ export default function SignupScreen() {
           secureTextEntry
         />
 
-        <TouchableOpacity
-          style={styles.signupBtn}
-          onPress={handleSignup}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.signupBtnText}>가입하기</Text>
-        </TouchableOpacity>
+        <Button label="가입하기" onPress={handleSignup} style={{ marginTop: 4 }} />
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>이미 계정이 있으신가요? 로그인</Text>
-        </TouchableOpacity>
+        <Button
+          label="이미 계정이 있으신가요? 로그인"
+          onPress={() => router.back()}
+          variant="ghost"
+          style={{ marginTop: 4 }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -155,14 +152,4 @@ const styles = StyleSheet.create({
     color: "#fff",
     backgroundColor: "#242628",
   },
-  signupBtn: {
-    backgroundColor: "#58CC02",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  signupBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  backBtn: { alignItems: "center", marginTop: 4 },
-  backBtnText: { color: "#58CC02", fontSize: 14, fontWeight: "600" },
 });

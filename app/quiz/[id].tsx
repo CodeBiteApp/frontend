@@ -255,13 +255,13 @@ export default function QuizScreen() {
             <Text style={[styles.resultValue, { color: "#FFC800" }]}>+{points}P</Text>
           </View>
         </View>
-        <TouchableOpacity
-          style={[styles.doneBtn, { backgroundColor: accentColor }]}
+        <Button
+          label="홈으로"
           onPress={() => router.back()}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.doneBtnText}>홈으로</Text>
-        </TouchableOpacity>
+          color={accentColor}
+          style={{ width: "100%", paddingVertical: 16, marginTop: 8 }}
+          textStyle={{ fontWeight: "800" }}
+        />
       </View>
     );
   }
@@ -319,15 +319,13 @@ export default function QuizScreen() {
           })}
         </View>
         {isAnswered && (
-          <TouchableOpacity
-            style={[styles.nextBtn, { backgroundColor: accentColor }]}
+          <Button
+            label={currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"}
             onPress={handleNext}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.nextBtnText}>
-              {currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"}
-            </Text>
-          </TouchableOpacity>
+            color={accentColor}
+            style={{ paddingVertical: 16, marginTop: 8 }}
+            textStyle={{ fontWeight: "800" }}
+          />
         )}
       </ScrollView>
     </View>
@@ -356,14 +354,6 @@ const styles = StyleSheet.create({
   backBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   content: { padding: 20, paddingTop: 8, gap: 12 },
   options: { gap: 10 },
-  nextBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  nextBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
-
   // 결과 화면
   resultContainer: {
     flex: 1,
@@ -390,12 +380,4 @@ const styles = StyleSheet.create({
   resultDivider: { height: 1, backgroundColor: "#333537" },
   resultLabel: { color: "#888", fontSize: 15 },
   resultValue: { fontSize: 20, fontWeight: "800" },
-  doneBtn: {
-    width: "100%",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  doneBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
 });
