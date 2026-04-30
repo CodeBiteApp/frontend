@@ -1,9 +1,9 @@
 import Acorn from "@/components/charactor/Acorn";
+import DobiCommon from "@/components/charactor/dobi-common";
 import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
   Easing,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -156,11 +156,7 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
             <Text style={styles.meName}>나  ({me.name})</Text>
           </View>
           <View style={styles.rowRight}>
-            <Image
-              source={require("@/assets/images/dotori-1.png")}
-              style={styles.dotoriTiny}
-              resizeMode="contain"
-            />
+            <Acorn width={16} height={16} />
             <Text style={styles.rowDotori}>{me.dotori}</Text>
             <Text style={styles.rowScore}>{me.score.toLocaleString()}점</Text>
           </View>
@@ -187,11 +183,7 @@ export default function RankingScreen() {
         <View style={styles.wheelWrapper}>
           <Wheel size={110} />
         </View>
-        <Image
-          source={require("@/assets/images/cobi-1.png")}
-          style={styles.cobiImg}
-          resizeMode="contain"
-        />
+        <DobiCommon size={90} />
         <View style={styles.wheelTextBox}>
           <Text style={styles.wheelTitle}>이번 주 랭킹</Text>
           <Text style={styles.wheelSub}>열심히 달리는 중 🐿️</Text>
@@ -246,7 +238,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   wheelWrapper: { padding: 6 },
-  cobiImg: { width: 90, height: 90, marginLeft: -10 },
+
   wheelTextBox: { flex: 1 },
   wheelTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 4 },
   wheelSub:   { color: "#aaa", fontSize: 13 },
@@ -311,7 +303,7 @@ const styles = StyleSheet.create({
   rowRank:   { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
   rowName:   { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
   rowRight:  { flexDirection: "row", alignItems: "center", gap: 4 },
-  dotoriTiny: { width: 16, height: 16 },
+
   rowDotori: { color: "#FFC800", fontSize: 13, fontWeight: "700", marginRight: 8 },
   rowScore:  { color: "#aaa", fontSize: 13 },
 

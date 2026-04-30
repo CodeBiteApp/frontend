@@ -1,5 +1,7 @@
 import { AnimatedDobiEatting } from "@/components/charactor/AnimatedDobiEatting";
 import Acorn from "@/components/charactor/Acorn";
+import DobiCommon from "@/components/charactor/dobi-common";
+import DobiCodingAnimated from "@/components/charactor/dobi-coding-animated";
 import { ACORN_H, ACORN_W, AcornButton } from "@/components/common/AcornButton";
 import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -8,7 +10,6 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -66,26 +67,8 @@ const STAGE_INFO: Record<number, { title: string; content: string }> =
     }),
   );
 
-const COBI_VARIANTS: Record<number, "cobi-1" | "cobi-2"> = {
-  0: "cobi-1",
-  1: "cobi-2",
-  2: "cobi-1",
-  3: "cobi-2",
-  4: "cobi-1",
-  5: "cobi-2",
-  6: "cobi-1",
-  7: "cobi-2",
-  8: "cobi-1",
-  9: "cobi-2",
-};
-
 const COBI_STAGE_IDX = 1;
 const DOTORI_STAGE_IDX = 5;
-
-const MASCOT_IMAGES = {
-  "cobi-1": require("@/assets/images/cobi-1.png"),
-  "cobi-2": require("@/assets/images/cobi-2.png"),
-};
 
 const ZIGZAG = [0.5, 0.68, 0.6, 0.42, 0.32, 0.52, 0.5];
 const ROW_HEIGHT = 90;
@@ -269,7 +252,6 @@ export default function HomeScreen() {
           {Array.from({ length: 10 }, (_, c) => {
             const color = CHAPTER_COLORS[c];
             const darkColor = darken(color, 0.25);
-            const cobiVariant = COBI_VARIANTS[c];
 
             return (
               <View key={c}>
@@ -315,16 +297,20 @@ export default function HomeScreen() {
                     return (
                       <React.Fragment key={stageId}>
                         {s === COBI_STAGE_IDX && (
-                          <Image
-                            source={MASCOT_IMAGES[cobiVariant]}
+                          <View
                             style={[
                               styles.cobiImg,
                               side === "left"
                                 ? { left: 8, top: y - 10 }
                                 : { right: 8, top: y - 10 },
                             ]}
-                            resizeMode="contain"
-                          />
+                          >
+                            {c % 2 === 0 ? (
+                              <DobiCommon size={180} />
+                            ) : (
+                              <DobiCodingAnimated size={180} />
+                            )}
+                          </View>
                         )}
                         {s === DOTORI_STAGE_IDX && (
                           <View
