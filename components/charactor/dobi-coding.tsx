@@ -1,14 +1,14 @@
 import { DobiAnimatedProps } from "@/types/dobi";
-import { Path, Svg } from "react-native-svg";
+import { Path, Rect, Svg } from "react-native-svg";
 
 export default function DobiCoding({ size = 300 }: DobiAnimatedProps) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 500 484">
+    <Svg width={size} height={size} viewBox="0 0 500 484" fill="none">
       <Path
         d="M348 138C337.728 135.867 301.136 128.4 296 122"
         stroke="#1A1A1A"
-        stroke-width="5"
-        stroke-linecap="round"
+        strokeWidth={5}
+        strokeLinecap="round"
       />
       <Path
         d="M205.995 159.754C213.528 155.254 213.062 139.83 204.956 125.303C196.849 110.776 184.171 102.648 176.639 107.147C169.106 111.646 169.572 127.07 177.678 141.597C185.785 156.124 198.463 164.253 205.995 159.754Z"
@@ -18,27 +18,27 @@ export default function DobiCoding({ size = 300 }: DobiAnimatedProps) {
         d="M261.477 142.495C270.086 140.8 274.851 126.123 272.12 109.713C269.389 93.303 260.196 81.3738 251.588 83.0686C242.979 84.7633 238.214 99.4401 240.945 115.85C243.676 132.26 252.869 144.189 261.477 142.495Z"
         fill="#8D6E63"
       />
-
       <Path
-        d="M325.006 191.416H320.335C319.045 191.416 318 192.498 318 193.833V210.746C318 212.081 319.045 213.163 320.335 213.163H325.006C326.297 213.163 327.342 212.081 327.342W10.746V193.833C327.342 192.498 326.297 191.416 325.006 191.416Z"
+        d="M325.006 191.416H320.335C319.045 191.416 318 192.498 318 193.833V210.746C318 212.081 319.045 213.163 320.335 213.163H325.006C326.297 213.163 327.342 212.081 327.342 210.746V193.833C327.342 192.498 326.297 191.416 325.006 191.416Z"
         fill="white"
       />
-
       <Path
         d="M336.683 189H334.348C333.058 189 332.012 190.082 332.012 191.416V203.498C332.012 204.832 333.058 205.914 334.348 205.914H336.683C337.974 205.914 339.019 204.832 339.019 203.498V191.416C339.019 190.082 337.974 189 336.683 189Z"
         fill="white"
       />
+      {/* 꼬리 */}
       <Path
         d="M185.437 290.317C121.213 332.602 97.8583 248.033 144.567 229.911C191.276 211.789 167.921 151.382 121.213 157.423"
         stroke="#8D6E63"
-        stroke-width="30"
-        stroke-linecap="round"
+        strokeWidth={40}
+        strokeLinecap="round"
       />
+      {/* 왼팔 */}
       <Path
         d="M230 217.8C263.333 233.933 293.333 252.083 320 272.25"
         stroke="#9C847B"
-        stroke-width="18"
-        stroke-linecap="round"
+        strokeWidth={18}
+        strokeLinecap="round"
       />
       <Path
         d="M225 338.8C255.376 338.8 280 298.17 280 248.05C280 197.93 255.376 157.3 225 157.3C194.624 157.3 170 197.93 170 248.05C170 298.17 194.624 338.8 225 338.8Z"
@@ -88,34 +88,36 @@ export default function DobiCoding({ size = 300 }: DobiAnimatedProps) {
         d="M391 278.3H304C301.791 278.3 300 280.467 300 283.14V290.4C300 293.073 301.791 295.24 304 295.24H391C393.209 295.24 395 293.073 395 290.4V283.14C395 280.467 393.209 278.3 391 278.3Z"
         fill="#90A4AE"
       />
+      {/* 오른팔 */}
       <Path
         d="M215 235.95C245 252.083 275 265.393 305 275.88"
         stroke="#9C847B"
-        stroke-width="20"
-        stroke-linecap="round"
+        strokeWidth={20}
+        strokeLinecap="round"
       />
       <Path
         d="M277.5 177C288.822 177 298 165.136 298 150.5C298 135.864 288.822 124 277.5 124C266.178 124 257 135.864 257 150.5C257 165.136 266.178 177 277.5 177Z"
         stroke="#1A1A1A"
-        stroke-width="5"
+        strokeWidth={5}
       />
       <Path
         d="M328 165C337.941 165 346 155.374 346 143.5C346 131.626 337.941 122 328 122C318.059 122 310 131.626 310 143.5C310 155.374 318.059 165 328 165Z"
         stroke="#1A1A1A"
-        stroke-width="5"
+        strokeWidth={5}
       />
       <Path
         d="M318 145.556C310.667 140.222 303.667 140.889 297 147.556"
         stroke="#1A1A1A"
-        stroke-width="5"
-        stroke-linecap="round"
+        strokeWidth={5}
+        strokeLinecap="round"
       />
       <Path
         d="M257 161C243.667 157.667 196.167 146 189.5 136"
         stroke="#1A1A1A"
-        stroke-width="5"
-        stroke-linecap="round"
+        strokeWidth={5}
+        strokeLinecap="round"
       />
+      <Rect x={90} y={294} width={314} height={120} rx={5} fill="#71584F" />
     </Svg>
   );
 }
