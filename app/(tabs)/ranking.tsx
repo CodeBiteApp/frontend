@@ -1,3 +1,4 @@
+import Acorn from "@/components/charactor/Acorn";
 import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
@@ -121,11 +122,7 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
             <View key={user.rank} style={styles.podiumItem}>
               <Text style={styles.podiumName}>{user.name}</Text>
               <View style={styles.podiumDotoriRow}>
-                <Image
-                  source={require("@/assets/images/dotori-1.png")}
-                  style={styles.dotoriTiny}
-                  resizeMode="contain"
-                />
+                <Acorn width={16} height={16} />
                 <Text style={styles.podiumDotori}>{user.dotori}</Text>
               </View>
               <View style={[styles.podiumBar, { height: barH, backgroundColor: color }]}>
@@ -143,11 +140,7 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
             <Text style={styles.rowRank}>{user.rank}</Text>
             <Text style={styles.rowName}>{user.name}</Text>
             <View style={styles.rowRight}>
-              <Image
-                source={require("@/assets/images/dotori-1.png")}
-                style={styles.dotoriTiny}
-                resizeMode="contain"
-              />
+              <Acorn width={16} height={16} />
               <Text style={styles.rowDotori}>{user.dotori}</Text>
               <Text style={styles.rowScore}>{user.score.toLocaleString()}점</Text>
             </View>

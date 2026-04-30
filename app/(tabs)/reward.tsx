@@ -1,7 +1,7 @@
+import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
 import React, { useState } from "react";
 import {
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -53,11 +53,7 @@ export default function RewardScreen() {
 
         {/* 도토리 잔액 */}
         <View style={styles.balanceCard}>
-          <Image
-            source={require("@/assets/images/dotori-1.png")}
-            style={styles.dotoriImg}
-            resizeMode="contain"
-          />
+          <Acorn width={52} height={52} />
           <View>
             <Text style={styles.balanceLabel}>보유 도토리</Text>
             <Text style={styles.balanceValue}>{dotori.toLocaleString()}</Text>
@@ -81,11 +77,7 @@ export default function RewardScreen() {
                 <Text style={styles.cardEmoji}>{item.emoji}</Text>
                 <Text style={styles.cardTitle}>{item.title}</Text>
                 <View style={styles.priceRow}>
-                  <Image
-                    source={require("@/assets/images/dotori-1.png")}
-                    style={styles.dotoriSmall}
-                    resizeMode="contain"
-                  />
+                  <Acorn width={16} height={16} />
                   <Text style={[styles.priceText, !affordable && !isBought && styles.priceInsufficient]}>
                     {isBought ? "구매완료" : item.price.toLocaleString()}
                   </Text>
@@ -112,11 +104,7 @@ export default function RewardScreen() {
             <Text style={styles.sheetDesc}>{selected.description}</Text>
 
             <View style={styles.sheetPriceRow}>
-              <Image
-                source={require("@/assets/images/dotori-1.png")}
-                style={styles.dotoriMedium}
-                resizeMode="contain"
-              />
+              <Acorn width={24} height={24} />
               <Text style={styles.sheetPrice}>{selected.price.toLocaleString()} 도토리</Text>
             </View>
 

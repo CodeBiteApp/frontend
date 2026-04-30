@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   login as loginApi,
   logout as logoutApi,
@@ -15,17 +16,22 @@ import {
 } from "@/utils/tokenRefresh";
 import { create } from "zustand";
 
+const POSITION_KEY = "codebite_position";
+const STREAK_KEY = "codebite_streak";
+
 type UserState = {
   user: UserSummary | null;
   isLoggedIn: boolean;
   hasOnboarded: boolean;
   isLoading: boolean;
+  position: string | null;
+  streak: number;
 
   login: (body: LoginRequest) => Promise<void>;
   register: (body: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<boolean>; // 앱 재시작 시 호출
-  completeOnboarding: () => void;
+  completeOnboarding: (position: string) => void;
   setUnauthorized: () => void; // interceptor에서 호출
 };
 
@@ -34,6 +40,8 @@ export const useUserStore = create<UserState>((set) => ({
   isLoggedIn: false,
   hasOnboarded: false,
   isLoading: true, // 앱 시작 시 세션 복원 전까지 true
+  position: null,
+  streak: 0,
 
   login: async (body) => {
     set({ isLoading: true });
@@ -81,7 +89,10 @@ export const useUserStore = create<UserState>((set) => ({
       const { data } = await api.get("/api/users/me", {
         _skipUnauthorizedCallback: true,
       } as any);
-      set({ user: data, isLoggedIn: true });
+      const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(() => []);
+      const pos = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
+      const streakVal = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
+      set({ user: data, isLoggedIn: true, position: pos, streak: streakVal });
       scheduleTokenRefresh();
       return true;
     } catch {
@@ -92,7 +103,14 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  completeOnboarding: () => set({ hasOnboarded: true }),
+  completeOnboarding: (position) => {
+    const streak = 1;
+    AsyncStorage.multiSet([
+      [POSITION_KEY, position],
+      [STREAK_KEY, String(streak)],
+    ]).catch(() => {});
+    set({ hasOnboarded: true, position, streak });
+  },
 
   setUnauthorized: () => {
     clearTokenRefreshTimer();

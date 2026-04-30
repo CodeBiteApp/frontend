@@ -1,10 +1,10 @@
+import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -137,11 +137,7 @@ export default function SettingsScreen() {
 
         {/* 도토리 잔액 뱃지 */}
         <View style={styles.dotoriRow}>
-          <Image
-            source={require("@/assets/images/dotori-1.png")}
-            style={styles.dotoriImg}
-            resizeMode="contain"
-          />
+          <Acorn width={20} height={20} />
           <Text style={styles.dotoriCount}>{MOCK_STATS.dotori} 도토리</Text>
         </View>
       </View>
