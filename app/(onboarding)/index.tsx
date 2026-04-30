@@ -51,7 +51,7 @@ export default function OnboardingScreen() {
     if (!isSelected) return;
     if (isLast) {
       completeOnboarding();
-      router.replace("/(tabs)");
+      router.replace("/quiz-loading");
     } else {
       setStep((s) => s + 1);
     }
