@@ -50,7 +50,8 @@ export default function OnboardingScreen() {
   const handleNext = () => {
     if (!isSelected) return;
     if (isLast) {
-      completeOnboarding();
+      const position = STEPS[0].options[selected[0] as number];
+      completeOnboarding(position);
       router.replace("/quiz-loading");
     } else {
       setStep((s) => s + 1);
