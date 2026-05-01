@@ -1,9 +1,12 @@
 import { setUnauthorizedHandler } from "@/api/axios";
 import { useUserStore } from "@/store/useUserStore";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const restoreSession = useUserStore((s) => s.restoreSession);
@@ -56,12 +59,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="quiz-loading" />
-    </Stack>
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="quiz-loading" />
+      </Stack>
+    </QueryClientProvider>
   );
 }
