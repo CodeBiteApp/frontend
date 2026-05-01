@@ -29,6 +29,8 @@ type UserState = {
 
   login: (body: LoginRequest) => Promise<void>;
   register: (body: RegisterRequest) => Promise<void>;
+  /** 소셜 OAuth 딥링크로 받은 accessToken으로 세션 구성 (GET /api/users/me) */
+  completeSessionWithAccessToken: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<boolean>; // 앱 재시작 시 호출
   completeOnboarding: (position: string) => void;
@@ -61,6 +63,24 @@ export const useUserStore = create<UserState>((set) => ({
       const response = await registerApi(body);
       await saveSecureStore("accessToken", response.accessToken);
       set({ user: response.user, isLoggedIn: true });
+      scheduleTokenRefresh();
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  completeSessionWithAccessToken: async (accessToken) => {
+    set({ isLoading: true });
+    try {
+      await saveSecureStore("accessToken", accessToken);
+      const api = (await import("@/api/axios")).default;
+      const { data } = await api.get("/api/users/me");
+      const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(
+        () => [],
+      );
+      const pos = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
+      const streakVal = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
+      set({ user: data, isLoggedIn: true, position: pos, streak: streakVal });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });

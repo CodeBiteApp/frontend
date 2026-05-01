@@ -1,6 +1,7 @@
 import { setUnauthorizedHandler } from "@/api/axios";
 import { useUserStore } from "@/store/useUserStore";
 import { router, Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 
@@ -10,6 +11,8 @@ export default function RootLayout() {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+    WebBrowser.maybeCompleteAuthSession();
+
     // 401 발생 시 로그인 화면으로 이동
     setUnauthorizedHandler(() => {
       setUnauthorized();
