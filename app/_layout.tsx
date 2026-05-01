@@ -1,6 +1,7 @@
 import { setUnauthorizedHandler } from "@/api/axios";
 import { useUserStore } from "@/store/useUserStore";
 import { router, Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 
@@ -10,6 +11,7 @@ export default function RootLayout() {
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
+    WebBrowser.maybeCompleteAuthSession();
     // 401 발생 시 로그인 화면으로 이동
     setUnauthorizedHandler(() => {
       setUnauthorized();
@@ -19,6 +21,7 @@ export default function RootLayout() {
     // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
     const boot = async () => {
       if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
+        // @ts-ignore
         const { seedMockSession } = await import("@/mocks");
         await seedMockSession();
       }

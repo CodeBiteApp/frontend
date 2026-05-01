@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   login as loginApi,
   logout as logoutApi,
@@ -14,6 +13,7 @@ import {
   clearTokenRefreshTimer,
   scheduleTokenRefresh,
 } from "@/utils/tokenRefresh";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
 const POSITION_KEY = "codebite_position";
@@ -29,6 +29,7 @@ type UserState = {
 
   login: (body: LoginRequest) => Promise<void>;
   register: (body: RegisterRequest) => Promise<void>;
+  completeSessionWithAccessToken: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<boolean>; // 앱 재시작 시 호출
   completeOnboarding: (position: string) => void;
@@ -67,6 +68,26 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
+  completeSessionWithAccessToken: async (accessToken) => {
+    set({ isLoading: true });
+    try {
+      await saveSecureStore("accessToken", accessToken);
+      const api = (await import("@/api/axios")).default;
+      const { data } = await api.get("/api/users/me");
+      const results = await AsyncStorage.multiGet([
+        POSITION_KEY,
+        STREAK_KEY,
+      ]).catch(() => []);
+      const pos = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
+      const streakVal =
+        Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
+      set({ user: data, isLoggedIn: true, position: pos, streak: streakVal });
+      scheduleTokenRefresh();
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   logout: async () => {
     try {
       await logoutApi();
@@ -89,9 +110,13 @@ export const useUserStore = create<UserState>((set) => ({
       const { data } = await api.get("/api/users/me", {
         _skipUnauthorizedCallback: true,
       } as any);
-      const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(() => []);
+      const results = await AsyncStorage.multiGet([
+        POSITION_KEY,
+        STREAK_KEY,
+      ]).catch(() => []);
       const pos = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
-      const streakVal = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
+      const streakVal =
+        Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
       set({ user: data, isLoggedIn: true, position: pos, streak: streakVal });
       scheduleTokenRefresh();
       return true;
