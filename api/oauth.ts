@@ -5,25 +5,18 @@ export const OAUTH_REDIRECT_URI = "codebite://auth/callback";
 
 export type OAuthProvider = "google" | "kakao";
 
-export function getOAuthAuthorizationUrl(provider: OAuthProvider): string {
-  const base = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
-  if (!base) {
-    throw new Error("EXPO_PUBLIC_API_URL이 설정되어 있지 않습니다.");
-  }
-  return `${base}/oauth2/authorization/${provider}`;
-}
+export type OAuthLoginResult =
+  | { ok: true; accessToken: string; expiresIn?: string }
+  | { ok: false; cancelled: true }
+  | { ok: false; error: string };
 
-function parseOAuthCallbackUrl(url: string): {
-  accessToken?: string;
-  expiresIn?: string;
-  error?: string;
-} {
+function parseCallbackUrl(url: string) {
   try {
-    const u = new URL(url);
+    const params = new URL(url).searchParams;
     return {
-      accessToken: u.searchParams.get("accessToken") ?? undefined,
-      expiresIn: u.searchParams.get("expiresIn") ?? undefined,
-      error: u.searchParams.get("error") ?? undefined,
+      accessToken: params.get("accessToken") ?? undefined,
+      expiresIn: params.get("expiresIn") ?? undefined,
+      error: params.get("error") ?? undefined,
     };
   } catch {
     return {};
@@ -32,36 +25,25 @@ function parseOAuthCallbackUrl(url: string): {
 
 export async function openOAuthLoginSession(
   provider: OAuthProvider,
-): Promise<
-  | { ok: true; accessToken: string; expiresIn?: string }
-  | { ok: false; cancelled: true }
-  | { ok: false; error: string }
-> {
-  const authUrl = getOAuthAuthorizationUrl(provider);
+): Promise<OAuthLoginResult> {
+  const base = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
+  if (!base) throw new Error("EXPO_PUBLIC_API_URL이 설정되어 있지 않습니다.");
+
   const result = await WebBrowser.openAuthSessionAsync(
-    authUrl,
+    `${base}/oauth2/authorization/${provider}`,
     OAUTH_REDIRECT_URI,
   );
 
-  if (result.type === "cancel" || result.type === "dismiss") {
-    return { ok: false, cancelled: true };
-  }
-
   if (result.type !== "success" || !result.url) {
-    return { ok: false, error: "oauth_session_failed" };
+    const cancelled = result.type === "cancel" || result.type === "dismiss";
+    return cancelled
+      ? { ok: false, cancelled: true }
+      : { ok: false, error: "oauth_session_failed" };
   }
 
-  const parsed = parseOAuthCallbackUrl(result.url);
-  if (parsed.error) {
-    return { ok: false, error: parsed.error };
-  }
-  if (!parsed.accessToken) {
-    return { ok: false, error: "missing_access_token" };
-  }
+  const { accessToken, expiresIn, error } = parseCallbackUrl(result.url);
+  if (error) return { ok: false, error };
+  if (!accessToken) return { ok: false, error: "missing_access_token" };
 
-  return {
-    ok: true,
-    accessToken: parsed.accessToken,
-    expiresIn: parsed.expiresIn,
-  };
+  return { ok: true, accessToken, expiresIn };
 }
