@@ -10,6 +10,7 @@ export type OAuthLoginResult =
   | { ok: false; cancelled: true }
   | { ok: false; error: string };
 
+// 콜백 URL 분석 함수
 function parseCallbackUrl(url: string) {
   try {
     const params = new URL(url).searchParams;
@@ -23,17 +24,21 @@ function parseCallbackUrl(url: string) {
   }
 }
 
+// 소셜 로그인 함수 값 - google or kakao
 export async function openOAuthLoginSession(
   provider: OAuthProvider,
 ): Promise<OAuthLoginResult> {
+  // URL 환경 설정
   const base = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
   if (!base) throw new Error("EXPO_PUBLIC_API_URL이 설정되어 있지 않습니다.");
 
+  // OAuth 창 열기
   const result = await WebBrowser.openAuthSessionAsync(
     `${base}/oauth2/authorization/${provider}`,
     OAUTH_REDIRECT_URI,
   );
 
+  // 로그인 실패처리 - 취소면 취소처리 or 에러 처리
   if (result.type !== "success" || !result.url) {
     const cancelled = result.type === "cancel" || result.type === "dismiss";
     return cancelled
@@ -41,6 +46,7 @@ export async function openOAuthLoginSession(
       : { ok: false, error: "oauth_session_failed" };
   }
 
+  // 토큰 추출
   const { accessToken, expiresIn, error } = parseCallbackUrl(result.url);
   if (error) return { ok: false, error };
   if (!accessToken) return { ok: false, error: "missing_access_token" };
