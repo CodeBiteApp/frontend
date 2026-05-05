@@ -12,10 +12,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { QuestRewardScreen } from "./_components/quest-reward-screen";
-import { ResultScreen } from "./_components/result-screen";
-import { StreakScreen } from "./_components/streak-screen";
-import { MOCK_QUESTIONS } from "./mock";
+import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
+import { ResultScreen } from "@/components/quiz/result-screen";
+import { StreakScreen } from "@/components/quiz/streak-screen";
+import { MOCK_QUESTIONS } from "@/mocks/quiz";
 
 const CHAPTER_COLORS = [
   "#58CC02",
@@ -67,7 +67,7 @@ export default function QuizScreen() {
       resetQuiz();
       setPhase("result");
     };
-  }, [id]);
+  }, [id, setQuestions, resetQuiz]);
 
   if (questions.length === 0) return null;
 
@@ -88,7 +88,9 @@ export default function QuizScreen() {
     }
 
     if (phase === "quest") {
-      return <QuestRewardScreen onDone={() => router.back()} />;
+      return (
+        <QuestRewardScreen onDone={() => router.back()} />
+      );
     }
 
     return (

@@ -7,6 +7,7 @@ type StageState = {
   justCompletedStageId: string | null;
   triggerEating: (id: string) => void;
   confirmComplete: (id: string) => void;
+  resetStages: () => void;
 };
 
 export const useStageStore = create<StageState>()(
@@ -25,6 +26,9 @@ export const useStageStore = create<StageState>()(
           completedStages: [...new Set([...state.completedStages, id])],
           justCompletedStageId: null,
         })),
+
+      resetStages: () =>
+        set({ completedStages: [], justCompletedStageId: null }),
     }),
     {
       name: "stage-storage",

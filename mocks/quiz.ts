@@ -2,6 +2,22 @@ import { QuizQuestion } from "@/types/quiz";
 
 // 임시 문제 데이터 (추후 API/DB로 교체)
 export const MOCK_QUESTIONS: Record<string, QuizQuestion[]> = {
+  "4": [
+    {
+      id: "q4-1",
+      categoryId: "4",
+      question: "[테스트] 운영체제의 주요 역할은?",
+      options: [
+        "하드웨어 자원을 관리하고 사용자 프로그램을 실행",
+        "인터넷에 연결하는 소프트웨어",
+        "그래픽을 렌더링하는 엔진",
+        "데이터베이스를 저장하는 시스템",
+      ],
+      answerIndex: 0,
+      explanation:
+        "운영체제는 하드웨어 자원을 관리하고 사용자 프로그램이 실행될 수 있는 환경을 제공합니다.",
+    },
+  ],
   "1": [
     {
       id: "q1-1",
