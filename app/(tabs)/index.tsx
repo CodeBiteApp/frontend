@@ -6,7 +6,7 @@ import { ACORN_H, ACORN_W, AcornButton } from "@/components/common/AcornButton";
 import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -67,8 +67,8 @@ const STAGE_INFO: Record<number, { title: string; content: string }> =
     }),
   );
 
-const COBI_STAGE_IDX = 1;
 const DOTORI_STAGE_IDX = 5;
+const DOBI_SIZE = 110;
 
 const ZIGZAG = [0.5, 0.68, 0.6, 0.42, 0.32, 0.52, 0.5];
 const ROW_HEIGHT = 90;
@@ -106,9 +106,16 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const prevChapterRef = useRef(0);
 
-  const { completedStages, justCompletedStageId, confirmComplete } =
+  const { completedStages, justCompletedStageId, confirmComplete, resetStages } =
     useStageStore();
   const acornCount = completedStages.length;
+
+  const currentStageId = useMemo(() => {
+    for (let i = 1; i <= 70; i++) {
+      if (!completedStages.includes(String(i))) return i;
+    }
+    return 70;
+  }, [completedStages]);
   const scrollViewRef = useRef<ScrollView>(null);
   const buttonRefs = useRef<Record<number, View | null>>({});
 
@@ -214,6 +221,15 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* 테스트 초기화 버튼 */}
+          <TouchableOpacity
+            style={styles.resetBtn}
+            onPress={resetStages}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.resetBtnText}>🔄 테스트 초기화</Text>
+          </TouchableOpacity>
+
           {/* 스티키 챕터 헤더 */}
           <Animated.View
             style={[
@@ -296,19 +312,21 @@ export default function HomeScreen() {
 
                     return (
                       <React.Fragment key={stageId}>
-                        {s === COBI_STAGE_IDX && (
+                        {stageId === currentStageId && (
                           <View
-                            style={[
-                              styles.cobiImg,
-                              side === "left"
-                                ? { left: 8, top: y - 10 }
-                                : { right: 8, top: y - 10 },
-                            ]}
+                            style={{
+                              position: "absolute",
+                              width: DOBI_SIZE,
+                              height: DOBI_SIZE,
+                              left: x + ACORN_W / 2 - DOBI_SIZE / 2,
+                              top: y - DOBI_SIZE + 14,
+                              opacity: 0.95,
+                            }}
                           >
                             {c % 2 === 0 ? (
-                              <DobiCommon size={180} />
+                              <DobiCommon size={DOBI_SIZE} />
                             ) : (
-                              <DobiCodingAnimated size={180} />
+                              <DobiCodingAnimated size={DOBI_SIZE} />
                             )}
                           </View>
                         )}
@@ -492,7 +510,6 @@ const styles = StyleSheet.create({
   },
   chapterDividerText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 
-  cobiImg: { position: "absolute", width: 180, height: 180, opacity: 0.92 },
   dotoriImg: { position: "absolute", width: 72, height: 72, opacity: 0.88 },
 
   // 모달
@@ -533,4 +550,16 @@ const styles = StyleSheet.create({
   startBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
   cancelBtn: { alignItems: "center", paddingVertical: 8 },
   cancelBtnText: { color: "#888", fontSize: 14 },
+
+  resetBtn: {
+    alignSelf: "center",
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: "#2A2A2A",
+    borderWidth: 1,
+    borderColor: "#444",
+  },
+  resetBtnText: { color: "#aaa", fontSize: 12, fontWeight: "600" },
 });
