@@ -1,7 +1,7 @@
-import { AnimatedDobiEatting } from "@/components/charactor/AnimatedDobiEatting";
 import Acorn from "@/components/charactor/Acorn";
-import DobiCommon from "@/components/charactor/dobi-common";
+import { AnimatedDobiTransition } from "@/components/charactor/AnimatedDobiTransition";
 import DobiCodingAnimated from "@/components/charactor/dobi-coding-animated";
+import DobiCommon from "@/components/charactor/dobi-common";
 import { ACORN_H, ACORN_W, AcornButton } from "@/components/common/AcornButton";
 import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -68,12 +68,15 @@ const STAGE_INFO: Record<number, { title: string; content: string }> =
   );
 
 const DOTORI_STAGE_IDX = 5;
+const CODING_DOBI_STAGE_IDX = 2;
+const CODING_DOBI_SIZE = 150;
 const DOBI_SIZE = 110;
 
 const ZIGZAG = [0.5, 0.68, 0.6, 0.42, 0.32, 0.52, 0.5];
 const ROW_HEIGHT = 90;
 const BANNER_H = 68;
-const CHAPTER_SECTION_H = BANNER_H + ROW_HEIGHT * 7;
+const STAGES_TOP_PAD = 80;
+const CHAPTER_SECTION_H = BANNER_H + ROW_HEIGHT * 7 + STAGES_TOP_PAD;
 
 // Y position in ScrollView where each chapter starts
 const CHAPTER_BREAKPOINTS = Array.from(
@@ -87,6 +90,7 @@ type AnimatingStage = {
   color: string;
   darkColor: string;
   position: { x: number; y: number; width: number; height: number };
+  nextPosition: { x: number; y: number; width: number; height: number } | null;
 };
 
 function positionLabel(pos: string | null): string {
@@ -106,8 +110,12 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const prevChapterRef = useRef(0);
 
-  const { completedStages, justCompletedStageId, confirmComplete, resetStages } =
-    useStageStore();
+  const {
+    completedStages,
+    justCompletedStageId,
+    confirmComplete,
+    resetStages,
+  } = useStageStore();
   const acornCount = completedStages.length;
 
   const currentStageId = useMemo(() => {
@@ -131,7 +139,10 @@ export default function HomeScreen() {
 
       // Y within ScrollView (header is now fixed outside)
       const estimatedStageY =
-        chapterIdx * CHAPTER_SECTION_H + BANNER_H + stageInChapter * ROW_HEIGHT;
+        chapterIdx * CHAPTER_SECTION_H +
+        BANNER_H +
+        STAGES_TOP_PAD +
+        stageInChapter * ROW_HEIGHT;
       const scrollTarget = Math.max(
         0,
         estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2,
@@ -142,13 +153,30 @@ export default function HomeScreen() {
         const ref = buttonRefs.current[stageId];
         if (!ref) return;
         ref.measureInWindow((x, y, w, h) => {
-          if (w > 0 && h > 0) {
-            const color = CHAPTER_COLORS[chapterIdx];
+          if (w === 0 || h === 0) return;
+          const color = CHAPTER_COLORS[chapterIdx];
+          const nextStageId = stageId < 70 ? stageId + 1 : null;
+          const nextRef = nextStageId ? buttonRefs.current[nextStageId] : null;
+          if (nextRef) {
+            nextRef.measureInWindow((nx, ny, nw, nh) => {
+              setAnimatingStage({
+                stageId: justCompletedStageId,
+                color,
+                darkColor: darken(color, 0.25),
+                position: { x, y, width: w, height: h },
+                nextPosition:
+                  nw > 0 && nh > 0
+                    ? { x: nx, y: ny, width: nw, height: nh }
+                    : null,
+              });
+            });
+          } else {
             setAnimatingStage({
               stageId: justCompletedStageId,
               color,
               darkColor: darken(color, 0.25),
               position: { x, y, width: w, height: h },
+              nextPosition: null,
             });
           }
         });
@@ -297,12 +325,17 @@ export default function HomeScreen() {
                   />
                 </View>
 
-                <View style={{ height: ROW_HEIGHT * 7, position: "relative" }}>
+                <View
+                  style={{
+                    height: ROW_HEIGHT * 7 + STAGES_TOP_PAD,
+                    position: "relative",
+                  }}
+                >
                   {Array.from({ length: 7 }, (_, s) => {
                     const stageId = c * 7 + s + 1;
                     const xRatio = ZIGZAG[s];
                     const x = xRatio * (SCREEN_WIDTH - ACORN_W);
-                    const y = s * ROW_HEIGHT;
+                    const y = s * ROW_HEIGHT + STAGES_TOP_PAD;
                     const side = x > SCREEN_WIDTH / 2 ? "left" : "right";
                     const isCompleted = completedStages.includes(
                       String(stageId),
@@ -312,22 +345,18 @@ export default function HomeScreen() {
 
                     return (
                       <React.Fragment key={stageId}>
-                        {stageId === currentStageId && (
+                        {stageId === currentStageId && !animatingStage && (
                           <View
                             style={{
                               position: "absolute",
                               width: DOBI_SIZE,
                               height: DOBI_SIZE,
                               left: x + ACORN_W / 2 - DOBI_SIZE / 2,
-                              top: y - DOBI_SIZE + 14,
+                              top: y - DOBI_SIZE + 30,
                               opacity: 0.95,
                             }}
                           >
-                            {c % 2 === 0 ? (
-                              <DobiCommon size={DOBI_SIZE} />
-                            ) : (
-                              <DobiCodingAnimated size={DOBI_SIZE} />
-                            )}
+                            <DobiCommon size={DOBI_SIZE} />
                           </View>
                         )}
                         {s === DOTORI_STAGE_IDX && (
@@ -340,6 +369,16 @@ export default function HomeScreen() {
                             ]}
                           >
                             <Acorn width={72} height={72} />
+                          </View>
+                        )}
+                        {s === CODING_DOBI_STAGE_IDX && (
+                          <View
+                            style={[
+                              styles.codingDobiImg,
+                              { left: 8, top: y - ROW_HEIGHT },
+                            ]}
+                          >
+                            <DobiCodingAnimated size={CODING_DOBI_SIZE} />
                           </View>
                         )}
                         <AcornButton
@@ -414,11 +453,12 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* 다람쥐 먹기 애니메이션 */}
+      {/* 도비 먹기 + 이동 애니메이션 */}
       {animatingStage && (
-        <AnimatedDobiEatting
+        <AnimatedDobiTransition
           stageId={animatingStage.stageId}
           position={animatingStage.position}
+          nextPosition={animatingStage.nextPosition}
           color={animatingStage.color}
           darkColor={animatingStage.darkColor}
           onFinish={handleEatingFinish}
@@ -501,6 +541,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     gap: 10,
+    zIndex: 10,
   },
   chapterDividerLine: { flex: 1, height: 1.5, opacity: 0.5 },
   chapterDividerBadge: {
@@ -511,6 +552,12 @@ const styles = StyleSheet.create({
   chapterDividerText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 
   dotoriImg: { position: "absolute", width: 72, height: 72, opacity: 0.88 },
+  codingDobiImg: {
+    position: "absolute",
+    width: CODING_DOBI_SIZE,
+    height: CODING_DOBI_SIZE,
+    opacity: 0.85,
+  },
 
   // 모달
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
