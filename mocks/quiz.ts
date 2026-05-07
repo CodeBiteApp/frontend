@@ -1,7 +1,7 @@
-import { QuizQuestion } from "@/types/quiz";
+import { AnyQuizQuestion } from "@/types/quiz";
 
 // 임시 문제 데이터 (추후 API/DB로 교체)
-export const MOCK_QUESTIONS: Record<string, QuizQuestion[]> = {
+export const MOCK_QUESTIONS: Record<string, AnyQuizQuestion[]> = {
   "4": [
     {
       id: "q4-1",
@@ -83,6 +83,7 @@ export const MOCK_QUESTIONS: Record<string, QuizQuestion[]> = {
     },
   ],
   "2": [
+    // 객관식
     {
       id: "q2-1",
       categoryId: "2",
@@ -91,51 +92,38 @@ export const MOCK_QUESTIONS: Record<string, QuizQuestion[]> = {
       answerIndex: 1,
       explanation: "대부분의 언어에서 배열의 인덱스는 0부터 시작합니다.",
     },
+    // 단답형
     {
       id: "q2-2",
       categoryId: "2",
-      question: "JavaScript에서 console.log(typeof null)의 출력 결과는?",
-      options: ["'null'", "'undefined'", "'object'", "'boolean'"],
-      answerIndex: 2,
+      type: "short-answer",
+      question:
+        "JavaScript에서 console.log(typeof null)을 실행하면\n어떤 값이 출력될까요?",
+      answer: "object",
       explanation:
         "JavaScript의 오래된 버그로, typeof null은 'object'를 반환합니다.",
     },
+    // OX
     {
       id: "q2-3",
       categoryId: "2",
-      question: "'==' 와 '===' 의 차이점은?",
-      options: [
-        "차이가 없다",
-        "'=='는 값만 비교, '==='는 값과 타입 모두 비교",
-        "'==='는 값만 비교, '=='는 값과 타입 모두 비교",
-        "'=='는 숫자만 비교, '==='는 문자열만 비교",
-      ],
-      answerIndex: 1,
+      type: "ox",
+      question: "JavaScript에서 '=='는 값과 타입을 모두 비교한다.",
+      answer: false,
       explanation:
-        "'=='는 타입 변환 후 값만 비교하고, '==='는 타입과 값을 모두 비교합니다.",
+        "'=='는 타입을 자동 변환한 뒤 값만 비교합니다. 값과 타입 모두 비교하려면 '==='를 사용해야 합니다.",
     },
+    // 매칭형
     {
       id: "q2-4",
       categoryId: "2",
-      question: "재귀(Recursion) 함수란?",
-      options: [
-        "반복문 없이 코드를 실행하는 함수",
-        "자기 자신을 호출하는 함수",
-        "외부 API를 호출하는 함수",
-        "비동기로 실행되는 함수",
-      ],
-      answerIndex: 1,
+      type: "matching",
+      question: "자료구조와 그 특징을 올바르게 연결하세요.",
+      leftItems: ["스택 (Stack)", "큐 (Queue)", "해시맵 (HashMap)"],
+      rightItems: ["FIFO 방식", "키-값 쌍 저장", "LIFO 방식"],
+      correctPairs: { 0: 2, 1: 0, 2: 1 },
       explanation:
-        "재귀 함수는 함수 내부에서 자기 자신을 다시 호출하는 함수입니다.",
-    },
-    {
-      id: "q2-5",
-      categoryId: "2",
-      question:
-        "다음 코드의 출력 결과는?\nlet x = 5;\nx += 3;\nconsole.log(x);",
-      options: ["3", "5", "8", "15"],
-      answerIndex: 2,
-      explanation: "x += 3은 x = x + 3과 같으므로 5 + 3 = 8입니다.",
+        "스택은 LIFO(Last In First Out), 큐는 FIFO(First In First Out), 해시맵은 키-값 쌍으로 데이터를 저장합니다.",
     },
   ],
   "3": [
