@@ -196,6 +196,21 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* ── 친구 찾기 버튼 ── */}
+      <TouchableOpacity
+        style={styles.findFriendBtn}
+        onPress={() => router.push("/friend-search")}
+        activeOpacity={0.85}
+        accessibilityLabel="친구 찾기"
+      >
+        <Text style={styles.findFriendEmoji}>👥</Text>
+        <View style={styles.findFriendTextBox}>
+          <Text style={styles.findFriendTitle}>친구 찾기</Text>
+          <Text style={styles.findFriendSub}>닉네임·코드로 팔로우할 유저를 검색해보세요</Text>
+        </View>
+        <Text style={styles.findFriendArrow}>›</Text>
+      </TouchableOpacity>
+
       {/* ── 알림 설정 ── */}
       <Text style={styles.section}>알림 &amp; 소리</Text>
       <View style={styles.settingGroup}>
@@ -236,9 +251,9 @@ export default function SettingsScreen() {
       {/* ── 계정 설정 ── */}
       <Text style={styles.section}>계정</Text>
       <View style={styles.settingGroup}>
-        <SettingRow label="닉네임 변경" onPress={() => {}} />
+        <SettingRow label="닉네임 변경" onPress={() => { }} />
         <View style={styles.divider} />
-        <SettingRow label="비밀번호 변경" onPress={() => {}} />
+        <SettingRow label="비밀번호 변경" onPress={() => { }} />
       </View>
 
       {/* ── 앱 정보 ── */}
@@ -249,9 +264,9 @@ export default function SettingsScreen() {
           right={<Text style={styles.settingValue}>1.0.0</Text>}
         />
         <View style={styles.divider} />
-        <SettingRow label="이용약관" onPress={() => {}} />
+        <SettingRow label="이용약관" onPress={() => { }} />
         <View style={styles.divider} />
-        <SettingRow label="개인정보 처리방침" onPress={() => {}} />
+        <SettingRow label="개인정보 처리방침" onPress={() => { }} />
       </View>
 
       {/* ── 로그아웃 ── */}
@@ -395,5 +410,24 @@ const styles = StyleSheet.create({
   settingArrow: { color: "#555", fontSize: 20 },
   settingValue: { color: "#888", fontSize: 14 },
   divider: { height: 1, backgroundColor: "#2e3032", marginHorizontal: 16 },
+
+  // 친구 찾기 버튼
+  findFriendBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E2A1A",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    borderWidth: 1.5,
+    borderColor: "#2E5C20",
+    gap: 12,
+  },
+  findFriendEmoji: { fontSize: 26 },
+  findFriendTextBox: { flex: 1 },
+  findFriendTitle: { color: "#58CC02", fontSize: 15, fontWeight: "800", marginBottom: 2 },
+  findFriendSub: { color: "#888", fontSize: 12 },
+  findFriendArrow: { color: "#58CC02", fontSize: 22, fontWeight: "700" },
 
 });
