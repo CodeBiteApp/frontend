@@ -5,6 +5,7 @@ export type QuizCategory = {
   count: number;
 };
 
+// 객관식
 export type QuizQuestion = {
   id: string;
   categoryId: string;
@@ -13,6 +14,41 @@ export type QuizQuestion = {
   answerIndex: number;
   explanation?: string;
 };
+
+// 단답형
+export type ShortAnswerQuestion = {
+  id: string;
+  categoryId: string;
+  question: string;
+  answer: string;
+  explanation?: string;
+};
+
+// OX
+export type OXQuestion = {
+  id: string;
+  categoryId: string;
+  question: string;
+  answer: boolean; // true = O, false = X
+  explanation?: string;
+};
+
+// 매칭형 (3:3)
+export type MatchingQuestion = {
+  id: string;
+  categoryId: string;
+  question: string;
+  leftItems: string[];
+  rightItems: string[]; // 표시 순서 (셔플 가능)
+  correctPairs: Record<number, number>; // leftIndex -> rightIndex
+  explanation?: string;
+};
+
+export type AnyQuizQuestion =
+  | QuizQuestion
+  | ShortAnswerQuestion
+  | OXQuestion
+  | MatchingQuestion;
 
 export type QuizResult = {
   categoryId: string;

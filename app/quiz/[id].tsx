@@ -1,8 +1,18 @@
 import { Button } from "@/components/common/Button";
 import { QuizCard } from "@/components/quiz/QuizCard";
-import { QuizOption } from "@/components/quiz/QuizOption";
+import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
+import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
+import { OXOptions } from "@/components/quiz/OXOptions";
+import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
+import {
+  AnyQuizQuestion,
+  QuizQuestion,
+  ShortAnswerQuestion,
+  OXQuestion,
+  MatchingQuestion,
+} from "@/types/quiz";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -35,6 +45,10 @@ function getAccentColor(stageId: string): string {
   return CHAPTER_COLORS[Math.min(idx, CHAPTER_COLORS.length - 1)];
 }
 
+function getQuestionType(q: AnyQuizQuestion) {
+  return (q as any).type ?? "multiple-choice";
+}
+
 type ResultPhase = "result" | "streak" | "quest";
 
 export default function QuizScreen() {
@@ -43,10 +57,10 @@ export default function QuizScreen() {
   const {
     questions,
     currentIndex,
-    selectedAnswers,
+    isCorrect,
     isFinished,
     setQuestions,
-    selectAnswer,
+    markAnswer,
     nextQuestion,
     finishQuiz,
     resetQuiz,
@@ -54,10 +68,10 @@ export default function QuizScreen() {
   const { triggerEating, completedStages } = useStageStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
+  const [mcSelected, setMcSelected] = useState<number | null>(null);
+  const [oxSelected, setOxSelected] = useState<boolean | null>(null);
 
   const accentColor = getAccentColor(id ?? "1");
-
-  // 완료한 스테이지 수 기반 스트릭 (실제 구현 시 날짜 기반으로 교체)
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
@@ -69,13 +83,16 @@ export default function QuizScreen() {
     };
   }, [id, setQuestions, resetQuiz]);
 
+  // 문제가 바뀌면 로컬 선택 상태 초기화
+  useEffect(() => {
+    setMcSelected(null);
+    setOxSelected(null);
+  }, [currentIndex]);
+
   if (questions.length === 0) return null;
 
   if (isFinished) {
-    const correct = questions.reduce(
-      (acc, q, i) => acc + (selectedAnswers[i] === q.answerIndex ? 1 : 0),
-      0
-    );
+    const correct = isCorrect.filter((v) => v === true).length;
     const total = questions.length;
 
     if (phase === "streak") {
@@ -86,13 +103,9 @@ export default function QuizScreen() {
         />
       );
     }
-
     if (phase === "quest") {
-      return (
-        <QuestRewardScreen onDone={() => router.back()} />
-      );
+      return <QuestRewardScreen onDone={() => router.back()} />;
     }
-
     return (
       <ResultScreen
         correct={correct}
@@ -105,8 +118,8 @@ export default function QuizScreen() {
   }
 
   const current = questions[currentIndex];
-  const selected = selectedAnswers[currentIndex];
-  const isAnswered = selected !== null;
+  const qType = getQuestionType(current);
+  const isAnswered = isCorrect[currentIndex] !== null;
 
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
@@ -115,6 +128,74 @@ export default function QuizScreen() {
     } else {
       nextQuestion();
     }
+  };
+
+  const renderOptions = () => {
+    if (qType === "multiple-choice") {
+      const mc = current as QuizQuestion;
+      return (
+        <MultipleChoiceOptions
+          options={mc.options}
+          selected={mcSelected}
+          answerIndex={mc.answerIndex}
+          isAnswered={isAnswered}
+          accentColor={accentColor}
+          onSelect={(i) => {
+            setMcSelected(i);
+            markAnswer(i === mc.answerIndex);
+          }}
+        />
+      );
+    }
+
+    if (qType === "short-answer") {
+      const sa = current as ShortAnswerQuestion;
+      return (
+        <ShortAnswerInput
+          correctAnswer={sa.answer}
+          isAnswered={isAnswered}
+          accentColor={accentColor}
+          onSubmit={(_, correct) => markAnswer(correct)}
+        />
+      );
+    }
+
+    if (qType === "ox") {
+      const ox = current as OXQuestion;
+      return (
+        <OXOptions
+          selected={oxSelected}
+          correctAnswer={ox.answer}
+          isAnswered={isAnswered}
+          accentColor={accentColor}
+          onSelect={(v) => {
+            setOxSelected(v);
+            markAnswer(v === ox.answer);
+          }}
+        />
+      );
+    }
+
+    if (qType === "matching") {
+      const mt = current as MatchingQuestion;
+      return (
+        <MatchingOptions
+          leftItems={mt.leftItems}
+          rightItems={mt.rightItems}
+          correctPairs={mt.correctPairs}
+          isAnswered={isAnswered}
+          accentColor={accentColor}
+          onComplete={(pairs) => {
+            const allCorrect = Object.entries(pairs).every(
+              ([li, ri]) => mt.correctPairs[Number(li)] === ri
+            );
+            markAnswer(allCorrect);
+          }}
+        />
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -133,29 +214,7 @@ export default function QuizScreen() {
           question={current.question}
           accentColor={accentColor}
         />
-        <View style={styles.options}>
-          {current.options.map((opt, i) => {
-            const isCorrect =
-              isAnswered && i === current.answerIndex
-                ? true
-                : isAnswered && i === selected && i !== current.answerIndex
-                ? false
-                : null;
-            return (
-              <QuizOption
-                key={i}
-                index={i}
-                label={opt}
-                selected={selected === i}
-                correct={isCorrect}
-                accentColor={accentColor}
-                onPress={() => {
-                  if (!isAnswered) selectAnswer(i);
-                }}
-              />
-            );
-          })}
-        </View>
+        <View style={styles.options}>{renderOptions()}</View>
         {isAnswered && (
           <Button
             label={
