@@ -134,6 +134,12 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.displayName}>{displayName}</Text>
         {email ? <Text style={styles.email}>{email}</Text> : null}
+        {user?.userCode ? (
+          <View style={styles.codeBadge}>
+            <Text style={styles.codeLabel}>친구 코드</Text>
+            <Text style={styles.codeValue}>{user.userCode}</Text>
+          </View>
+        ) : null}
 
         {/* 도토리 잔액 뱃지 */}
         <View style={styles.dotoriRow}>
@@ -318,6 +324,18 @@ const styles = StyleSheet.create({
   },
   dotoriImg: { width: 20, height: 20 },
   dotoriCount: { color: "#FFC800", fontSize: 14, fontWeight: "700" },
+  codeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2e3032",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+    gap: 6,
+  },
+  codeLabel: { color: "#888", fontSize: 11, fontWeight: "600" },
+  codeValue: { color: "#fff", fontSize: 13, fontWeight: "700", letterSpacing: 1 },
 
   // 통계
   statsRow: {

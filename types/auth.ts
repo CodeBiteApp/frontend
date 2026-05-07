@@ -18,6 +18,7 @@ export type AuthResponse = {
 
 export type User = {
   id: number;
+  userCode: string;
   email: string;
   nickname: string;
   profileImageUrl: string | null;
@@ -33,6 +34,7 @@ export type User = {
 
 export type UserSummary = {
   id: number;
+  userCode: string;
   email: string;
   nickname: string;
 };

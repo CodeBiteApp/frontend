@@ -203,7 +203,7 @@ export default function FriendSearchScreen() {
           results.length > 0 ? (
             <View style={styles.resultSection}>
               <ResultHeader count={results.length} mode={searchMode} />
-              {results.map((u) => <UserSearchCard key={u.userId} user={u} />)}
+              {results.map((u) => <UserSearchCard key={u.userId} user={u} initialFollowing={u.isFollowing} />)}
               <TouchableOpacity style={styles.clearAllBtn} onPress={handleClear}>
                 <Text style={styles.clearAllText}>검색 초기화</Text>
               </TouchableOpacity>
