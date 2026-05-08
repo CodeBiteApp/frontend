@@ -45,3 +45,6 @@ app-example
 
 # claude
 .claude
+
+.env
+api/axios.ts
