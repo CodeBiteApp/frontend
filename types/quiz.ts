@@ -9,6 +9,7 @@ export type QuizCategory = {
 export type QuizQuestion = {
   id: string;
   categoryId: string;
+  type?: "multiple-choice";
   question: string;
   options: string[];
   answerIndex: number;
@@ -19,6 +20,7 @@ export type QuizQuestion = {
 export type ShortAnswerQuestion = {
   id: string;
   categoryId: string;
+  type: "short-answer";
   question: string;
   answer: string;
   explanation?: string;
@@ -28,6 +30,7 @@ export type ShortAnswerQuestion = {
 export type OXQuestion = {
   id: string;
   categoryId: string;
+  type: "ox";
   question: string;
   answer: boolean; // true = O, false = X
   explanation?: string;
@@ -37,6 +40,7 @@ export type OXQuestion = {
 export type MatchingQuestion = {
   id: string;
   categoryId: string;
+  type: "matching";
   question: string;
   leftItems: string[];
   rightItems: string[]; // 표시 순서 (셔플 가능)
