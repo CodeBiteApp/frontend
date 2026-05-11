@@ -66,6 +66,7 @@ export default function RootLayout() {
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="quiz-loading" />
+        <Stack.Screen name="(social)" options={{ presentation: "modal" }} />
       </Stack>
     </QueryClientProvider>
   );

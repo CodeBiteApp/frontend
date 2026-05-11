@@ -6,19 +6,23 @@ import {
   ErrorState,
   LoadingState,
 } from "@/components/ranking/RankingStates";
+import FriendSearchScreen from "@/app/(social)/friend-search";
 import { useUserStore } from "@/store/useUserStore";
 import type { RankingResponse } from "@/types/ranking";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
 export default function RankingScreen() {
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
   const [data, setData] = useState<RankingResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,6 +80,33 @@ export default function RankingScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 친구추가 버튼 */}
+      <TouchableOpacity
+        style={styles.friendBtn}
+        onPress={() => setShowFriendSearch(true)}
+        accessibilityLabel="친구 찾기"
+      >
+        <Text style={styles.friendBtnText}>친구 추가</Text>
+      </TouchableOpacity>
+
+      {/* 친구 검색 모달 */}
+      <Modal
+        visible={showFriendSearch}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setShowFriendSearch(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowFriendSearch(false)}
+        />
+        <View style={styles.modalSheet}>
+          <FriendSearchScreen onClose={() => setShowFriendSearch(false)} />
+        </View>
+      </Modal>
+
       {/* 헤더: 쳇바퀴 + 도비 */}
       <View style={styles.wheelSection}>
         <View style={styles.wheelWrapper}>{/* <Wheel size={110} /> */}</View>
@@ -176,4 +207,36 @@ const styles = StyleSheet.create({
   tabBtnActive: { backgroundColor: "#FFC800" },
   tabText: { color: "#888", fontSize: 14, fontWeight: "700" },
   tabTextActive: { color: "#191A1C" },
+
+  modalBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  modalSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "90%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#191A1C",
+  },
+
+  friendBtn: {
+    position: "absolute",
+    top: 56,
+    right: 20,
+    backgroundColor: "#FFC800",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    zIndex: 10,
+  },
+  friendBtnText: { color: "#191A1C", fontSize: 13, fontWeight: "800" },
 });
