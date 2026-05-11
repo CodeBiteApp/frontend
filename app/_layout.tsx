@@ -15,6 +15,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     WebBrowser.maybeCompleteAuthSession();
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature/shin-social
     // 401 발생 시 로그인 화면으로 이동
     setUnauthorizedHandler(() => {
       setUnauthorized();
@@ -23,11 +27,19 @@ export default function RootLayout() {
 
     // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
     const boot = async () => {
+<<<<<<< HEAD
       if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
         // @ts-ignore
         const { seedMockSession } = await import("@/mocks");
         await seedMockSession();
       }
+=======
+      // Mock 세션 주입은 미구현 (setupMocks는 axios 인스턴스용 — axios.ts 참고)
+      // if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
+      //   const { seedMockSession } = await import("@/mocks");
+      //   await seedMockSession();
+      // }
+>>>>>>> feature/shin-social
       await restoreSession().catch(() => {});
     };
     boot();
@@ -59,6 +71,7 @@ export default function RootLayout() {
   }, []);
 
   return (
+<<<<<<< HEAD
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
@@ -68,5 +81,22 @@ export default function RootLayout() {
         <Stack.Screen name="quiz-loading" />
       </Stack>
     </QueryClientProvider>
+=======
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="quiz-loading" />
+      <Stack.Screen
+        name="friend-search"
+        options={{
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          headerShown: false,
+        }}
+      />
+    </Stack>
+>>>>>>> feature/shin-social
   );
 }

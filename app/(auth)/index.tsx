@@ -1,6 +1,8 @@
 import { Button } from "@/components/common/Button";
 import { useOAuthLogin } from "@/hooks/useOAuthLogin";
 import { useUserStore } from "@/store/useUserStore";
+import type { OAuthProvider } from "@/utils/oauthLogin";
+import { openOAuthLoginSession } from "@/utils/oauthLogin";
 import { Redirect, useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -9,12 +11,62 @@ export default function AuthIndexScreen() {
   const router = useRouter();
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
+<<<<<<< HEAD
 
   const { mutate: runOAuth, isPending, variables: activeProvider } = useOAuthLogin();
+=======
+  const completeSessionWithAccessToken = useUserStore(
+    (s) => s.completeSessionWithAccessToken,
+  );
+  const [checking, setChecking] = useState(false);
+  const [oauthProvider, setOauthProvider] = useState<OAuthProvider | null>(null);
+>>>>>>> feature/shin-social
 
   if (isLoggedIn && hasOnboarded) return <Redirect href="/(tabs)" />;
   if (isLoggedIn && !hasOnboarded) return <Redirect href="/(onboarding)" />;
 
+<<<<<<< HEAD
+=======
+  const handleServerCheck = async () => {
+    setChecking(true);
+    try {
+      await api.get("/api/health");
+      Alert.alert("서버 연결 성공", "서버가 정상적으로 응답했습니다.");
+    } catch (e: any) {
+      Alert.alert(
+        "서버 연결 실패",
+        `서버에 접근할 수 없습니다.\n${e?.message ?? ""}`,
+      );
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const runOAuth = async (provider: OAuthProvider) => {
+    setOauthProvider(provider);
+    try {
+      const res = await openOAuthLoginSession(provider);
+      if (res.ok) {
+        await completeSessionWithAccessToken(res.accessToken);
+        return;
+      }
+      if ("cancelled" in res && res.cancelled) return;
+      if ("error" in res) {
+        const msg =
+          res.error === "oauth2_authentication_failed"
+            ? "인증에 실패했습니다. 다시 시도해 주세요."
+            : res.error;
+        Alert.alert("소셜 로그인 실패", msg);
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      Alert.alert("소셜 로그인 오류", message);
+    } finally {
+      setOauthProvider(null);
+    }
+  };
+
+>>>>>>> feature/shin-social
   return (
     <View style={styles.container}>
       <View style={styles.top}>
@@ -31,6 +83,7 @@ export default function AuthIndexScreen() {
           label="이메일로 시작하기"
           onPress={() => router.push("/(auth)/login")}
         />
+<<<<<<< HEAD
         <Button
           label={
             isPending && activeProvider === "kakao"
@@ -47,6 +100,28 @@ export default function AuthIndexScreen() {
               ? "구글 연결 중..."
               : "구글로 시작하기"
           }
+=======
+        <Button
+          label={
+            oauthProvider === "kakao" ? "카카오 연결 중..." : "카카오로 시작하기"
+          }
+          variant="kakao"
+          onPress={() => void runOAuth("kakao")}
+          disabled={oauthProvider !== null || checking}
+        />
+        <Button
+          label={
+            oauthProvider === "google" ? "구글 연결 중..." : "구글로 시작하기"
+          }
+          variant="outline"
+          onPress={() => void runOAuth("google")}
+          disabled={oauthProvider !== null || checking}
+        />
+        <Button
+          label={checking ? "확인 중..." : "서버 연결 확인"}
+          onPress={handleServerCheck}
+          disabled={checking || oauthProvider !== null}
+>>>>>>> feature/shin-social
           variant="outline"
           onPress={() => runOAuth("google")}
           disabled={isPending}
