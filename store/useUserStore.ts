@@ -79,6 +79,12 @@ export const useUserStore = create<UserState>((set) => ({
     set({ isLoading: true });
     try {
       const response = await registerApi(body);
+      console.log("[register] 서버 응답:", JSON.stringify(response));
+
+      if (!response.accessToken) {
+        throw new Error(`accessToken 없음. 실제 응답: ${JSON.stringify(response)}`);
+      }
+
       await saveSecureStore("accessToken", response.accessToken);
       const { position, streak } = await readLocalSession();
       set({ user: response.user, isLoggedIn: true, position, streak });

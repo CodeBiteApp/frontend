@@ -1,6 +1,7 @@
 import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -54,11 +55,28 @@ export default function SignupScreen() {
     try {
       await register({ email: emailTrim, password, nickname });
       router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
-    } catch {
-      Alert.alert(
-        "회원가입 실패",
-        "이미 가입된 이메일이거나 입력 형식을 확인해주세요.",
-      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const serverMessage: string | undefined = error.response?.data?.message;
+        console.log("[signup] Axios 에러 status:", status, "data:", JSON.stringify(error.response?.data));
+
+        if (!error.response) {
+          Alert.alert("연결 오류", "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.");
+        } else if (status === 409) {
+          Alert.alert("회원가입 실패", "이미 사용 중인 이메일입니다.");
+        } else if (status === 400) {
+          Alert.alert("회원가입 실패", serverMessage ?? "입력 값을 확인해주세요.");
+        } else if (status === 500) {
+          Alert.alert("서버 오류", "서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } else {
+          Alert.alert("회원가입 실패", `[${status}] ${serverMessage ?? "잠시 후 다시 시도해주세요."}`);
+        }
+      } else {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log("[signup] 비Axios 에러:", msg);
+        Alert.alert("회원가입 실패", msg);
+      }
     }
   };
 

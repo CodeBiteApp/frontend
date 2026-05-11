@@ -34,10 +34,10 @@ export const setupAuthInterceptors = (api: AxiosInstance) => {
     async (error) => {
       const originalRequest = error.config;
 
-      if (
-        error.response?.status === 401 &&
-        !originalRequest.url?.includes("/api/auth/refresh")
-      ) {
+      const authOnlyEndpoints = ["/api/auth/refresh", "/api/auth/login", "/api/auth/register"];
+      const isAuthEndpoint = authOnlyEndpoints.some((path) => originalRequest.url?.includes(path));
+
+      if (error.response?.status === 401 && !isAuthEndpoint) {
         if (isRefreshing) {
           return new Promise<string>((resolve, reject) => {
             pendingQueue.push({ resolve, reject });
