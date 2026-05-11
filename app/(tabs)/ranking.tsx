@@ -1,9 +1,14 @@
 import Acorn from "@/components/charactor/Acorn";
 import DobiCommon from "@/components/charactor/dobi-common";
-import React, { useRef, useEffect, useState } from "react";
+import { getFollowingRanking, getGlobalRanking } from "@/api/ranking";
+import type { RankingEntry, RankingResponse } from "@/types/ranking";
+import { useUserStore } from "@/store/useUserStore";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Easing,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,31 +16,10 @@ import {
   View,
 } from "react-native";
 
-const MOCK_RANKING = [
-  { rank: 1, name: "퀴즈왕",    score: 4280, dotori: 980 },
-  { rank: 2, name: "지식인",    score: 3970, dotori: 870 },
-  { rank: 3, name: "천재소년",  score: 3650, dotori: 760 },
-  { rank: 4, name: "공부벌레",  score: 3100, dotori: 650 },
-  { rank: 5, name: "알고왕",    score: 2880, dotori: 540 },
-  { rank: 6, name: "코딩마스터",score: 2470, dotori: 490 },
-  { rank: 7, name: "나",        score: 2200, dotori: 300, isMe: true },
-  { rank: 8, name: "열공중",    score: 1950, dotori: 270 },
-  { rank: 9, name: "뉴비",      score: 1340, dotori: 180 },
-  { rank: 10, name: "도전자",   score:  890, dotori: 120 },
-];
-
-const MOCK_FRIENDS = [
-  { rank: 1, name: "나",        score: 2200, dotori: 300, isMe: true },
-  { rank: 2, name: "친구A",     score: 1980, dotori: 260 },
-  { rank: 3, name: "친구B",     score: 1750, dotori: 210 },
-  { rank: 4, name: "친구C",     score: 1400, dotori: 170 },
-  { rank: 5, name: "친구D",     score:  980, dotori: 110 },
-];
-
-const TOP3_COLORS  = ["#FFC800", "#C0C0C0", "#CD7F32"] as const;
-const TOP3_LABELS  = ["1st", "2nd", "3rd"] as const;
+const TOP3_COLORS = ["#FFC800", "#C0C0C0", "#CD7F32"] as const;
+const TOP3_LABELS = ["1st", "2nd", "3rd"] as const;
 const TOP3_HEIGHTS = [110, 80, 60] as const;
-const SPOKE_COUNT  = 8;
+const SPOKE_COUNT = 8;
 
 // ────────────────────────────────────────────────────────────
 // 쳇바퀴 컴포넌트
@@ -101,12 +85,51 @@ function Wheel({ size = 120 }: { size?: number }) {
 }
 
 // ────────────────────────────────────────────────────────────
+// 로딩 / 에러 / 빈 상태 컴포넌트
+// ────────────────────────────────────────────────────────────
+function LoadingState() {
+  return (
+    <View style={styles.centerBox}>
+      <ActivityIndicator size="large" color="#FFC800" />
+      <Text style={styles.stateText}>랭킹을 불러오는 중...</Text>
+    </View>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.centerBox}>
+      <Text style={styles.stateText}>랭킹을 불러오지 못했어요 😢</Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.8}>
+        <Text style={styles.retryBtnText}>다시 시도</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function EmptyState() {
+  return (
+    <View style={styles.centerBox}>
+      <Text style={styles.stateText}>표시할 랭킹이 없어요 🐿️</Text>
+    </View>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
 // 랭킹 목록 (시상대 + 리스트 + 내 순위)
 // ────────────────────────────────────────────────────────────
-function RankingList({ data }: { data: typeof MOCK_RANKING }) {
-  const me   = data.find((u) => u.isMe);
-  const top3 = data.slice(0, 3);
-  const rest = data.slice(3).filter((u) => !u.isMe);
+function RankingList({
+  rankings,
+  myUserId,
+  myRank,
+}: {
+  rankings: RankingEntry[];
+  myUserId: number | null;
+  myRank: number | null;
+}) {
+  const top3 = rankings.slice(0, 3);
+  const rest = rankings.slice(3).filter((u) => u.userId !== myUserId);
+  const meEntry = rankings.find((u) => u.userId === myUserId) ?? null;
 
   return (
     <>
@@ -114,16 +137,19 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
       <View style={styles.podiumRow}>
         {[1, 0, 2].map((idx) => {
           if (!top3[idx]) return null;
-          const user  = top3[idx];
+          const user = top3[idx];
           const color = TOP3_COLORS[idx];
           const label = TOP3_LABELS[idx];
-          const barH  = TOP3_HEIGHTS[idx];
+          const barH = TOP3_HEIGHTS[idx];
+          const isMe = user.userId === myUserId;
           return (
-            <View key={user.rank} style={styles.podiumItem}>
-              <Text style={styles.podiumName}>{user.name}</Text>
+            <View key={user.userId} style={styles.podiumItem}>
+              <Text style={[styles.podiumName, isMe && styles.meHighlight]}>
+                {isMe ? "나" : user.nickname}
+              </Text>
               <View style={styles.podiumDotoriRow}>
-                <Acorn width={16} height={16} />
-                <Text style={styles.podiumDotori}>{user.dotori}</Text>
+                <Text style={styles.podiumStreakLabel}>🔥</Text>
+                <Text style={styles.podiumDotori}>{user.currentStreak}</Text>
               </View>
               <View style={[styles.podiumBar, { height: barH, backgroundColor: color }]}>
                 <Text style={styles.podiumLabel}>{label}</Text>
@@ -135,30 +161,50 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
 
       {/* ── 4위~ 리스트 ── */}
       <View style={styles.listBox}>
-        {rest.map((user) => (
-          <View key={user.rank} style={styles.row}>
-            <Text style={styles.rowRank}>{user.rank}</Text>
-            <Text style={styles.rowName}>{user.name}</Text>
-            <View style={styles.rowRight}>
-              <Acorn width={16} height={16} />
-              <Text style={styles.rowDotori}>{user.dotori}</Text>
-              <Text style={styles.rowScore}>{user.score.toLocaleString()}점</Text>
+        {rest.map((user) => {
+          const isMe = user.userId === myUserId;
+          return (
+            <View key={user.userId} style={[styles.row, isMe && styles.rowMe]}>
+              <Text style={[styles.rowRank, isMe && styles.meHighlight]}>{user.rank}</Text>
+              <Text style={[styles.rowName, isMe && styles.meHighlight]}>
+                {isMe ? `나 (${user.nickname})` : user.nickname}
+              </Text>
+              <View style={styles.rowRight}>
+                <Text style={styles.streakIcon}>🔥</Text>
+                <Text style={styles.rowDotori}>{user.currentStreak}</Text>
+                <Text style={styles.rowScore}>{user.longestStreak}최장</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
-      {/* ── 내 순위 고정 카드 ── */}
-      {me && (
+      {/* ── 내 순위 고정 카드 (top3·rest에 없는 경우) ── */}
+      {meEntry && !top3.some((u) => u.userId === myUserId) && !rest.some((u) => u.userId === myUserId) && (
         <View style={styles.meCard}>
           <View style={styles.meLeft}>
-            <Text style={styles.meRank}>{me.rank}위</Text>
-            <Text style={styles.meName}>나  ({me.name})</Text>
+            <Text style={styles.meRank}>{myRank ?? meEntry.rank}위</Text>
+            <Text style={styles.meName}>나 ({meEntry.nickname})</Text>
           </View>
           <View style={styles.rowRight}>
-            <Acorn width={16} height={16} />
-            <Text style={styles.rowDotori}>{me.dotori}</Text>
-            <Text style={styles.rowScore}>{me.score.toLocaleString()}점</Text>
+            <Text style={styles.streakIcon}>🔥</Text>
+            <Text style={styles.rowDotori}>{meEntry.currentStreak}</Text>
+            <Text style={styles.rowScore}>{meEntry.longestStreak}최장</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── 내 순위 카드 (항상 하단 고정 — top3이나 rest에 있어도 표시) ── */}
+      {meEntry && (top3.some((u) => u.userId === myUserId) || rest.some((u) => u.userId === myUserId)) && (
+        <View style={styles.meCard}>
+          <View style={styles.meLeft}>
+            <Text style={styles.meRank}>{myRank ?? meEntry.rank}위</Text>
+            <Text style={styles.meName}>나 ({meEntry.nickname})</Text>
+          </View>
+          <View style={styles.rowRight}>
+            <Text style={styles.streakIcon}>🔥</Text>
+            <Text style={styles.rowDotori}>{meEntry.currentStreak}</Text>
+            <Text style={styles.rowScore}>{meEntry.longestStreak}최장</Text>
           </View>
         </View>
       )}
@@ -171,12 +217,66 @@ function RankingList({ data }: { data: typeof MOCK_RANKING }) {
 // ────────────────────────────────────────────────────────────
 export default function RankingScreen() {
   const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
+  const [data, setData] = useState<RankingResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Zustand에서 현재 로그인 유저의 userId 조회
+  const myUserId = useUserStore((s) => s.user?.id ?? null);
+
+  const fetchRanking = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res =
+        activeTab === "all"
+          ? await getGlobalRanking()
+          : await getFollowingRanking();
+      setData(res);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab]);
+
+  // 탭 전환 또는 마운트 시 fetch
+  useEffect(() => {
+    fetchRanking();
+  }, [fetchRanking]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchRanking();
+    setRefreshing(false);
+  };
+
+  const renderContent = () => {
+    if (loading && !refreshing) return <LoadingState />;
+    if (error) return <ErrorState onRetry={fetchRanking} />;
+    if (!data || data.rankings.length === 0) return <EmptyState />;
+    return (
+      <RankingList
+        rankings={data.rankings}
+        myUserId={myUserId}
+        myRank={data.myRank}
+      />
+    );
+  };
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#FFC800"
+        />
+      }
     >
       {/* ── 헤더: 쳇바퀴 + 코비 ── */}
       <View style={styles.wheelSection}>
@@ -213,11 +313,7 @@ export default function RankingScreen() {
       </View>
 
       {/* ── 탭 콘텐츠 ── */}
-      {activeTab === "all" ? (
-        <RankingList data={MOCK_RANKING} />
-      ) : (
-        <RankingList data={MOCK_FRIENDS} />
-      )}
+      {renderContent()}
     </ScrollView>
   );
 }
@@ -227,7 +323,7 @@ export default function RankingScreen() {
 // ────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
-  content:   { paddingTop: 56, paddingBottom: 40 },
+  content: { paddingTop: 56, paddingBottom: 40 },
 
   // 헤더
   wheelSection: {
@@ -241,7 +337,7 @@ const styles = StyleSheet.create({
 
   wheelTextBox: { flex: 1 },
   wheelTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 4 },
-  wheelSub:   { color: "#aaa", fontSize: 13 },
+  wheelSub: { color: "#aaa", fontSize: 13 },
 
   // 탭 바
   tabBar: {
@@ -262,6 +358,22 @@ const styles = StyleSheet.create({
   tabText: { color: "#888", fontSize: 14, fontWeight: "700" },
   tabTextActive: { color: "#191A1C" },
 
+  // 로딩/에러/빈 상태
+  centerBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 16,
+  },
+  stateText: { color: "#aaa", fontSize: 15 },
+  retryBtn: {
+    backgroundColor: "#FFC800",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryBtnText: { color: "#191A1C", fontWeight: "700", fontSize: 14 },
+
   // 시상대
   podiumRow: {
     flexDirection: "row",
@@ -274,6 +386,7 @@ const styles = StyleSheet.create({
   podiumItem: { flex: 1, alignItems: "center" },
   podiumName: { color: "#fff", fontSize: 13, fontWeight: "700", marginBottom: 2, textAlign: "center" },
   podiumDotoriRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 6 },
+  podiumStreakLabel: { fontSize: 14 },
   podiumDotori: { color: "#FFC800", fontSize: 12, fontWeight: "700" },
   podiumBar: {
     width: "100%",
@@ -300,12 +413,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#2e3032",
   },
-  rowRank:   { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
-  rowName:   { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
-  rowRight:  { flexDirection: "row", alignItems: "center", gap: 4 },
-
+  rowMe: { backgroundColor: "#2C2A1E" },
+  rowRank: { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
+  rowName: { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
+  rowRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+  streakIcon: { fontSize: 14 },
   rowDotori: { color: "#FFC800", fontSize: 13, fontWeight: "700", marginRight: 8 },
-  rowScore:  { color: "#aaa", fontSize: 13 },
+  rowScore: { color: "#aaa", fontSize: 13 },
+
+  // 내 순위 강조
+  meHighlight: { color: "#FFC800" },
 
   // 내 순위 카드
   meCard: {
@@ -319,7 +436,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#FFC800",
   },
-  meLeft:  { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  meRank:  { color: "#FFC800", fontSize: 16, fontWeight: "800" },
-  meName:  { color: "#fff", fontSize: 15, fontWeight: "700" },
+  meLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  meRank: { color: "#FFC800", fontSize: 16, fontWeight: "800" },
+  meName: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });
