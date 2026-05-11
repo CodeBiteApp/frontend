@@ -1,4 +1,5 @@
 import Acorn from "@/components/charactor/Acorn";
+import DobiShop from "@/components/charactor/dobi-shop";
 import { Button } from "@/components/common/Button";
 import React, { useState } from "react";
 import {
@@ -42,7 +43,7 @@ export default function RewardScreen() {
   const canAfford = selected ? dotori >= selected.price : false;
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -131,7 +132,11 @@ export default function RewardScreen() {
           </View>
         )}
       </Modal>
-    </>
+
+      <View style={styles.dobiContainer} pointerEvents="none">
+        <DobiShop width={240} height={240} />
+      </View>
+    </View>
   );
 }
 
@@ -223,4 +228,10 @@ const styles = StyleSheet.create({
   dotoriMedium: { width: 24, height: 24 },
   sheetPrice: { color: "#FFC800", fontSize: 22, fontWeight: "800" },
   insufficientText: { color: "#ff4b4b", fontSize: 13, marginBottom: 4 },
+
+  dobiContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: -20,
+  },
 });
