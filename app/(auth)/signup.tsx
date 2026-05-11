@@ -1,5 +1,6 @@
 import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -11,6 +12,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -23,6 +26,8 @@ export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSignup = async () => {
     const nickname = name.trim();
@@ -90,22 +95,46 @@ export default function SignupScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TextInput
-          style={styles.input}
-          placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="비밀번호 확인"
-          placeholderTextColor="#888"
-          value={confirm}
-          onChangeText={setConfirm}
-          secureTextEntry
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.inputWithIcon}
+            placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
+            placeholderTextColor="#888"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((v) => !v)}
+          >
+            <Ionicons
+              name={showPassword ? "eye" : "eye-off"}
+              size={20}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.inputWithIcon}
+            placeholder="비밀번호 확인"
+            placeholderTextColor="#888"
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry={!showConfirm}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowConfirm((v) => !v)}
+          >
+            <Ionicons
+              name={showConfirm ? "eye" : "eye-off"}
+              size={20}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
 
         <Button label="가입하기" onPress={handleSignup} style={{ marginTop: 4 }} />
 
@@ -151,5 +180,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     backgroundColor: "#242628",
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#333537",
+    borderRadius: 14,
+    backgroundColor: "#242628",
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#fff",
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
 });
