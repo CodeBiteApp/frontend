@@ -1,3 +1,4 @@
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -49,8 +50,9 @@ export default function OnboardingScreen() {
   const handleNext = () => {
     if (!isSelected) return;
     if (isLast) {
-      completeOnboarding();
-      router.replace("/(tabs)");
+      const position = STEPS[0].options[selected[0] as number];
+      completeOnboarding(position);
+      router.replace("/quiz-loading");
     } else {
       setStep((s) => s + 1);
     }
@@ -98,14 +100,11 @@ export default function OnboardingScreen() {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={[styles.nextBtn, !isSelected && styles.nextBtnDisabled]}
+      <Button
+        label={isLast ? "시작하기" : "다음"}
         onPress={handleNext}
-        activeOpacity={0.85}
         disabled={!isSelected}
-      >
-        <Text style={styles.nextBtnText}>{isLast ? "시작하기" : "다음"}</Text>
-      </TouchableOpacity>
+      />
     </View>
   );
 }
@@ -160,13 +159,4 @@ const styles = StyleSheet.create({
   },
   optionText: { fontSize: 16, color: "#888" },
   optionTextActive: { color: "#58CC02", fontWeight: "700" },
-  nextBtn: {
-    backgroundColor: "#58CC02",
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  nextBtnDisabled: { backgroundColor: "#1e3a10" },
-  nextBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

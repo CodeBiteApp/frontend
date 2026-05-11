@@ -1,5 +1,6 @@
 import MockAdapter from "axios-mock-adapter";
 import type { AxiosInstance } from "axios";
+import { saveSecureStore } from "@/utils/secureStore";
 
 const MOCK_AUTH = {
   accessToken: "mock-access-token-dev",
@@ -22,6 +23,10 @@ const MOCK_USER = {
   followingCount: 7,
   followerCount: 12,
 };
+
+export async function seedMockSession() {
+  await saveSecureStore("accessToken", MOCK_AUTH.accessToken);
+}
 
 export function setupMocks(api: AxiosInstance) {
   const mock = new MockAdapter(api, { onNoMatch: "passthrough" });

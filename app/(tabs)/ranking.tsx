@@ -1,11 +1,13 @@
-import React, { useEffect, useRef } from "react";
+import Acorn from "@/components/charactor/Acorn";
+import DobiCommon from "@/components/charactor/dobi-common";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
   Easing,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -20,6 +22,14 @@ const MOCK_RANKING = [
   { rank: 8, name: "열공중",    score: 1950, dotori: 270 },
   { rank: 9, name: "뉴비",      score: 1340, dotori: 180 },
   { rank: 10, name: "도전자",   score:  890, dotori: 120 },
+];
+
+const MOCK_FRIENDS = [
+  { rank: 1, name: "나",        score: 2200, dotori: 300, isMe: true },
+  { rank: 2, name: "친구A",     score: 1980, dotori: 260 },
+  { rank: 3, name: "친구B",     score: 1750, dotori: 210 },
+  { rank: 4, name: "친구C",     score: 1400, dotori: 170 },
+  { rank: 5, name: "친구D",     score:  980, dotori: 110 },
 ];
 
 const TOP3_COLORS  = ["#FFC800", "#C0C0C0", "#CD7F32"] as const;
@@ -48,7 +58,6 @@ function Wheel({ size = 120 }: { size?: number }) {
 
   return (
     <Animated.View style={[{ width: size, height: size }, { transform: [{ rotate }] }]}>
-      {/* 바깥 원 */}
       <View
         style={{
           position: "absolute",
@@ -59,7 +68,6 @@ function Wheel({ size = 120 }: { size?: number }) {
           borderColor: "#C68B3A",
         }}
       />
-      {/* 안쪽 원 */}
       <View
         style={{
           position: "absolute",
@@ -71,7 +79,6 @@ function Wheel({ size = 120 }: { size?: number }) {
           left: size * 0.4,
         }}
       />
-      {/* 살대 */}
       {Array.from({ length: SPOKE_COUNT }).map((_, i) => (
         <View
           key={i}
@@ -94,52 +101,28 @@ function Wheel({ size = 120 }: { size?: number }) {
 }
 
 // ────────────────────────────────────────────────────────────
-// 메인 스크린
+// 랭킹 목록 (시상대 + 리스트 + 내 순위)
 // ────────────────────────────────────────────────────────────
-export default function RankingScreen() {
-  const me = MOCK_RANKING.find((u) => u.isMe);
-  const top3 = MOCK_RANKING.slice(0, 3);
-  const rest = MOCK_RANKING.slice(3).filter((u) => !u.isMe);
+function RankingList({ data }: { data: typeof MOCK_RANKING }) {
+  const me   = data.find((u) => u.isMe);
+  const top3 = data.slice(0, 3);
+  const rest = data.slice(3).filter((u) => !u.isMe);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── 헤더: 쳇바퀴 + 코비 ── */}
-      <View style={styles.wheelSection}>
-        <View style={styles.wheelWrapper}>
-          <Wheel size={110} />
-        </View>
-        <Image
-          source={require("@/assets/images/cobi-1.png")}
-          style={styles.cobiImg}
-          resizeMode="contain"
-        />
-        <View style={styles.wheelTextBox}>
-          <Text style={styles.wheelTitle}>이번 주 랭킹</Text>
-          <Text style={styles.wheelSub}>열심히 달리는 중 🐿️</Text>
-        </View>
-      </View>
-
+    <>
       {/* ── 시상대 TOP 3 ── */}
       <View style={styles.podiumRow}>
-        {/* 2위를 왼쪽에 */}
         {[1, 0, 2].map((idx) => {
-          const user = top3[idx];
+          if (!top3[idx]) return null;
+          const user  = top3[idx];
           const color = TOP3_COLORS[idx];
           const label = TOP3_LABELS[idx];
-          const barH = TOP3_HEIGHTS[idx];
+          const barH  = TOP3_HEIGHTS[idx];
           return (
             <View key={user.rank} style={styles.podiumItem}>
               <Text style={styles.podiumName}>{user.name}</Text>
               <View style={styles.podiumDotoriRow}>
-                <Image
-                  source={require("@/assets/images/dotori-1.png")}
-                  style={styles.dotoriTiny}
-                  resizeMode="contain"
-                />
+                <Acorn width={16} height={16} />
                 <Text style={styles.podiumDotori}>{user.dotori}</Text>
               </View>
               <View style={[styles.podiumBar, { height: barH, backgroundColor: color }]}>
@@ -157,11 +140,7 @@ export default function RankingScreen() {
             <Text style={styles.rowRank}>{user.rank}</Text>
             <Text style={styles.rowName}>{user.name}</Text>
             <View style={styles.rowRight}>
-              <Image
-                source={require("@/assets/images/dotori-1.png")}
-                style={styles.dotoriTiny}
-                resizeMode="contain"
-              />
+              <Acorn width={16} height={16} />
               <Text style={styles.rowDotori}>{user.dotori}</Text>
               <Text style={styles.rowScore}>{user.score.toLocaleString()}점</Text>
             </View>
@@ -177,15 +156,67 @@ export default function RankingScreen() {
             <Text style={styles.meName}>나  ({me.name})</Text>
           </View>
           <View style={styles.rowRight}>
-            <Image
-              source={require("@/assets/images/dotori-1.png")}
-              style={styles.dotoriTiny}
-              resizeMode="contain"
-            />
+            <Acorn width={16} height={16} />
             <Text style={styles.rowDotori}>{me.dotori}</Text>
             <Text style={styles.rowScore}>{me.score.toLocaleString()}점</Text>
           </View>
         </View>
+      )}
+    </>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// 메인 스크린
+// ────────────────────────────────────────────────────────────
+export default function RankingScreen() {
+  const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── 헤더: 쳇바퀴 + 코비 ── */}
+      <View style={styles.wheelSection}>
+        <View style={styles.wheelWrapper}>
+          <Wheel size={110} />
+        </View>
+        <DobiCommon size={90} />
+        <View style={styles.wheelTextBox}>
+          <Text style={styles.wheelTitle}>이번 주 랭킹</Text>
+          <Text style={styles.wheelSub}>열심히 달리는 중 🐿️</Text>
+        </View>
+      </View>
+
+      {/* ── 탭 스위처 ── */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === "all" && styles.tabBtnActive]}
+          onPress={() => setActiveTab("all")}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.tabText, activeTab === "all" && styles.tabTextActive]}>
+            전체 랭킹
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === "friends" && styles.tabBtnActive]}
+          onPress={() => setActiveTab("friends")}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.tabText, activeTab === "friends" && styles.tabTextActive]}>
+            친구 랭킹
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── 탭 콘텐츠 ── */}
+      {activeTab === "all" ? (
+        <RankingList data={MOCK_RANKING} />
+      ) : (
+        <RankingList data={MOCK_FRIENDS} />
       )}
     </ScrollView>
   );
@@ -203,20 +234,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,
-    marginBottom: 32,
+    marginBottom: 24,
     gap: 16,
   },
-  wheelWrapper: {
-    padding: 6,
-  },
-  cobiImg: {
-    width: 90,
-    height: 90,
-    marginLeft: -10,
-  },
+  wheelWrapper: { padding: 6 },
+
   wheelTextBox: { flex: 1 },
   wheelTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 4 },
   wheelSub:   { color: "#aaa", fontSize: 13 },
+
+  // 탭 바
+  tabBar: {
+    flexDirection: "row",
+    marginHorizontal: 20,
+    marginBottom: 24,
+    backgroundColor: "#242628",
+    borderRadius: 12,
+    padding: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: "center",
+  },
+  tabBtnActive: { backgroundColor: "#FFC800" },
+  tabText: { color: "#888", fontSize: 14, fontWeight: "700" },
+  tabTextActive: { color: "#191A1C" },
 
   // 시상대
   podiumRow: {
@@ -259,7 +303,7 @@ const styles = StyleSheet.create({
   rowRank:   { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
   rowName:   { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
   rowRight:  { flexDirection: "row", alignItems: "center", gap: 4 },
-  dotoriTiny: { width: 16, height: 16 },
+
   rowDotori: { color: "#FFC800", fontSize: 13, fontWeight: "700", marginRight: 8 },
   rowScore:  { color: "#aaa", fontSize: 13 },
 

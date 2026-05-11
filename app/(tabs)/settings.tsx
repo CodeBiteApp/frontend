@@ -1,9 +1,10 @@
+import Acorn from "@/components/charactor/Acorn";
+import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -133,14 +134,16 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.displayName}>{displayName}</Text>
         {email ? <Text style={styles.email}>{email}</Text> : null}
+        {user?.userCode ? (
+          <View style={styles.codeBadge}>
+            <Text style={styles.codeLabel}>친구 코드</Text>
+            <Text style={styles.codeValue}>{user.userCode}</Text>
+          </View>
+        ) : null}
 
         {/* 도토리 잔액 뱃지 */}
         <View style={styles.dotoriRow}>
-          <Image
-            source={require("@/assets/images/dotori-1.png")}
-            style={styles.dotoriImg}
-            resizeMode="contain"
-          />
+          <Acorn width={20} height={20} />
           <Text style={styles.dotoriCount}>{MOCK_STATS.dotori} 도토리</Text>
         </View>
       </View>
@@ -199,6 +202,21 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* ── 친구 찾기 버튼 ── */}
+      <TouchableOpacity
+        style={styles.findFriendBtn}
+        onPress={() => router.push("/friend-search")}
+        activeOpacity={0.85}
+        accessibilityLabel="친구 찾기"
+      >
+        <Text style={styles.findFriendEmoji}>👥</Text>
+        <View style={styles.findFriendTextBox}>
+          <Text style={styles.findFriendTitle}>친구 찾기</Text>
+          <Text style={styles.findFriendSub}>닉네임·코드로 팔로우할 유저를 검색해보세요</Text>
+        </View>
+        <Text style={styles.findFriendArrow}>›</Text>
+      </TouchableOpacity>
+
       {/* ── 알림 설정 ── */}
       <Text style={styles.section}>알림 &amp; 소리</Text>
       <View style={styles.settingGroup}>
@@ -239,9 +257,9 @@ export default function SettingsScreen() {
       {/* ── 계정 설정 ── */}
       <Text style={styles.section}>계정</Text>
       <View style={styles.settingGroup}>
-        <SettingRow label="닉네임 변경" onPress={() => {}} />
+        <SettingRow label="닉네임 변경" onPress={() => { }} />
         <View style={styles.divider} />
-        <SettingRow label="비밀번호 변경" onPress={() => {}} />
+        <SettingRow label="비밀번호 변경" onPress={() => { }} />
       </View>
 
       {/* ── 앱 정보 ── */}
@@ -252,19 +270,19 @@ export default function SettingsScreen() {
           right={<Text style={styles.settingValue}>1.0.0</Text>}
         />
         <View style={styles.divider} />
-        <SettingRow label="이용약관" onPress={() => {}} />
+        <SettingRow label="이용약관" onPress={() => { }} />
         <View style={styles.divider} />
-        <SettingRow label="개인정보 처리방침" onPress={() => {}} />
+        <SettingRow label="개인정보 처리방침" onPress={() => { }} />
       </View>
 
       {/* ── 로그아웃 ── */}
-      <TouchableOpacity
-        style={styles.logoutBtn}
+      <Button
+        label="로그아웃"
         onPress={handleLogout}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.logoutText}>로그아웃</Text>
-      </TouchableOpacity>
+        variant="danger"
+        style={{ marginTop: 28, paddingVertical: 16 }}
+        textStyle={{ fontSize: 15 }}
+      />
     </ScrollView>
   );
 }
@@ -306,6 +324,18 @@ const styles = StyleSheet.create({
   },
   dotoriImg: { width: 20, height: 20 },
   dotoriCount: { color: "#FFC800", fontSize: 14, fontWeight: "700" },
+  codeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2e3032",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+    gap: 6,
+  },
+  codeLabel: { color: "#888", fontSize: 11, fontWeight: "600" },
+  codeValue: { color: "#fff", fontSize: 13, fontWeight: "700", letterSpacing: 1 },
 
   // 통계
   statsRow: {
@@ -399,15 +429,23 @@ const styles = StyleSheet.create({
   settingValue: { color: "#888", fontSize: 14 },
   divider: { height: 1, backgroundColor: "#2e3032", marginHorizontal: 16 },
 
-  // 로그아웃
-  logoutBtn: {
-    marginTop: 28,
-    backgroundColor: "#242628",
-    borderRadius: 14,
-    paddingVertical: 16,
+  // 친구 찾기 버튼
+  findFriendBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FF4B4B33",
+    backgroundColor: "#1E2A1A",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    borderWidth: 1.5,
+    borderColor: "#2E5C20",
+    gap: 12,
   },
-  logoutText: { color: "#FF4B4B", fontSize: 15, fontWeight: "700" },
+  findFriendEmoji: { fontSize: 26 },
+  findFriendTextBox: { flex: 1 },
+  findFriendTitle: { color: "#58CC02", fontSize: 15, fontWeight: "800", marginBottom: 2 },
+  findFriendSub: { color: "#888", fontSize: 12 },
+  findFriendArrow: { color: "#58CC02", fontSize: 22, fontWeight: "700" },
+
 });

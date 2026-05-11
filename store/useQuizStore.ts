@@ -1,15 +1,15 @@
 import { create } from "zustand";
-import type { QuizQuestion, QuizResult } from "@/types/quiz";
+import type { AnyQuizQuestion, QuizResult } from "@/types/quiz";
 
 type QuizState = {
-  questions: QuizQuestion[];
+  questions: AnyQuizQuestion[];
   currentIndex: number;
-  selectedAnswers: (number | null)[];
+  isCorrect: (boolean | null)[];
   isFinished: boolean;
   results: QuizResult[];
 
-  setQuestions: (questions: QuizQuestion[]) => void;
-  selectAnswer: (index: number) => void;
+  setQuestions: (questions: AnyQuizQuestion[]) => void;
+  markAnswer: (correct: boolean) => void;
   nextQuestion: () => void;
   finishQuiz: (categoryId: string) => void;
   resetQuiz: () => void;
@@ -18,18 +18,23 @@ type QuizState = {
 export const useQuizStore = create<QuizState>((set, get) => ({
   questions: [],
   currentIndex: 0,
-  selectedAnswers: [],
+  isCorrect: [],
   isFinished: false,
   results: [],
 
   setQuestions: (questions) =>
-    set({ questions, currentIndex: 0, selectedAnswers: Array(questions.length).fill(null), isFinished: false }),
+    set({
+      questions,
+      currentIndex: 0,
+      isCorrect: Array(questions.length).fill(null),
+      isFinished: false,
+    }),
 
-  selectAnswer: (index) => {
-    const { currentIndex, selectedAnswers } = get();
-    const updated = [...selectedAnswers];
-    updated[currentIndex] = index;
-    set({ selectedAnswers: updated });
+  markAnswer: (correct) => {
+    const { currentIndex, isCorrect } = get();
+    const updated = [...isCorrect];
+    updated[currentIndex] = correct;
+    set({ isCorrect: updated });
   },
 
   nextQuestion: () => {
@@ -42,14 +47,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   finishQuiz: (categoryId) => {
-    const { questions, selectedAnswers, results } = get();
-    const correctCount = questions.reduce(
-      (acc, q, i) => acc + (selectedAnswers[i] === q.answerIndex ? 1 : 0),
-      0
-    );
+    const { isCorrect, results } = get();
+    const correctCount = isCorrect.filter((v) => v === true).length;
     const result: QuizResult = {
       categoryId,
-      totalQuestions: questions.length,
+      totalQuestions: isCorrect.length,
       correctCount,
       earnedPoints: correctCount * 10,
       completedAt: new Date().toISOString(),
@@ -58,5 +60,5 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   resetQuiz: () =>
-    set({ questions: [], currentIndex: 0, selectedAnswers: [], isFinished: false }),
+    set({ questions: [], currentIndex: 0, isCorrect: [], isFinished: false }),
 }));
