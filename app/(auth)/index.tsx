@@ -12,7 +12,11 @@ export default function AuthIndexScreen() {
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
-  const { mutate: runOAuth, isPending, variables: activeProvider } = useOAuthLogin();
+  const {
+    mutate: runOAuth,
+    isPending,
+    variables: activeProvider,
+  } = useOAuthLogin();
 
   if (isLoggedIn && hasOnboarded) return <Redirect href="/(tabs)" />;
   if (isLoggedIn && !hasOnboarded) return <Redirect href="/(onboarding)" />;
