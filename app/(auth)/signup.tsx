@@ -1,5 +1,7 @@
 import { Button } from "@/components/common/Button";
 import { useUserStore } from "@/store/useUserStore";
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -11,6 +13,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -23,6 +27,8 @@ export default function SignupScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSignup = async () => {
     const nickname = name.trim();
@@ -49,11 +55,28 @@ export default function SignupScreen() {
     try {
       await register({ email: emailTrim, password, nickname });
       router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
-    } catch {
-      Alert.alert(
-        "회원가입 실패",
-        "이미 가입된 이메일이거나 입력 형식을 확인해주세요.",
-      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const serverMessage: string | undefined = error.response?.data?.message;
+        console.log("[signup] Axios 에러 status:", status, "data:", JSON.stringify(error.response?.data));
+
+        if (!error.response) {
+          Alert.alert("연결 오류", "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.");
+        } else if (status === 409) {
+          Alert.alert("회원가입 실패", "이미 사용 중인 이메일입니다.");
+        } else if (status === 400) {
+          Alert.alert("회원가입 실패", serverMessage ?? "입력 값을 확인해주세요.");
+        } else if (status === 500) {
+          Alert.alert("서버 오류", "서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } else {
+          Alert.alert("회원가입 실패", `[${status}] ${serverMessage ?? "잠시 후 다시 시도해주세요."}`);
+        }
+      } else {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.log("[signup] 비Axios 에러:", msg);
+        Alert.alert("회원가입 실패", msg);
+      }
     }
   };
 
@@ -90,22 +113,46 @@ export default function SignupScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <TextInput
-          style={styles.input}
-          placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
-          placeholderTextColor="#888"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="비밀번호 확인"
-          placeholderTextColor="#888"
-          value={confirm}
-          onChangeText={setConfirm}
-          secureTextEntry
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.inputWithIcon}
+            placeholder="비밀번호 (8자+, 영·숫자·특수문자)"
+            placeholderTextColor="#888"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((v) => !v)}
+          >
+            <Ionicons
+              name={showPassword ? "eye" : "eye-off"}
+              size={20}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.inputWithIcon}
+            placeholder="비밀번호 확인"
+            placeholderTextColor="#888"
+            value={confirm}
+            onChangeText={setConfirm}
+            secureTextEntry={!showConfirm}
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowConfirm((v) => !v)}
+          >
+            <Ionicons
+              name={showConfirm ? "eye" : "eye-off"}
+              size={20}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
 
         <Button label="가입하기" onPress={handleSignup} style={{ marginTop: 4 }} />
 
@@ -151,5 +198,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     backgroundColor: "#242628",
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#333537",
+    borderRadius: 14,
+    backgroundColor: "#242628",
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#fff",
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
 });

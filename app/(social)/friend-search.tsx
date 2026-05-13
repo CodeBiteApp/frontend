@@ -51,8 +51,9 @@ function ResultHeader({ count, mode }: { count: number; mode: "list" | "single" 
 }
 
 // ── 메인 스크린 ───────────────────────────────────────────
-export default function FriendSearchScreen() {
+export default function FriendSearchScreen({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
+  const handleClose = onClose ?? (() => router.back());
   const [nickname, setNickname] = useState("");
   const [userCode, setUserCode] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
@@ -104,7 +105,7 @@ export default function FriendSearchScreen() {
       {/* ── 모달 헤더 ── */}
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>친구 찾기</Text>
-        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()} accessibilityLabel="닫기">
+        <TouchableOpacity style={styles.closeBtn} onPress={handleClose} accessibilityLabel="닫기">
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
       </View>

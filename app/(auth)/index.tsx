@@ -1,6 +1,8 @@
 import { Button } from "@/components/common/Button";
 import { useOAuthLogin } from "@/hooks/useOAuthLogin";
 import { useUserStore } from "@/store/useUserStore";
+import type { OAuthProvider } from "@/utils/oauthLogin";
+import { openOAuthLoginSession } from "@/utils/oauthLogin";
 import { Redirect, useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";

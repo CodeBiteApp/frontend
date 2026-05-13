@@ -25,11 +25,6 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
-// userCode 마스킹: 앞 3자리만 표시 (e.g. "A1B2C3" → "A1B···")
-function maskCode(code: string) {
-  if (!code || code.length <= 3) return code;
-  return `${code.slice(0, 3)}···`;
-}
 
 type Props = {
   user: UserSearchResult;
@@ -73,7 +68,7 @@ export function UserSearchCard({ user, initialFollowing = false }: Props) {
       <View style={styles.info}>
         <Text style={styles.nickname}>{user.nickname}</Text>
         <View style={styles.metaRow}>
-          <Text style={styles.code}># {maskCode(user.userCode)}</Text>
+          <Text style={styles.code}># {user.userCode}</Text>
           <Text style={styles.dot}>·</Text>
           <Text style={styles.streak}>🔥 {user.currentStreak}일</Text>
         </View>
