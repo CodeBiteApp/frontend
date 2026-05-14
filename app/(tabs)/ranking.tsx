@@ -1,4 +1,5 @@
 import { getFollowingRanking, getGlobalRanking } from "@/api/ranking";
+import FriendSearchScreen from "@/app/(social)/friend-search";
 import DobiCommon from "@/components/charactor/dobi-common";
 import RankingList from "@/components/ranking/RankingList";
 import {
@@ -6,7 +7,6 @@ import {
   ErrorState,
   LoadingState,
 } from "@/components/ranking/RankingStates";
-import FriendSearchScreen from "@/app/(social)/friend-search";
 import { useUserStore } from "@/store/useUserStore";
 import type { RankingResponse } from "@/types/ranking";
 import React, { useCallback, useEffect, useState } from "react";
@@ -93,7 +93,7 @@ export default function RankingScreen() {
       <Modal
         visible={showFriendSearch}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent
         onRequestClose={() => setShowFriendSearch(false)}
       >
@@ -113,7 +113,7 @@ export default function RankingScreen() {
         <DobiCommon size={90} />
         <View style={styles.wheelTextBox}>
           <Text style={styles.wheelTitle}>이번 주 랭킹</Text>
-          <Text style={styles.wheelSub}>열심히 달리는 중 🐿️</Text>
+          <Text style={styles.wheelSub}>열심히 달리는 중</Text>
         </View>
       </View>
 
@@ -218,12 +218,11 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "90%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    top: 120,
+    bottom: 120,
+    left: 30,
+    right: 30,
+    borderRadius: 20,
     overflow: "hidden",
     backgroundColor: "#191A1C",
   },
