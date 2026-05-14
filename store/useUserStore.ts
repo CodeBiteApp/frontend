@@ -42,7 +42,9 @@ async function readLocalSession() {
   const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(
     () => [],
   );
-  const position = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
+  // position이 없으면, "자바 개발자" 기본값으로 반환
+  const position =
+    results.find(([k]) => k === POSITION_KEY)?.[1] ?? "자바 개발자";
   const streak = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
   return { position, streak };
 }
@@ -67,8 +69,18 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       const response = await loginApi(body);
       await saveSecureStore("accessToken", response.accessToken);
+      /**
+       * hasOnboarded: !!position
+       * !!position = 온보딩을 완료했다 를 boolean으로 변환
+       */
       const { position, streak } = await readLocalSession();
-      set({ user: response.user, isLoggedIn: true, position, streak });
+      set({
+        user: response.user,
+        isLoggedIn: true,
+        position,
+        streak,
+        hasOnboarded: !!position, // false
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -82,12 +94,20 @@ export const useUserStore = create<UserState>((set) => ({
       console.log("[register] 서버 응답:", JSON.stringify(response));
 
       if (!response.accessToken) {
-        throw new Error(`accessToken 없음. 실제 응답: ${JSON.stringify(response)}`);
+        throw new Error(
+          `accessToken 없음. 실제 응답: ${JSON.stringify(response)}`,
+        );
       }
 
       await saveSecureStore("accessToken", response.accessToken);
       const { position, streak } = await readLocalSession();
-      set({ user: response.user, isLoggedIn: true, position, streak });
+      set({
+        user: response.user,
+        isLoggedIn: true,
+        position,
+        streak,
+        hasOnboarded: !!position, // false
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -100,7 +120,13 @@ export const useUserStore = create<UserState>((set) => ({
     try {
       await saveSecureStore("accessToken", accessToken);
       const { user, position, streak } = await fetchUserWithSession();
-      set({ user, isLoggedIn: true, position, streak });
+      set({
+        user,
+        isLoggedIn: true,
+        position,
+        streak,
+        hasOnboarded: !!position, // false
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -125,7 +151,13 @@ export const useUserStore = create<UserState>((set) => ({
       if (!token) return false;
 
       const { user, position, streak } = await fetchUserWithSession(true);
-      set({ user, isLoggedIn: true, position, streak });
+      set({
+        user,
+        isLoggedIn: true,
+        position,
+        streak,
+        hasOnboarded: !!position, // false
+      });
       scheduleTokenRefresh();
       return true;
     } catch {
