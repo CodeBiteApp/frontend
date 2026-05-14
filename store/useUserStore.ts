@@ -35,6 +35,7 @@ type UserState = {
   restoreSession: () => Promise<boolean>;
   completeOnboarding: (position: string) => void;
   setUnauthorized: () => void;
+  setUser: (user: UserSummary) => void;
 };
 
 // AsyncStorage에서 position, streak 읽기
@@ -183,4 +184,6 @@ export const useUserStore = create<UserState>((set) => ({
     clearTokenRefreshTimer();
     set({ user: null, isLoggedIn: false });
   },
+
+  setUser: (user) => set({ user }),
 }));

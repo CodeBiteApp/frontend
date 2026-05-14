@@ -8,3 +8,8 @@ export async function getMe(skipUnauthorized = false): Promise<UserSummary> {
   );
   return data;
 }
+
+export async function updateNickname(nickname: string): Promise<UserSummary> {
+  const { data } = await api.patch("/api/users/me/nickname", { nickname });
+  return data;
+}
