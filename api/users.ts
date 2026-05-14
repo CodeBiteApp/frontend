@@ -13,3 +13,10 @@ export async function updateNickname(nickname: string): Promise<UserSummary> {
   const { data } = await api.patch("/api/users/me/nickname", { nickname });
   return data;
 }
+
+export async function updatePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  await api.patch("/api/users/me/password", { currentPassword, newPassword });
+}

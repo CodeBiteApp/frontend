@@ -99,6 +99,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
   const logout = useUserStore((s) => s.logout);
+  const isSocialLogin = useUserStore((s) => s.isSocialLogin);
 
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
@@ -270,6 +271,16 @@ export default function SettingsScreen() {
           label="닉네임 변경"
           onPress={() => router.push("/change-nickname")}
         />
+        <View style={styles.divider} />
+        <SettingRow
+          label="비밀번호 변경"
+          onPress={isSocialLogin ? undefined : () => router.push("/change-password")}
+          right={
+            isSocialLogin ? (
+              <Text style={styles.settingDisabled}>소셜 로그인</Text>
+            ) : undefined
+          }
+        />
       </View>
 
       {/* ── 앱 정보 ── */}
@@ -283,6 +294,8 @@ export default function SettingsScreen() {
         <SettingRow label="이용약관" onPress={() => {}} />
         <View style={styles.divider} />
         <SettingRow label="개인정보 처리방침" onPress={() => {}} />
+        <View style={styles.divider} />
+        <SettingRow label="사용된 오픈소스" onPress={() => {}} />
       </View>
 
       {/* ── 로그아웃 ── */}
@@ -442,6 +455,7 @@ const styles = StyleSheet.create({
   settingDanger: { color: "#FF4B4B" },
   settingArrow: { color: "#555", fontSize: 20 },
   settingValue: { color: "#888", fontSize: 14 },
+  settingDisabled: { color: "#555", fontSize: 13 },
   divider: { height: 1, backgroundColor: "#2e3032", marginHorizontal: 16 },
 
   // 친구 찾기 버튼

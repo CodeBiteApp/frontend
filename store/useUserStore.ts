@@ -19,6 +19,7 @@ import { create } from "zustand";
 
 const POSITION_KEY = "codebite_position";
 const STREAK_KEY = "codebite_streak";
+const SOCIAL_LOGIN_KEY = "codebite_social_login";
 
 type UserState = {
   user: UserSummary | null;
@@ -27,6 +28,7 @@ type UserState = {
   isLoading: boolean;
   position: string | null;
   streak: number;
+  isSocialLogin: boolean;
 
   login: (body: LoginRequest) => Promise<void>;
   register: (body: RegisterRequest) => Promise<void>;
@@ -38,16 +40,19 @@ type UserState = {
   setUser: (user: UserSummary) => void;
 };
 
-// AsyncStorage에서 position, streak 읽기
+// AsyncStorage에서 position, streak, isSocialLogin 읽기
 async function readLocalSession() {
-  const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(
-    () => [],
-  );
-  // position이 없으면, "자바 개발자" 기본값으로 반환
+  const results = await AsyncStorage.multiGet([
+    POSITION_KEY,
+    STREAK_KEY,
+    SOCIAL_LOGIN_KEY,
+  ]).catch(() => []);
   const position =
     results.find(([k]) => k === POSITION_KEY)?.[1] ?? "자바 개발자";
   const streak = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
-  return { position, streak };
+  const isSocialLogin =
+    results.find(([k]) => k === SOCIAL_LOGIN_KEY)?.[1] === "true";
+  return { position, streak, isSocialLogin };
 }
 
 // 서버에서 유저 정보 + 로컬 세션 합쳐서 반환
@@ -64,23 +69,22 @@ export const useUserStore = create<UserState>((set) => ({
   isLoading: true,
   position: null,
   streak: 0,
+  isSocialLogin: false,
 
   login: async (body) => {
     set({ isLoading: true });
     try {
       const response = await loginApi(body);
       await saveSecureStore("accessToken", response.accessToken);
-      /**
-       * hasOnboarded: !!position
-       * !!position = 온보딩을 완료했다 를 boolean으로 변환
-       */
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "false");
       const { position, streak } = await readLocalSession();
       set({
         user: response.user,
         isLoggedIn: true,
+        isSocialLogin: false,
         position,
         streak,
-        hasOnboarded: !!position, // false
+        hasOnboarded: !!position,
       });
       scheduleTokenRefresh();
     } finally {
@@ -101,13 +105,15 @@ export const useUserStore = create<UserState>((set) => ({
       }
 
       await saveSecureStore("accessToken", response.accessToken);
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "false");
       const { position, streak } = await readLocalSession();
       set({
         user: response.user,
         isLoggedIn: true,
+        isSocialLogin: false,
         position,
         streak,
-        hasOnboarded: !!position, // false
+        hasOnboarded: !!position,
       });
       scheduleTokenRefresh();
     } finally {
@@ -120,13 +126,15 @@ export const useUserStore = create<UserState>((set) => ({
     set({ isLoading: true });
     try {
       await saveSecureStore("accessToken", accessToken);
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "true");
       const { user, position, streak } = await fetchUserWithSession();
       set({
         user,
         isLoggedIn: true,
+        isSocialLogin: true,
         position,
         streak,
-        hasOnboarded: !!position, // false
+        hasOnboarded: !!position,
       });
       scheduleTokenRefresh();
     } finally {
@@ -139,8 +147,9 @@ export const useUserStore = create<UserState>((set) => ({
       await logoutApi();
     } finally {
       await deleteSecureStore("accessToken");
+      await AsyncStorage.removeItem(SOCIAL_LOGIN_KEY).catch(() => {});
       clearTokenRefreshTimer();
-      set({ user: null, isLoggedIn: false });
+      set({ user: null, isLoggedIn: false, isSocialLogin: false });
     }
   },
 
@@ -151,13 +160,15 @@ export const useUserStore = create<UserState>((set) => ({
       const token = await getSecureStore("accessToken");
       if (!token) return false;
 
-      const { user, position, streak } = await fetchUserWithSession(true);
+      const { user, position, streak, isSocialLogin } =
+        await fetchUserWithSession(true);
       set({
         user,
         isLoggedIn: true,
+        isSocialLogin,
         position,
         streak,
-        hasOnboarded: !!position, // false
+        hasOnboarded: !!position,
       });
       scheduleTokenRefresh();
       return true;
