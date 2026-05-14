@@ -1,5 +1,4 @@
 import { getFollowingRanking, getGlobalRanking } from "@/api/ranking";
-import FriendSearchScreen from "@/app/(social)/friend-search";
 import DobiCommon from "@/components/charactor/dobi-common";
 import RankingList from "@/components/ranking/RankingList";
 import {
@@ -7,11 +6,11 @@ import {
   ErrorState,
   LoadingState,
 } from "@/components/ranking/RankingStates";
+import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
 import type { RankingResponse } from "@/types/ranking";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -89,23 +88,10 @@ export default function RankingScreen() {
         <Text style={styles.friendBtnText}>친구 추가</Text>
       </TouchableOpacity>
 
-      {/* 친구 검색 모달 */}
-      <Modal
+      <FriendSearchModal
         visible={showFriendSearch}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setShowFriendSearch(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setShowFriendSearch(false)}
-        />
-        <View style={styles.modalSheet}>
-          <FriendSearchScreen onClose={() => setShowFriendSearch(false)} />
-        </View>
-      </Modal>
+        onClose={() => setShowFriendSearch(false)}
+      />
 
       {/* 헤더: 쳇바퀴 + 도비 */}
       <View style={styles.wheelSection}>
@@ -208,26 +194,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#888", fontSize: 14, fontWeight: "700" },
   tabTextActive: { color: "#191A1C" },
 
-  modalBackdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.55)",
-  },
-  modalSheet: {
-    position: "absolute",
-    top: 120,
-    bottom: 120,
-    left: 30,
-    right: 30,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#191A1C",
-  },
-
-  friendBtn: {
+friendBtn: {
     position: "absolute",
     top: 56,
     right: 20,

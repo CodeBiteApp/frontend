@@ -1,5 +1,6 @@
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
+import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -102,6 +103,7 @@ export default function SettingsScreen() {
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
 
   const displayName =
     user?.nickname?.trim() || user?.email?.split("@")[0] || "사용자";
@@ -202,10 +204,15 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      <FriendSearchModal
+        visible={showFriendSearch}
+        onClose={() => setShowFriendSearch(false)}
+      />
+
       {/* ── 친구 찾기 버튼 ── */}
       <TouchableOpacity
         style={styles.findFriendBtn}
-        onPress={() => router.push("/friend-search")}
+        onPress={() => setShowFriendSearch(true)}
         activeOpacity={0.85}
         accessibilityLabel="친구 찾기"
       >
