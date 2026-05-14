@@ -219,7 +219,9 @@ export default function SettingsScreen() {
         <Text style={styles.findFriendEmoji}>👥</Text>
         <View style={styles.findFriendTextBox}>
           <Text style={styles.findFriendTitle}>친구 찾기</Text>
-          <Text style={styles.findFriendSub}>닉네임·코드로 팔로우할 유저를 검색해보세요</Text>
+          <Text style={styles.findFriendSub}>
+            닉네임·코드로 팔로우할 유저를 검색해보세요
+          </Text>
         </View>
         <Text style={styles.findFriendArrow}>›</Text>
       </TouchableOpacity>
@@ -264,9 +266,10 @@ export default function SettingsScreen() {
       {/* ── 계정 설정 ── */}
       <Text style={styles.section}>계정</Text>
       <View style={styles.settingGroup}>
-        <SettingRow label="닉네임 변경" onPress={() => { }} />
-        <View style={styles.divider} />
-        <SettingRow label="비밀번호 변경" onPress={() => { }} />
+        <SettingRow
+          label="닉네임 변경"
+          onPress={() => router.push("/change-nickname")}
+        />
       </View>
 
       {/* ── 앱 정보 ── */}
@@ -277,9 +280,9 @@ export default function SettingsScreen() {
           right={<Text style={styles.settingValue}>1.0.0</Text>}
         />
         <View style={styles.divider} />
-        <SettingRow label="이용약관" onPress={() => { }} />
+        <SettingRow label="이용약관" onPress={() => {}} />
         <View style={styles.divider} />
-        <SettingRow label="개인정보 처리방침" onPress={() => { }} />
+        <SettingRow label="개인정보 처리방침" onPress={() => {}} />
       </View>
 
       {/* ── 로그아웃 ── */}
@@ -342,7 +345,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   codeLabel: { color: "#888", fontSize: 11, fontWeight: "600" },
-  codeValue: { color: "#fff", fontSize: 13, fontWeight: "700", letterSpacing: 1 },
+  codeValue: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
 
   // 통계
   statsRow: {
@@ -451,8 +459,12 @@ const styles = StyleSheet.create({
   },
   findFriendEmoji: { fontSize: 26 },
   findFriendTextBox: { flex: 1 },
-  findFriendTitle: { color: "#58CC02", fontSize: 15, fontWeight: "800", marginBottom: 2 },
+  findFriendTitle: {
+    color: "#58CC02",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
   findFriendSub: { color: "#888", fontSize: 12 },
   findFriendArrow: { color: "#58CC02", fontSize: 22, fontWeight: "700" },
-
 });
