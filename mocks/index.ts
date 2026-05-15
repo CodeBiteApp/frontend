@@ -6,11 +6,12 @@ const MOCK_AUTH = {
   accessToken: "mock-access-token-dev",
   tokenType: "Bearer",
   expiresIn: 1500,
-  user: { id: 1, email: "dev@test.com", nickname: "개발자" },
+  user: { id: 1, userCode: "DEV001", email: "dev@test.com", nickname: "개발자" },
 };
 
 const MOCK_USER = {
   id: 1,
+  userCode: "DEV001",
   email: "dev@test.com",
   nickname: "개발자",
   profileImageUrl: null,
