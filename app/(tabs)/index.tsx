@@ -100,7 +100,8 @@ function positionLabel(pos: string | null): string {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { position, streak } = useUserStore();
+  const { position, user } = useUserStore();
+  const streak = user?.currentStreak || 0;
   const [selected, setSelected] = useState<SelectedStage | null>(null);
   const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(
     null,

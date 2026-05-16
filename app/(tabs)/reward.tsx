@@ -1,7 +1,7 @@
 import Acorn from "@/components/charactor/Acorn";
 import DobiShop from "@/components/charactor/dobi-shop";
 import { Button } from "@/components/common/Button";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Modal,
   Pressable,
@@ -10,71 +10,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import { useItemStore } from "@/store/useItemStore";
+import { useUserStore } from "@/store/useUserStore";
+import { getAssetForItem } from "@/constants/itemAssets";
+import type { ShopItemResponse } from "@/api/items";
+import { useFocusEffect } from "expo-router";
 
-type Category = "전체" | "풀이보조" | "경험치" | "보호";
-
-type ShopItem = {
-  id: string;
-  emoji: string;
-  title: string;
-  description: string;
-  price: number;
-  category: "풀이보조" | "경험치" | "보호";
-};
-
-const CATEGORIES: Category[] = ["전체", "풀이보조", "경험치", "보호"];
-
-const SHOP_ITEMS: ShopItem[] = [
-  {
-    id: "1",
-    emoji: "💡",
-    title: "힌트 사용권",
-    description: "퀴즈 풀이 중 힌트를 1회 사용할 수 있어요.",
-    price: 50,
-    category: "풀이보조",
-  },
-  {
-    id: "2",
-    emoji: "🔍",
-    title: "정답 보기권",
-    description: "틀린 문제의 정답을 바로 확인할 수 있어요.",
-    price: 80,
-    category: "풀이보조",
-  },
-  {
-    id: "3",
-    emoji: "⏭️",
-    title: "스테이지 건너뛰기",
-    description: "원하는 스테이지 1개를 건너뛸 수 있어요.",
-    price: 150,
-    category: "풀이보조",
-  },
-  {
-    id: "4",
-    emoji: "⚡",
-    title: "경험치 2배 (1시간)",
-    description: "1시간 동안 획득 경험치가 2배가 돼요.",
-    price: 200,
-    category: "경험치",
-  },
-  {
-    id: "5",
-    emoji: "🛡️",
-    title: "오답 보호권",
-    description: "틀려도 하트가 차감되지 않아요. (1회)",
-    price: 120,
-    category: "보호",
-  },
-  {
-    id: "6",
-    emoji: "🎯",
-    title: "연습 모드 해금",
-    description: "제한 없이 스테이지를 반복 연습할 수 있어요.",
-    price: 300,
-    category: "풀이보조",
-  },
-];
+type Category = "전체" | "풀이보조" | "경험치" | "보호" | "배너" | "기타";
+const CATEGORIES: Category[] = ["전체", "보호", "배너", "기타"];
 
 const BUBBLE_MESSAGES = [
   "어서와!\n뭐 살거야? 🛒",
@@ -83,11 +29,22 @@ const BUBBLE_MESSAGES = [
 ];
 
 export default function RewardScreen() {
-  const [dotori] = useState(300);
-  const [selected, setSelected] = useState<ShopItem | null>(null);
-  const [purchased, setPurchased] = useState<string[]>([]);
+  const { user } = useUserStore();
+  const { shopItems, inventory, protectorCount, isLoading, fetchShopItems, fetchInventory, buyItem, toggleEquip } = useItemStore();
+  
+  const [tabMode, setTabMode] = useState<"SHOP" | "INVENTORY">("SHOP");
+  const [selected, setSelected] = useState<ShopItemResponse | null>(null);
   const [category, setCategory] = useState<Category>("전체");
   const [bubbleIdx, setBubbleIdx] = useState(0);
+
+  const dotori = user?.dotori || 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchShopItems();
+      fetchInventory();
+    }, [fetchShopItems, fetchInventory])
+  );
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -96,18 +53,23 @@ export default function RewardScreen() {
     return () => clearInterval(t);
   }, []);
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (!selected) return;
-    setPurchased((prev) => [...prev, selected.id]);
-    setSelected(null);
+    const success = await buyItem(selected.id);
+    if (success) {
+      setSelected(null);
+      Alert.alert("구매 성공", "구매완료 되었습니다.");
+    }
   };
 
   const canAfford = selected ? dotori >= selected.price : false;
 
-  const filteredItems =
-    category === "전체"
-      ? SHOP_ITEMS
-      : SHOP_ITEMS.filter((i) => i.category === category);
+  const filteredItems = category === "전체"
+    ? shopItems
+    : shopItems.filter((i) => {
+        const asset = getAssetForItem(i.itemType, i.id);
+        return asset.category === category;
+      });
 
   return (
     <View style={styles.container}>
@@ -120,83 +82,150 @@ export default function RewardScreen() {
         </View>
       </View>
 
+      <View style={styles.tabToggleContainer}>
+        <TouchableOpacity
+          style={[styles.tabToggleButton, tabMode === "SHOP" && styles.tabToggleButtonActive]}
+          onPress={() => setTabMode("SHOP")}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.tabToggleText, tabMode === "SHOP" && styles.tabToggleTextActive]}>상점</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabToggleButton, tabMode === "INVENTORY" && styles.tabToggleButtonActive]}
+          onPress={() => setTabMode("INVENTORY")}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.tabToggleText, tabMode === "INVENTORY" && styles.tabToggleTextActive]}>내 보관함</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 캐릭터 + 말풍선 */}
-        <View style={styles.characterSection}>
-          <View style={styles.characterWrap}>
-            <DobiShop width={210} height={210} />
-          </View>
-          <View style={styles.bubbleWrap}>
-            {/* 말풍선 꼬리 (왼쪽 방향) */}
-            <View style={styles.bubbleTail} />
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>
-                {BUBBLE_MESSAGES[bubbleIdx]}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 카테고리 가로스크롤 */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.catScroll}
-          contentContainerStyle={styles.catContent}
-        >
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.catTab, category === cat && styles.catTabActive]}
-              onPress={() => setCategory(cat)}
-              activeOpacity={0.75}
-            >
-              <Text
-                style={[
-                  styles.catText,
-                  category === cat && styles.catTextActive,
-                ]}
-              >
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* 아이템 그리드 */}
-        <Text style={styles.sectionTitle}>아이템</Text>
-        <View style={styles.grid}>
-          {filteredItems.map((item) => {
-            const isBought = purchased.includes(item.id);
-            const affordable = dotori >= item.price;
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.card, isBought && styles.cardBought]}
-                activeOpacity={0.75}
-                onPress={() => !isBought && setSelected(item)}
-                disabled={isBought}
-              >
-                <Text style={styles.cardEmoji}>{item.emoji}</Text>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <View style={styles.priceRow}>
-                  <Acorn width={14} height={14} />
-                  <Text
-                    style={[
-                      styles.priceText,
-                      !affordable && !isBought && styles.priceInsufficient,
-                    ]}
-                  >
-                    {isBought ? "구매완료" : item.price.toLocaleString()}
+        {tabMode === "SHOP" ? (
+          <>
+            {/* 캐릭터 + 말풍선 */}
+            <View style={styles.characterSection}>
+              <View style={styles.characterWrap}>
+                <DobiShop width={210} height={210} />
+              </View>
+              <View style={styles.bubbleWrap}>
+                <View style={styles.bubbleTail} />
+                <View style={styles.bubble}>
+                  <Text style={styles.bubbleText}>
+                    {BUBBLE_MESSAGES[bubbleIdx]}
                   </Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
+            </View>
+
+            {/* 카테고리 가로스크롤 */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.catScroll}
+              contentContainerStyle={styles.catContent}
+            >
+              {CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.catTab, category === cat && styles.catTabActive]}
+                  onPress={() => setCategory(cat)}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[
+                      styles.catText,
+                      category === cat && styles.catTextActive,
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* 아이템 그리드 */}
+            <Text style={styles.sectionTitle}>아이템</Text>
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#FFC800" style={{ marginTop: 40 }} />
+            ) : (
+              <View style={styles.grid}>
+                {filteredItems.map((item) => {
+                  const asset = getAssetForItem(item.itemType, item.id);
+                  const affordable = dotori >= item.price;
+                  const isBought = item.isPurchased;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.card, isBought && styles.cardBought]}
+                      activeOpacity={0.75}
+                      onPress={() => !isBought && setSelected(item)}
+                      disabled={isBought}
+                    >
+                      <Text style={styles.cardEmoji}>{asset.emoji}</Text>
+                      <Text style={styles.cardTitle}>{asset.title}</Text>
+                      <View style={styles.priceRow}>
+                        <Acorn width={14} height={14} />
+                        <Text
+                          style={[
+                            styles.priceText,
+                            !affordable && !isBought && styles.priceInsufficient,
+                          ]}
+                        >
+                          {isBought ? "보유중" : item.price.toLocaleString()}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        ) : (
+          <>
+            {/* 내 보관함 뷰 */}
+            <Text style={styles.sectionTitle}>보유한 소모품</Text>
+            <View style={styles.grid}>
+              <View style={styles.card}>
+                <Text style={styles.cardEmoji}>🛡️</Text>
+                <Text style={styles.cardTitle}>스트릭 보호권</Text>
+                <View style={styles.inventoryCountRow}>
+                  <Text style={styles.inventoryCountText}>보유: {protectorCount}개</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={[styles.sectionTitle, { marginTop: 32 }]}>보유한 꾸미기 아이템</Text>
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#FFC800" style={{ marginTop: 40 }} />
+            ) : inventory.length === 0 ? (
+              <Text style={styles.emptyText}>아직 보유한 꾸미기 아이템이 없습니다.</Text>
+            ) : (
+              <View style={styles.grid}>
+                {inventory.map((item) => {
+                  const asset = getAssetForItem(item.itemType, item.itemId);
+                  return (
+                    <View key={item.itemId} style={[styles.card, item.isEquipped && styles.cardEquipped]}>
+                      <Text style={styles.cardEmoji}>{asset.emoji}</Text>
+                      <Text style={styles.cardTitle}>{asset.title}</Text>
+                      <Button
+                        label={item.isEquipped ? "해제하기" : "장착하기"}
+                        onPress={() => toggleEquip(item.itemId, !item.isEquipped)}
+                        style={styles.equipBtn}
+                        textStyle={styles.equipBtnText}
+                        color={item.isEquipped ? "#333537" : "#FFC800"}
+                        textColor={item.isEquipped ? "#aaa" : "#191A1C"}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
       {/* 구매 확인 모달 */}
@@ -210,9 +239,9 @@ export default function RewardScreen() {
         {selected && (
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetEmoji}>{selected.emoji}</Text>
-            <Text style={styles.sheetTitle}>{selected.title}</Text>
-            <Text style={styles.sheetDesc}>{selected.description}</Text>
+            <Text style={styles.sheetEmoji}>{getAssetForItem(selected.itemType, selected.id).emoji}</Text>
+            <Text style={styles.sheetTitle}>{getAssetForItem(selected.itemType, selected.id).title}</Text>
+            <Text style={styles.sheetDesc}>{getAssetForItem(selected.itemType, selected.id).description}</Text>
             <View style={styles.sheetPriceRow}>
               <Acorn width={24} height={24} />
               <Text style={styles.sheetPrice}>
@@ -223,9 +252,9 @@ export default function RewardScreen() {
               <Text style={styles.insufficientText}>도토리가 부족해요</Text>
             )}
             <Button
-              label="구매하기"
+              label={isLoading ? "구매 중..." : "구매하기"}
               onPress={handleBuy}
-              disabled={!canAfford}
+              disabled={!canAfford || isLoading}
               color={canAfford ? "#FFC800" : "#3a3a3a"}
               textColor="#191A1C"
               style={{ width: "100%", marginTop: 16, marginBottom: 10 }}
@@ -237,6 +266,7 @@ export default function RewardScreen() {
               variant="ghost"
               style={{ paddingVertical: 8 }}
               textStyle={{ color: "#888", fontSize: 14 }}
+              disabled={isLoading}
             />
           </View>
         )}
@@ -248,7 +278,6 @@ export default function RewardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
 
-  // 헤더
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -280,13 +309,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  // 스크롤
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
 
-  // 캐릭터 섹션
   characterSection: {
     flexDirection: "row",
     alignItems: "center",
@@ -295,7 +322,6 @@ const styles = StyleSheet.create({
     minHeight: 180,
   },
   characterWrap: {
-    // DobiShop SVG 자체 여백 보정
   },
   bubbleWrap: {
     flex: 1,
@@ -303,7 +329,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: -4,
   },
-  // 말풍선 꼬리 (왼쪽 방향 삼각형)
   bubbleTail: {
     width: 0,
     height: 0,
@@ -331,7 +356,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
 
-  // 카테고리 가로스크롤
   catScroll: {
     marginHorizontal: -20,
     marginBottom: 20,
@@ -371,7 +395,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // 아이템 그리드
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -402,7 +425,68 @@ const styles = StyleSheet.create({
   priceText: { color: "#FFC800", fontSize: 13, fontWeight: "700" },
   priceInsufficient: { color: "#ff4b4b" },
 
-  // 구매 모달
+  tabToggleContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+  },
+  tabToggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#242628",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#333537",
+  },
+  tabToggleButtonActive: {
+    backgroundColor: "#FFC800",
+    borderColor: "#FFC800",
+  },
+  tabToggleText: {
+    color: "#aaa",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  tabToggleTextActive: {
+    color: "#191A1C",
+    fontWeight: "800",
+  },
+
+  inventoryCountRow: {
+    backgroundColor: "#333537",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  inventoryCountText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  emptyText: {
+    color: "#aaa",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 32,
+  },
+  equipBtn: {
+    width: "100%",
+    paddingVertical: 8,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  equipBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  cardEquipped: {
+    borderColor: "#FFC800",
+    borderWidth: 2,
+  },
+
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)" },
   sheet: {
     backgroundColor: "#242628",

@@ -18,9 +18,6 @@ import {
 const MOCK_STATS = {
   rank: 7,
   score: 2200,
-  dotori: 300,
-  currentStreak: 5,
-  longestStreak: 12,
   solvedCount: 48,
 };
 
@@ -137,17 +134,19 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.displayName}>{displayName}</Text>
         {email ? <Text style={styles.email}>{email}</Text> : null}
-        {user?.userCode ? (
-          <View style={styles.codeBadge}>
-            <Text style={styles.codeLabel}>친구 코드</Text>
-            <Text style={styles.codeValue}>{user.userCode}</Text>
-          </View>
-        ) : null}
+        {/* 친구 코드 및 도토리 배지 가로 배치 */}
+        <View style={styles.badgeContainer}>
+          {user?.userCode ? (
+            <View style={styles.codeBadge}>
+              <Text style={styles.codeLabel}>친구 코드</Text>
+              <Text style={styles.codeValue}>{user.userCode}</Text>
+            </View>
+          ) : null}
 
-        {/* 도토리 잔액 뱃지 */}
-        <View style={styles.dotoriRow}>
-          <Acorn width={20} height={20} />
-          <Text style={styles.dotoriCount}>{MOCK_STATS.dotori} 도토리</Text>
+          <View style={styles.dotoriRow}>
+            <Acorn width={20} height={20} />
+            <Text style={styles.dotoriCount}>{user?.dotori || 0} 도토리</Text>
+          </View>
         </View>
       </View>
 
@@ -159,7 +158,7 @@ export default function SettingsScreen() {
           accent="#FFC800"
         />
         <StatCard
-          value={`${MOCK_STATS.currentStreak}일`}
+          value={`${user?.currentStreak || 0}일`}
           label="연속 학습"
           accent="#FF6B00"
         />
@@ -175,20 +174,20 @@ export default function SettingsScreen() {
         <View style={styles.streakHeader}>
           <Text style={styles.cardTitle}>🔥 학습 스트릭</Text>
           <Text style={styles.streakBest}>
-            최장 {MOCK_STATS.longestStreak}일
+            최장 {user?.longestStreak || 0}일
           </Text>
         </View>
         <View style={styles.streakDots}>
           {Array.from({ length: 7 }).map((_, i) => {
-            const active =
-              i < MOCK_STATS.currentStreak % 7 || MOCK_STATS.currentStreak >= 7;
+            const currentStreak = user?.currentStreak || 0;
+            const active = i < currentStreak % 7 || currentStreak >= 7;
             return (
               <View key={i} style={[styles.dot, active && styles.dotActive]} />
             );
           })}
         </View>
         <Text style={styles.streakSub}>
-          이번 주 {Math.min(MOCK_STATS.currentStreak, 7)}/7일 완료
+          이번 주 {Math.min(user?.currentStreak || 0, 7)}/7일 완료
         </Text>
       </View>
 
@@ -337,27 +336,39 @@ const styles = StyleSheet.create({
   },
   email: { color: "#888", fontSize: 13, marginBottom: 12 },
   dotoriRow: {
+    flex: 1,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    backgroundColor: "#242628",
+    backgroundColor: "#2e3032",
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   dotoriImg: { width: 20, height: 20 },
-  dotoriCount: { color: "#FFC800", fontSize: 14, fontWeight: "700" },
+  dotoriCount: { color: "#FFC800", fontSize: 13, fontWeight: "700" },
   codeBadge: {
+    flex: 1,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#2e3032",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
+    borderRadius: 20,
+    paddingHorizontal: 12,
     gap: 6,
   },
-  codeLabel: { color: "#888", fontSize: 11, fontWeight: "600" },
+  badgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 12,
+    width: "100%",
+    maxWidth: 320,
+  },
+  codeLabel: { color: "#888", fontSize: 13, fontWeight: "600" },
   codeValue: {
     color: "#fff",
     fontSize: 13,
