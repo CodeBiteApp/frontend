@@ -10,15 +10,11 @@ export default function AuthIndexScreen() {
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
-<<<<<<< HEAD
-  const { mutate: runOAuth, isPending, variables: activeProvider } = useOAuthLogin();
-=======
   const {
     mutate: runOAuth,
     isPending,
     variables: activeProvider,
   } = useOAuthLogin();
->>>>>>> feature/quiz
 
   if (isLoggedIn && hasOnboarded) return <Redirect href="/(tabs)" />;
   if (isLoggedIn && !hasOnboarded) return <Redirect href="/(onboarding)" />;
