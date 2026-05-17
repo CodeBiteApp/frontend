@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -119,6 +120,7 @@ export default function FriendSearchScreen({
 
   const handleSearch = () => {
     if (!nicknameValid) return;
+    Keyboard.dismiss();
     if (debounceRef.current) clearTimeout(debounceRef.current);
     void runSearch(nickname, userCode);
   };
