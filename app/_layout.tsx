@@ -22,15 +22,15 @@ export default function RootLayout() {
     });
 
     // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
-    const boot = async () => {
-      // Mock 세션 주입은 미구현 (setupMocks는 axios 인스턴스용 — axios.ts 참고)
-      // if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
-      //   const { seedMockSession } = await import("@/mocks");
-      //   await seedMockSession();
-      // }
-      await restoreSession().catch(() => {});
-    };
-    boot();
+    // const boot = async () => {
+    //   if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
+    //     // @ts-ignore
+    //     const { seedMockSession } = await import("@/mocks");
+    //     await seedMockSession();
+    //   }
+    //   await restoreSession().catch(() => {});
+    // };
+    // boot();
 
     // 백그라운드 → 포그라운드 전환 시 자동 로그인 시도
     const subscription = AppState.addEventListener(

@@ -5,10 +5,42 @@ export type QuizCategory = {
   count: number;
 };
 
+// ── API Response Types ────────────────────────────────────────────────────────
+
+export type ConceptDetailKey =
+  | "definition"
+  | "feature"
+  | "comparison"
+  | "specification"
+  | "principle"
+  | "best_practice";
+
+export type ConceptDetail = {
+  id: number;
+  key: ConceptDetailKey;
+  value: string;
+};
+
+export type SiblingConcept = {
+  conceptId: number;
+  conceptTitle: string;
+  detailsList: ConceptDetail[];
+};
+
+export type QuizConceptData = {
+  randomSeed: number;
+  conceptId: number;
+  conceptTitle: string;
+  parentId: number | null;
+  detailsList: ConceptDetail[];
+  siblings: SiblingConcept[];
+};
+
 // 객관식
 export type QuizQuestion = {
   id: string;
   categoryId: string;
+  type?: "multiple-choice";
   question: string;
   options: string[];
   answerIndex: number;
@@ -19,6 +51,7 @@ export type QuizQuestion = {
 export type ShortAnswerQuestion = {
   id: string;
   categoryId: string;
+  type: "short-answer";
   question: string;
   answer: string;
   explanation?: string;
@@ -28,6 +61,7 @@ export type ShortAnswerQuestion = {
 export type OXQuestion = {
   id: string;
   categoryId: string;
+  type: "ox";
   question: string;
   answer: boolean; // true = O, false = X
   explanation?: string;
@@ -37,6 +71,7 @@ export type OXQuestion = {
 export type MatchingQuestion = {
   id: string;
   categoryId: string;
+  type: "matching";
   question: string;
   leftItems: string[];
   rightItems: string[]; // 표시 순서 (셔플 가능)
