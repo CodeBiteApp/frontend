@@ -16,6 +16,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,6 +27,9 @@ import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
 import { ResultScreen } from "@/components/quiz/result-screen";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { MOCK_QUESTIONS } from "@/mocks/quiz";
+import { STAGE_CONCEPT_MAP } from "@/mocks/quizConceptData";
+import { fetchQuizConceptData } from "@/api/quiz";
+import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
 
 const CHAPTER_COLORS = [
   "#58CC02",
@@ -70,13 +74,29 @@ export default function QuizScreen() {
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const accentColor = getAccentColor(id ?? "1");
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
-    const qs = MOCK_QUESTIONS[id ?? "1"] ?? [];
-    setQuestions(qs);
+    const stageId = id ?? "1";
+    const conceptId = STAGE_CONCEPT_MAP[stageId];
+
+    if (conceptId !== undefined) {
+      setIsLoading(true);
+      fetchQuizConceptData(conceptId)
+        .then((data) => {
+          setQuestions(generateQuestionsFromConceptData(data));
+        })
+        .catch(() => {
+          setQuestions(MOCK_QUESTIONS[stageId] ?? []);
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setQuestions(MOCK_QUESTIONS[stageId] ?? []);
+    }
+
     return () => {
       resetQuiz();
       setPhase("result");
@@ -88,6 +108,15 @@ export default function QuizScreen() {
     setMcSelected(null);
     setOxSelected(null);
   }, [currentIndex]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#58CC02" />
+        <Text style={styles.loadingText}>퀴즈 생성중...</Text>
+      </View>
+    );
+  }
 
   if (questions.length === 0) return null;
 
@@ -253,4 +282,6 @@ const styles = StyleSheet.create({
   backBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   content: { padding: 20, paddingTop: 8, gap: 12 },
   options: { gap: 10 },
+  center: { alignItems: "center", justifyContent: "center", gap: 16 },
+  loadingText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
