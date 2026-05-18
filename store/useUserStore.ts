@@ -128,7 +128,6 @@ export const useUserStore = create<UserState>((set) => ({
       await saveSecureStore("accessToken", accessToken);
       await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "true");
       const { user, position, streak } = await fetchUserWithSession();
-<<<<<<< HEAD
       set({
         user,
         isLoggedIn: true,
@@ -137,9 +136,6 @@ export const useUserStore = create<UserState>((set) => ({
         streak,
         hasOnboarded: !!position,
       });
-=======
-      set({ user, isLoggedIn: true, position, streak });
->>>>>>> feature/quiz
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });

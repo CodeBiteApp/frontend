@@ -5,6 +5,37 @@ export type QuizCategory = {
   count: number;
 };
 
+// ── API Response Types ────────────────────────────────────────────────────────
+
+export type ConceptDetailKey =
+  | "definition"
+  | "feature"
+  | "comparison"
+  | "specification"
+  | "principle"
+  | "best_practice";
+
+export type ConceptDetail = {
+  id: number;
+  key: ConceptDetailKey;
+  value: string;
+};
+
+export type SiblingConcept = {
+  conceptId: number;
+  conceptTitle: string;
+  detailsList: ConceptDetail[];
+};
+
+export type QuizConceptData = {
+  randomSeed: number;
+  conceptId: number;
+  conceptTitle: string;
+  parentId: number | null;
+  detailsList: ConceptDetail[];
+  siblings: SiblingConcept[];
+};
+
 // 객관식
 export type QuizQuestion = {
   id: string;
