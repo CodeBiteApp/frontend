@@ -17,7 +17,7 @@ export type ConceptDetailKey =
 
 export type ConceptDetail = {
   id: number;
-  key: ConceptDetailKey;
+  key: string;
   value: string;
 };
 

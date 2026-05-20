@@ -1,18 +1,24 @@
+import { fetchQuizConceptData } from "@/api/quiz";
+import { STAGE_INFO } from "@/constants/stageInfo";
 import { Button } from "@/components/common/Button";
-import { QuizCard } from "@/components/quiz/QuizCard";
-import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
-import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
-import { OXOptions } from "@/components/quiz/OXOptions";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
+import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
+import { OXOptions } from "@/components/quiz/OXOptions";
+import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
+import { QuizCard } from "@/components/quiz/QuizCard";
+import { ResultScreen } from "@/components/quiz/result-screen";
+import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
+import { StreakScreen } from "@/components/quiz/streak-screen";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import {
   AnyQuizQuestion,
+  MatchingQuestion,
+  OXQuestion,
   QuizQuestion,
   ShortAnswerQuestion,
-  OXQuestion,
-  MatchingQuestion,
 } from "@/types/quiz";
+import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -23,13 +29,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
-import { ResultScreen } from "@/components/quiz/result-screen";
-import { StreakScreen } from "@/components/quiz/streak-screen";
-import { MOCK_QUESTIONS } from "@/mocks/quiz";
-import { STAGE_CONCEPT_MAP } from "@/mocks/quizConceptData";
-import { fetchQuizConceptData } from "@/api/quiz";
-import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
 
 const CHAPTER_COLORS = [
   "#58CC02",
@@ -45,7 +44,8 @@ const CHAPTER_COLORS = [
 ];
 
 function getAccentColor(stageId: string): string {
-  const idx = Math.floor((Number(stageId ?? 1) - 1) / 7);
+  const chapter = STAGE_INFO[Number(stageId)]?.chapter ?? 'A';
+  const idx = chapter.charCodeAt(0) - 'A'.charCodeAt(0);
   return CHAPTER_COLORS[Math.min(idx, CHAPTER_COLORS.length - 1)];
 }
 
@@ -80,22 +80,17 @@ export default function QuizScreen() {
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
-    const stageId = id ?? "1";
-    const conceptId = STAGE_CONCEPT_MAP[stageId];
+    const conceptId = Number(id ?? "1");
 
-    if (conceptId !== undefined) {
-      setIsLoading(true);
-      fetchQuizConceptData(conceptId)
-        .then((data) => {
-          setQuestions(generateQuestionsFromConceptData(data));
-        })
-        .catch(() => {
-          setQuestions(MOCK_QUESTIONS[stageId] ?? []);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setQuestions(MOCK_QUESTIONS[stageId] ?? []);
-    }
+    setIsLoading(true);
+    fetchQuizConceptData(conceptId)
+      .then((data) => {
+        setQuestions(generateQuestionsFromConceptData(data));
+      })
+      .catch(() => {
+        setQuestions([]);
+      })
+      .finally(() => setIsLoading(false));
 
     return () => {
       resetQuiz();
@@ -216,7 +211,7 @@ export default function QuizScreen() {
           accentColor={accentColor}
           onComplete={(pairs) => {
             const allCorrect = Object.entries(pairs).every(
-              ([li, ri]) => mt.correctPairs[Number(li)] === ri
+              ([li, ri]) => mt.correctPairs[Number(li)] === ri,
             );
             markAnswer(allCorrect);
           }}
@@ -233,7 +228,10 @@ export default function QuizScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>스테이지 {id}</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerChapter}>{STAGE_INFO[Number(id)]?.chapter ?? 'A'}</Text>
+          <Text style={styles.headerTitle}>{STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}</Text>
+        </View>
         <View style={{ width: 36 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
@@ -270,7 +268,9 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 12,
   },
-  headerTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  headerTitleWrap: { alignItems: "center", gap: 2 },
+  headerChapter: { color: "#aaa", fontSize: 11, fontWeight: "600", letterSpacing: 1 },
+  headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   backBtn: {
     width: 36,
     height: 36,
