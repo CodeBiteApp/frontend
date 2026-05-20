@@ -21,7 +21,6 @@ const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export default function SignupScreen() {
   const register = useUserStore((s) => s.register);
-  const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,7 +53,7 @@ export default function SignupScreen() {
     }
     try {
       await register({ email: emailTrim, password, nickname });
-      router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
+      router.replace("/(tabs)");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
