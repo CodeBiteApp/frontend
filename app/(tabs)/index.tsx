@@ -48,8 +48,8 @@ function darken(hex: string, amount: number): string {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { position, user } = useUserStore();
-  const streak = user?.currentStreak || 0;
+  const { position, user, refreshUser } = useUserStore();
+  const streak = user?.currentStreak ?? 0;
 
   const [selected, setSelected] = useState<SelectedStage | null>(null);
   const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
@@ -61,7 +61,7 @@ export default function HomeScreen() {
   const buttonRefs = useRef<Record<number, View | null>>({});
 
   const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
-  const acornCount = completedStages.length;
+  const acornCount = user?.dotori ?? 0;
 
   const currentStageId = useMemo(() => {
     for (let i = 1; i <= 84; i++) {
@@ -69,6 +69,12 @@ export default function HomeScreen() {
     }
     return 84;
   }, [completedStages]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+    }, [refreshUser]),
+  );
 
   useFocusEffect(
     useCallback(() => {

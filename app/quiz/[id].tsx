@@ -1,4 +1,4 @@
-import { fetchQuizConceptData } from "@/api/quiz";
+import { fetchQuizConceptData, submitQuizResult } from "@/api/quiz";
 import { STAGE_INFO } from "@/constants/stageInfo";
 import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
@@ -12,12 +12,15 @@ import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
+import { useUserStore } from "@/store/useUserStore";
 import {
   AnyQuizQuestion,
   MatchingQuestion,
   OXQuestion,
   QuizQuestion,
   ShortAnswerQuestion,
+  SubmitResultResponse,
+  UserAnswer,
 } from "@/types/quiz";
 import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -72,31 +75,40 @@ export default function QuizScreen() {
     retryCorrectCount,
     retryAnswered,
     retryIsCorrect,
+    conceptId,
+    randomSeed,
+    userAnswers,
     setQuestions,
     markAnswer,
     nextQuestion,
     finishQuiz,
     resetQuiz,
+    setConceptMeta,
+    recordAnswer,
     enterRetry,
     markRetryAnswer,
     resetRetryAnswer,
     nextRetryQuestion,
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
+  const { refreshUser } = useUserStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
 
   const accentColor = getAccentColor(id ?? "1");
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
-    const conceptId = Number(id ?? "1");
+    const stageConceptId = Number(id ?? "1");
     setIsLoading(true);
-    fetchQuizConceptData(conceptId)
+    fetchQuizConceptData(stageConceptId)
       .then((data) => {
+        setConceptMeta(data.conceptId, data.randomSeed);
         setQuestions(generateQuestionsFromConceptData(data));
       })
       .catch(() => {
@@ -107,8 +119,23 @@ export default function QuizScreen() {
     return () => {
       resetQuiz();
       setPhase("result");
+      setServerResult(null);
     };
-  }, [id, setQuestions, resetQuiz]);
+  }, [id, setQuestions, resetQuiz, setConceptMeta]);
+
+  useEffect(() => {
+    if (!isFinished || !conceptId || !randomSeed) return;
+    setIsSubmitting(true);
+    submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
+      .then(async (result) => {
+        setServerResult(result);
+        await refreshUser();
+      })
+      .catch(console.error)
+      .finally(() => setIsSubmitting(false));
+  // userAnswers는 isFinished 전환 시점 스냅샷이므로 deps에서 제외
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFinished]);
 
   // 일반 문제 바뀔 때 로컬 선택 초기화
   useEffect(() => {
@@ -136,6 +163,14 @@ export default function QuizScreen() {
   if (questions.length === 0) return null;
 
   if (isFinished) {
+    if (isSubmitting) {
+      return (
+        <View style={[styles.container, styles.center]}>
+          <ActivityIndicator size="large" color="#58CC02" />
+        </View>
+      );
+    }
+
     const correct = isCorrect.filter((v) => v === true).length;
     const total = questions.length;
 
@@ -143,6 +178,7 @@ export default function QuizScreen() {
       return (
         <StreakScreen
           streakDays={streakDays}
+          serverStreak={serverResult?.streak}
           onNext={() => setPhase("quest")}
         />
       );
@@ -155,6 +191,8 @@ export default function QuizScreen() {
         correct={correct}
         total={total}
         accentColor={accentColor}
+        score={serverResult?.score}
+        dotoriEarned={serverResult?.dotoriEarned}
         onBack={() => router.back()}
         onNext={() => setPhase("streak")}
       />
@@ -203,6 +241,7 @@ export default function QuizScreen() {
     q: AnyQuizQuestion,
     answered: boolean,
     onMark: (correct: boolean) => void,
+    onRecord?: (answer: UserAnswer["answer"]) => void,
   ) => {
     const qType = getQuestionType(q);
 
@@ -218,6 +257,7 @@ export default function QuizScreen() {
           accentColor={currentAccent}
           onSelect={(i) => {
             setMcSelected(i);
+            onRecord?.(i);
             onMark(i === mc.answerIndex);
           }}
         />
@@ -232,7 +272,10 @@ export default function QuizScreen() {
           correctAnswer={sa.answer}
           isAnswered={answered}
           accentColor={currentAccent}
-          onSubmit={(_, correct) => onMark(correct)}
+          onSubmit={(text, correct) => {
+            onRecord?.(text);
+            onMark(correct);
+          }}
         />
       );
     }
@@ -248,6 +291,7 @@ export default function QuizScreen() {
           accentColor={currentAccent}
           onSelect={(v) => {
             setOxSelected(v);
+            onRecord?.(v);
             onMark(v === ox.answer);
           }}
         />
@@ -268,6 +312,8 @@ export default function QuizScreen() {
             const allCorrect = Object.entries(pairs).every(
               ([li, ri]) => mt.correctPairs[Number(li)] === ri,
             );
+            // Record<number,number> → Record<string,number> (API 포맷)
+            onRecord?.(Object.fromEntries(Object.entries(pairs)) as Record<string, number>);
             onMark(allCorrect);
           }}
         />
@@ -358,6 +404,18 @@ export default function QuizScreen() {
             current,
             isAnswered,
             isRetrying ? markRetryAnswer : markAnswer,
+            isRetrying
+              ? undefined
+              : (answer) => {
+                  const qType = getQuestionType(current);
+                  const quizTypeMap: Record<string, UserAnswer["quizType"]> = {
+                    "multiple-choice": "MULTIPLE_CASE",
+                    ox: "OX",
+                    "short-answer": "SHORT_ANSWER",
+                    matching: "MATCHING",
+                  };
+                  recordAnswer(currentIndex + 1, quizTypeMap[qType], answer);
+                },
           )}
         </View>
         {renderButton()}

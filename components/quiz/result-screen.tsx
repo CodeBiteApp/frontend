@@ -11,12 +11,14 @@ type Props = {
   correct: number;
   total: number;
   accentColor: string;
+  score?: number;
+  dotoriEarned?: number;
   onBack: () => void;
   onNext: () => void;
 };
 
-export function ResultScreen({ correct, total, accentColor, onBack, onNext }: Props) {
-  const points = correct * 10;
+export function ResultScreen({ correct, total, accentColor, score, dotoriEarned, onBack, onNext }: Props) {
+  const displayDotori = dotoriEarned ?? correct * 10;
   const isPerfect = correct === total;
 
   return (
@@ -39,10 +41,19 @@ export function ResultScreen({ correct, total, accentColor, onBack, onNext }: Pr
             {correct} / {total}
           </Text>
         </View>
+        {score !== undefined && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>점수</Text>
+              <Text style={[styles.value, { color: accentColor }]}>{score}점</Text>
+            </View>
+          </>
+        )}
         <View style={styles.divider} />
         <View style={styles.row}>
-          <Text style={styles.label}>획득 포인트</Text>
-          <Text style={[styles.value, { color: "#FFC800" }]}>+{points}P</Text>
+          <Text style={styles.label}>획득 도토리</Text>
+          <Text style={[styles.value, { color: "#FFC800" }]}>+{displayDotori}</Text>
         </View>
       </View>
       <Button
