@@ -30,7 +30,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -97,8 +96,10 @@ export default function QuizScreen() {
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
+  const [submitDone, setSubmitDone] = useState(false);
+  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(
+    null,
+  );
 
   const accentColor = getAccentColor(id ?? "1");
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
@@ -120,21 +121,21 @@ export default function QuizScreen() {
       resetQuiz();
       setPhase("result");
       setServerResult(null);
+      setSubmitDone(false);
     };
   }, [id, setQuestions, resetQuiz, setConceptMeta]);
 
   useEffect(() => {
     if (!isFinished || !conceptId || !randomSeed) return;
-    setIsSubmitting(true);
     submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
       .then(async (result) => {
         setServerResult(result);
         await refreshUser();
       })
       .catch(console.error)
-      .finally(() => setIsSubmitting(false));
-  // userAnswers는 isFinished 전환 시점 스냅샷이므로 deps에서 제외
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .finally(() => setSubmitDone(true));
+    // userAnswers는 isFinished 전환 시점 스냅샷이므로 deps에서 제외
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 
   // 일반 문제 바뀔 때 로컬 선택 초기화
@@ -163,7 +164,7 @@ export default function QuizScreen() {
   if (questions.length === 0) return null;
 
   if (isFinished) {
-    if (isSubmitting) {
+    if (!submitDone) {
       return (
         <View style={[styles.container, styles.center]}>
           <ActivityIndicator size="large" color="#58CC02" />
@@ -202,7 +203,9 @@ export default function QuizScreen() {
   // ── 현재 렌더할 문제 결정 ──────────────────────────────────────
   const current = isRetrying ? retryQueue[0] : questions[currentIndex];
   const currentAccent = isRetrying ? RETRY_ACCENT : accentColor;
-  const isAnswered = isRetrying ? retryAnswered : isCorrect[currentIndex] !== null;
+  const isAnswered = isRetrying
+    ? retryAnswered
+    : isCorrect[currentIndex] !== null;
 
   if (!current) return null;
 
@@ -313,7 +316,12 @@ export default function QuizScreen() {
               ([li, ri]) => mt.correctPairs[Number(li)] === ri,
             );
             // Record<number,number> → Record<string,number> (API 포맷)
-            onRecord?.(Object.fromEntries(Object.entries(pairs)) as Record<string, number>);
+            onRecord?.(
+              Object.fromEntries(Object.entries(pairs)) as Record<
+                string,
+                number
+              >,
+            );
             onMark(allCorrect);
           }}
         />
@@ -353,7 +361,9 @@ export default function QuizScreen() {
 
     return (
       <Button
-        label={currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"}
+        label={
+          currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"
+        }
         onPress={handleNext}
         color={accentColor}
         style={{ paddingVertical: 16, marginTop: 8 }}
@@ -363,17 +373,12 @@ export default function QuizScreen() {
   };
 
   // ── 진행 표시 (헤더용) ───────────────────────────────────────
-  const questionNumber = isRetrying
-    ? retryCorrectCount + 1
-    : currentIndex + 1;
+  const questionNumber = isRetrying ? retryCorrectCount + 1 : currentIndex + 1;
   const questionTotal = isRetrying ? retryTotal : questions.length;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>←</Text>
-        </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerChapter}>
             {STAGE_INFO[Number(id)]?.chapter ?? "A"}
@@ -382,14 +387,10 @@ export default function QuizScreen() {
             {STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}
           </Text>
         </View>
-        <View style={{ width: 36 }} />
       </View>
 
       {isRetrying && (
-        <RetryBanner
-          correctCount={retryCorrectCount}
-          total={retryTotal}
-        />
+        <RetryBanner correctCount={retryCorrectCount} total={retryTotal} />
       )}
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -427,10 +428,7 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
   header: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
     paddingTop: 56,
     paddingBottom: 12,
   },
@@ -442,15 +440,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#242628",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  backBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   content: { padding: 20, paddingTop: 8, gap: 12 },
   options: { gap: 10 },
   center: { alignItems: "center", justifyContent: "center", gap: 16 },
