@@ -7,6 +7,7 @@ import { OXOptions } from "@/components/quiz/OXOptions";
 import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { ResultScreen } from "@/components/quiz/result-screen";
+import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { useQuizStore } from "@/store/useQuizStore";
@@ -43,9 +44,11 @@ const CHAPTER_COLORS = [
   "#FF6B00",
 ];
 
+const RETRY_ACCENT = "#FF9600";
+
 function getAccentColor(stageId: string): string {
-  const chapter = STAGE_INFO[Number(stageId)]?.chapter ?? 'A';
-  const idx = chapter.charCodeAt(0) - 'A'.charCodeAt(0);
+  const chapter = STAGE_INFO[Number(stageId)]?.chapter ?? "A";
+  const idx = chapter.charCodeAt(0) - "A".charCodeAt(0);
   return CHAPTER_COLORS[Math.min(idx, CHAPTER_COLORS.length - 1)];
 }
 
@@ -63,11 +66,21 @@ export default function QuizScreen() {
     currentIndex,
     isCorrect,
     isFinished,
+    isRetrying,
+    retryQueue,
+    retryTotal,
+    retryCorrectCount,
+    retryAnswered,
+    retryIsCorrect,
     setQuestions,
     markAnswer,
     nextQuestion,
     finishQuiz,
     resetQuiz,
+    enterRetry,
+    markRetryAnswer,
+    resetRetryAnswer,
+    nextRetryQuestion,
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
 
@@ -81,7 +94,6 @@ export default function QuizScreen() {
 
   useEffect(() => {
     const conceptId = Number(id ?? "1");
-
     setIsLoading(true);
     fetchQuizConceptData(conceptId)
       .then((data) => {
@@ -98,11 +110,19 @@ export default function QuizScreen() {
     };
   }, [id, setQuestions, resetQuiz]);
 
-  // 문제가 바뀌면 로컬 선택 상태 초기화
+  // 일반 문제 바뀔 때 로컬 선택 초기화
   useEffect(() => {
     setMcSelected(null);
     setOxSelected(null);
   }, [currentIndex]);
+
+  // 오답 노트 문제 바뀔 때 로컬 선택 초기화
+  useEffect(() => {
+    if (isRetrying) {
+      setMcSelected(null);
+      setOxSelected(null);
+    }
+  }, [retryQueue[0]?.id, isRetrying]);
 
   if (isLoading) {
     return (
@@ -141,79 +161,114 @@ export default function QuizScreen() {
     );
   }
 
-  const current = questions[currentIndex];
-  const qType = getQuestionType(current);
-  const isAnswered = isCorrect[currentIndex] !== null;
+  // ── 현재 렌더할 문제 결정 ──────────────────────────────────────
+  const current = isRetrying ? retryQueue[0] : questions[currentIndex];
+  const currentAccent = isRetrying ? RETRY_ACCENT : accentColor;
+  const isAnswered = isRetrying ? retryAnswered : isCorrect[currentIndex] !== null;
 
+  if (!current) return null;
+
+  // ── 일반 퀴즈 다음 버튼 핸들러 ───────────────────────────────
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
-      finishQuiz(id ?? "1");
-      triggerEating(id ?? "1");
+      const hasWrong = isCorrect.some((v) => v === false);
+      if (hasWrong) {
+        enterRetry();
+      } else {
+        triggerEating(id ?? "1");
+        finishQuiz(id ?? "1");
+      }
     } else {
       nextQuestion();
     }
   };
 
-  const renderOptions = () => {
+  // ── 오답 노트 버튼 핸들러 ────────────────────────────────────
+  const handleRetryNext = () => {
+    if (retryQueue.length === 1) {
+      // 마지막 오답 문제 정답 → 완전 종료
+      triggerEating(id ?? "1");
+    }
+    nextRetryQuestion();
+  };
+
+  const handleRetryAgain = () => {
+    resetRetryAnswer();
+    setMcSelected(null);
+    setOxSelected(null);
+  };
+
+  // ── 문제 옵션 렌더 (일반 & 오답 공용) ────────────────────────
+  const renderOptions = (
+    q: AnyQuizQuestion,
+    answered: boolean,
+    onMark: (correct: boolean) => void,
+  ) => {
+    const qType = getQuestionType(q);
+
     if (qType === "multiple-choice") {
-      const mc = current as QuizQuestion;
+      const mc = q as QuizQuestion;
       return (
         <MultipleChoiceOptions
+          key={q.id}
           options={mc.options}
           selected={mcSelected}
           answerIndex={mc.answerIndex}
-          isAnswered={isAnswered}
-          accentColor={accentColor}
+          isAnswered={answered}
+          accentColor={currentAccent}
           onSelect={(i) => {
             setMcSelected(i);
-            markAnswer(i === mc.answerIndex);
+            onMark(i === mc.answerIndex);
           }}
         />
       );
     }
 
     if (qType === "short-answer") {
-      const sa = current as ShortAnswerQuestion;
+      const sa = q as ShortAnswerQuestion;
       return (
         <ShortAnswerInput
+          key={q.id}
           correctAnswer={sa.answer}
-          isAnswered={isAnswered}
-          accentColor={accentColor}
-          onSubmit={(_, correct) => markAnswer(correct)}
+          isAnswered={answered}
+          accentColor={currentAccent}
+          onSubmit={(_, correct) => onMark(correct)}
         />
       );
     }
 
     if (qType === "ox") {
-      const ox = current as OXQuestion;
+      const ox = q as OXQuestion;
       return (
         <OXOptions
+          key={q.id}
           selected={oxSelected}
           correctAnswer={ox.answer}
-          isAnswered={isAnswered}
-          accentColor={accentColor}
+          isAnswered={answered}
+          accentColor={currentAccent}
           onSelect={(v) => {
             setOxSelected(v);
-            markAnswer(v === ox.answer);
+            onMark(v === ox.answer);
           }}
         />
       );
     }
 
     if (qType === "matching") {
-      const mt = current as MatchingQuestion;
+      const mt = q as MatchingQuestion;
       return (
         <MatchingOptions
+          key={q.id}
           leftItems={mt.leftItems}
           rightItems={mt.rightItems}
           correctPairs={mt.correctPairs}
-          isAnswered={isAnswered}
-          accentColor={accentColor}
+          isAnswered={answered}
+          accentColor={currentAccent}
           onComplete={(pairs) => {
             const allCorrect = Object.entries(pairs).every(
               ([li, ri]) => mt.correctPairs[Number(li)] === ri,
             );
-            markAnswer(allCorrect);
+            onMark(allCorrect);
           }}
         />
       );
@@ -222,6 +277,51 @@ export default function QuizScreen() {
     return null;
   };
 
+  // ── 하단 버튼 ────────────────────────────────────────────────
+  const renderButton = () => {
+    if (!isAnswered) return null;
+
+    if (isRetrying) {
+      if (retryIsCorrect === false) {
+        return (
+          <Button
+            label="다시 풀기"
+            onPress={handleRetryAgain}
+            color="#FF4B4B"
+            style={{ paddingVertical: 16, marginTop: 8 }}
+            textStyle={{ fontWeight: "800" }}
+          />
+        );
+      }
+      const isLast = retryQueue.length === 1;
+      return (
+        <Button
+          label={isLast ? "결과 보기" : "다음 문제"}
+          onPress={handleRetryNext}
+          color={RETRY_ACCENT}
+          style={{ paddingVertical: 16, marginTop: 8 }}
+          textStyle={{ fontWeight: "800" }}
+        />
+      );
+    }
+
+    return (
+      <Button
+        label={currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"}
+        onPress={handleNext}
+        color={accentColor}
+        style={{ paddingVertical: 16, marginTop: 8 }}
+        textStyle={{ fontWeight: "800" }}
+      />
+    );
+  };
+
+  // ── 진행 표시 (헤더용) ───────────────────────────────────────
+  const questionNumber = isRetrying
+    ? retryCorrectCount + 1
+    : currentIndex + 1;
+  const questionTotal = isRetrying ? retryTotal : questions.length;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -229,30 +329,38 @@ export default function QuizScreen() {
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerChapter}>{STAGE_INFO[Number(id)]?.chapter ?? 'A'}</Text>
-          <Text style={styles.headerTitle}>{STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}</Text>
+          <Text style={styles.headerChapter}>
+            {STAGE_INFO[Number(id)]?.chapter ?? "A"}
+          </Text>
+          <Text style={styles.headerTitle}>
+            {STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}
+          </Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
+
+      {isRetrying && (
+        <RetryBanner
+          correctCount={retryCorrectCount}
+          total={retryTotal}
+        />
+      )}
+
       <ScrollView contentContainerStyle={styles.content}>
         <QuizCard
-          questionNumber={currentIndex + 1}
-          total={questions.length}
+          questionNumber={questionNumber}
+          total={questionTotal}
           question={current.question}
-          accentColor={accentColor}
+          accentColor={currentAccent}
         />
-        <View style={styles.options}>{renderOptions()}</View>
-        {isAnswered && (
-          <Button
-            label={
-              currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"
-            }
-            onPress={handleNext}
-            color={accentColor}
-            style={{ paddingVertical: 16, marginTop: 8 }}
-            textStyle={{ fontWeight: "800" }}
-          />
-        )}
+        <View style={styles.options}>
+          {renderOptions(
+            current,
+            isAnswered,
+            isRetrying ? markRetryAnswer : markAnswer,
+          )}
+        </View>
+        {renderButton()}
       </ScrollView>
     </View>
   );
@@ -269,7 +377,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   headerTitleWrap: { alignItems: "center", gap: 2 },
-  headerChapter: { color: "#aaa", fontSize: 11, fontWeight: "600", letterSpacing: 1 },
+  headerChapter: {
+    color: "#aaa",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1,
+  },
   headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   backBtn: {
     width: 36,

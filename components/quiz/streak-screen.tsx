@@ -1,11 +1,6 @@
 import { Button } from "@/components/common/Button";
 import { useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -48,11 +43,11 @@ export function StreakScreen({ streakDays, onNext }: Props) {
       withRepeat(
         withSequence(
           withTiming(0.6, { duration: 1000 }),
-          withTiming(0.2, { duration: 1000 })
+          withTiming(0.2, { duration: 1000 }),
         ),
         -1,
-        true
-      )
+        true,
+      ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -72,13 +67,6 @@ export function StreakScreen({ streakDays, onNext }: Props) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.closeBtn}
-        onPress={onNext}
-      >
-        <Text style={styles.closeBtnText}>✕</Text>
-      </TouchableOpacity>
-
       <Animated.View style={[styles.fireGlow, glowStyle]} />
 
       <View style={styles.fireArea}>

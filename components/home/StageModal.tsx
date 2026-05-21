@@ -1,4 +1,4 @@
-import { STAGE_INFO } from "@/constants/stageInfo";
+import { CHAPTER_LETTERS, CHAPTER_NAMES, STAGE_INFO } from "@/constants/stageInfo";
 import React from "react";
 import {
   Modal,
@@ -19,6 +19,9 @@ type Props = {
 
 export default function StageModal({ selected, onClose, onStart }: Props) {
   const info = selected ? STAGE_INFO[selected.id] : null;
+  const chapterName = info
+    ? CHAPTER_NAMES[CHAPTER_LETTERS.indexOf(info.chapter as typeof CHAPTER_LETTERS[number])]
+    : "";
 
   return (
     <Modal
@@ -35,6 +38,9 @@ export default function StageModal({ selected, onClose, onStart }: Props) {
             <View style={styles.body}>
               <Text style={styles.stageLabel}>스테이지 {selected.id}</Text>
               <Text style={styles.title}>{info.title}</Text>
+              <Text style={styles.description}>
+                {chapterName} 파트의 {info.title} 퀴즈가 준비되어 있습니다.
+              </Text>
               <TouchableOpacity
                 style={[styles.startBtn, { backgroundColor: selected.color }]}
                 activeOpacity={0.85}
@@ -80,4 +86,5 @@ const styles = StyleSheet.create({
   startBtnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
   cancelBtn: { alignItems: "center", paddingVertical: 8 },
   cancelBtnText: { color: "#888", fontSize: 14 },
+  description: { fontSize: 13, color: "#aaa", marginBottom: 20 },
 });
