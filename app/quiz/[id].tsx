@@ -189,6 +189,7 @@ export default function QuizScreen() {
     }
     return (
       <ResultScreen
+        conceptId={conceptId || Number(id)}
         correct={correct}
         total={total}
         accentColor={accentColor}
