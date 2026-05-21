@@ -1,13 +1,17 @@
-import { QuizConceptData } from "@/types/quiz";
-import { MOCK_CONCEPT_DATA } from "@/mocks/quizConceptData";
+import api from "@/api/axios";
+import { QuizConceptData, SubmitResultRequest, SubmitResultResponse } from "@/types/quiz";
 
 export async function fetchQuizConceptData(conceptId: number): Promise<QuizConceptData> {
-  // TODO: 실제 API로 교체
-  // return api.get(`/api/quiz/concept-data?conceptId=${conceptId}`).then((r) => r.data);
+  const res = await api.get<QuizConceptData>("/api/quiz/concept-data", {
+    params: { conceptId },
+  });
+  console.log("[quiz] concept-data 응답:", JSON.stringify(res.data, null, 2));
+  return res.data;
+}
 
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const data = MOCK_CONCEPT_DATA[conceptId];
-  if (!data) throw new Error(`CONCEPT_NOT_FOUND: ${conceptId}`);
-  return data;
+export async function submitQuizResult(
+  body: SubmitResultRequest,
+): Promise<SubmitResultResponse> {
+  const res = await api.post<SubmitResultResponse>("/api/quiz/submit-result", body);
+  return res.data;
 }

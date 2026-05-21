@@ -30,13 +30,13 @@ export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuiz
   const { conceptId, conceptTitle, detailsList, siblings } = data;
 
   const cid = String(conceptId);
-  const definition = detailsList.find((d) => d.key === "definition");
+  const definition = detailsList.find((d) => d.key === "definition") ?? detailsList[0];
   const feature = detailsList.find((d) => d.key === "feature");
 
   // 1. 객관식 — definition 기반 (현재 정답 + 형제 oops 3개)
   if (definition && siblings.length >= 3) {
     const wrongOptions = siblings
-      .map((s) => s.detailsList.find((d) => d.key === "definition")?.value)
+      .map((s) => s.detailsList.find((d) => d.key === "definition")?.value ?? s.detailsList[0]?.value)
       .filter((v): v is string => !!v)
       .slice(0, 3);
 
@@ -101,7 +101,7 @@ export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuiz
     { title: conceptTitle, def: definition?.value ?? "" },
     ...siblings.map((s) => ({
       title: s.conceptTitle,
-      def: s.detailsList.find((d) => d.key === "definition")?.value ?? "",
+      def: s.detailsList.find((d) => d.key === "definition")?.value ?? s.detailsList[0]?.value ?? "",
     })),
   ].filter((c) => c.def);
 

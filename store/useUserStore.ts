@@ -120,7 +120,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       await saveSecureStore("accessToken", accessToken);
       await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "true");
-      const { user, position, streak } = await fetchUserWithSession();
+      const { user, position } = await fetchUserWithSession();
       set({
         user,
         isLoggedIn: true,
