@@ -1,36 +1,37 @@
 import { Button } from "@/components/common/Button";
 import { QuizResultCharacter } from "@/components/quiz/QuizResultCharacter";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
   correct: number;
   total: number;
   accentColor: string;
+  score?: number;
+  dotoriEarned?: number;
   onBack: () => void;
   onNext: () => void;
 };
 
-export function ResultScreen({ correct, total, accentColor, onBack, onNext }: Props) {
-  const points = correct * 10;
+export function ResultScreen({
+  correct,
+  total,
+  accentColor,
+  score,
+  dotoriEarned,
+  onNext,
+}: Props) {
+  const displayDotori = dotoriEarned ?? correct * 10;
   const isPerfect = correct === total;
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-        <Text style={styles.backBtnText}>✕</Text>
-      </TouchableOpacity>
       <QuizResultCharacter />
       <Text style={styles.title}>
         {isPerfect
           ? "완벽해요!"
           : correct >= total / 2
-          ? "잘했어요!"
-          : "다시 도전해봐요!"}
+            ? "잘했어요!"
+            : "다시 도전해봐요!"}
       </Text>
       <View style={styles.card}>
         <View style={styles.row}>
@@ -39,10 +40,23 @@ export function ResultScreen({ correct, total, accentColor, onBack, onNext }: Pr
             {correct} / {total}
           </Text>
         </View>
+        {score !== undefined && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>점수</Text>
+              <Text style={[styles.value, { color: accentColor }]}>
+                {score}점
+              </Text>
+            </View>
+          </>
+        )}
         <View style={styles.divider} />
         <View style={styles.row}>
-          <Text style={styles.label}>획득 포인트</Text>
-          <Text style={[styles.value, { color: "#FFC800" }]}>+{points}P</Text>
+          <Text style={styles.label}>획득 도토리</Text>
+          <Text style={[styles.value, { color: "#FFC800" }]}>
+            +{displayDotori}
+          </Text>
         </View>
       </View>
       <Button
@@ -61,7 +75,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#191A1C",
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: 100,
     paddingHorizontal: 28,
     gap: 16,
   },
@@ -74,7 +88,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
   },
-  backBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   title: { fontSize: 26, fontWeight: "800", color: "#fff" },
   card: {
     width: "100%",

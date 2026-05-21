@@ -106,3 +106,33 @@ export type Reward = {
   points: number;
   unlocked: boolean;
 };
+
+// ── Submit Result ─────────────────────────────────────────────────────────────
+
+export type UserAnswer = {
+  questionNumber: number;
+  quizType: "MULTIPLE_CASE" | "OX" | "SHORT_ANSWER" | "MATCHING";
+  answer: number | boolean | string | Record<string, number>;
+};
+
+export type SubmitResultRequest = {
+  conceptId: number;
+  randomSeed: number;
+  isCompleted: boolean;
+  userAnswers: UserAnswer[];
+};
+
+export type SubmitResultResponse = {
+  valid: boolean;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  dotoriEarned: number;
+  streak: {
+    alreadyCheckedIn: boolean;
+    currentStreak: number;
+    longestStreak: number;
+    bonusEarned: number;
+    studyHistory: unknown[];
+  };
+};

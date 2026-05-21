@@ -1,6 +1,6 @@
 import Acorn from "@/components/charactor/Acorn";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   position: string | null;
@@ -13,23 +13,68 @@ function positionLabel(pos: string | null): string {
   return pos.replace(" 개발자", "");
 }
 
+function useCountUp(value: number) {
+  const [display, setDisplay] = useState(value);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prevRef = useRef(value);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (value === prevRef.current) return;
+
+    const start = prevRef.current;
+    const end = value;
+    prevRef.current = end;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const steps = Math.abs(end - start);
+    const stepMs = Math.min(Math.max(400 / steps, 16), 60);
+    const dir = end > start ? 1 : -1;
+    let cur = start;
+
+    timerRef.current = setInterval(() => {
+      cur += dir;
+      setDisplay(cur);
+      if (cur === end) {
+        clearInterval(timerRef.current!);
+        timerRef.current = null;
+      }
+    }, stepMs);
+
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.3, duration: 140, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [value]);
+
+  return { display, scaleAnim };
+}
+
 export default function UserInfoBar({ position, streak, acornCount }: Props) {
+  const { display: streakDisplay, scaleAnim: streakScale } = useCountUp(streak);
+  const { display: acornDisplay, scaleAnim: acornScale } = useCountUp(acornCount);
+
   return (
     <View style={styles.userInfoBar}>
       <View style={styles.positionBadge}>
         <Text style={styles.positionText}>💼 {positionLabel(position)}</Text>
       </View>
       <View style={styles.statsGroup}>
-        <View style={styles.statItem}>
+        <Animated.View style={[styles.statItem, { transform: [{ scale: streakScale }] }]}>
           <Text style={styles.streakEmoji}>🔥</Text>
-          <Text style={styles.statValue}>{streak}</Text>
+          <Text style={styles.statValue}>{streakDisplay}</Text>
           <Text style={styles.statUnit}>일</Text>
-        </View>
+        </Animated.View>
         <View style={styles.statDivider} />
-        <View style={styles.statItem}>
+        <Animated.View style={[styles.statItem, { transform: [{ scale: acornScale }] }]}>
           <Acorn width={20} height={20} />
-          <Text style={styles.statValue}>{acornCount}</Text>
-        </View>
+          <Text style={styles.statValue}>{acornDisplay}</Text>
+        </Animated.View>
       </View>
     </View>
   );

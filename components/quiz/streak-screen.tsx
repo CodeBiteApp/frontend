@@ -1,11 +1,6 @@
 import { Button } from "@/components/common/Button";
 import { useEffect } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,8 +12,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { FlameParticle } from "./fire-particle";
 
+type ServerStreak = {
+  alreadyCheckedIn: boolean;
+  currentStreak: number;
+  bonusEarned: number;
+};
+
 type Props = {
   streakDays: number;
+  serverStreak?: ServerStreak;
   onNext: () => void;
 };
 
@@ -33,7 +35,8 @@ const FLAMES = [
   { offsetX: 10, size: 56, delay: 500, duration: 1450 },
 ];
 
-export function StreakScreen({ streakDays, onNext }: Props) {
+export function StreakScreen({ streakDays, serverStreak, onNext }: Props) {
+  const displayDays = serverStreak?.currentStreak ?? streakDays;
   const titleScale = useSharedValue(0.3);
   const titleOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
@@ -48,11 +51,11 @@ export function StreakScreen({ streakDays, onNext }: Props) {
       withRepeat(
         withSequence(
           withTiming(0.6, { duration: 1000 }),
-          withTiming(0.2, { duration: 1000 })
+          withTiming(0.2, { duration: 1000 }),
         ),
         -1,
-        true
-      )
+        true,
+      ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -72,13 +75,6 @@ export function StreakScreen({ streakDays, onNext }: Props) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.closeBtn}
-        onPress={onNext}
-      >
-        <Text style={styles.closeBtnText}>✕</Text>
-      </TouchableOpacity>
-
       <Animated.View style={[styles.fireGlow, glowStyle]} />
 
       <View style={styles.fireArea}>
@@ -88,13 +84,15 @@ export function StreakScreen({ streakDays, onNext }: Props) {
       </View>
 
       <Animated.View style={[styles.textContainer, titleStyle]}>
-        <Text style={styles.daysNumber}>{streakDays}</Text>
+        <Text style={styles.daysNumber}>{displayDays + 1}</Text>
         <Text style={styles.daysLabel}>일째</Text>
         <Text style={styles.mainLabel}>연속 학습중!</Text>
       </Animated.View>
 
       <Animated.Text style={[styles.subtitle, subtitleStyle]}>
-        🎯 오늘도 코딩 한 입 완료!
+        {serverStreak?.alreadyCheckedIn
+          ? "오늘 이미 도토리를 획득했어요"
+          : "🎯 오늘도 코딩 한 입 완료!"}
       </Animated.Text>
 
       <View style={{ flex: 1 }} />
@@ -128,7 +126,6 @@ const styles = StyleSheet.create({
     marginTop: 56,
     marginBottom: 4,
   },
-  closeBtnText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   fireGlow: {
     position: "absolute",
     bottom: 0,
