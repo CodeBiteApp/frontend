@@ -18,6 +18,9 @@ type QuizState = {
   retryCorrectCount: number;
   retryAnswered: boolean;
   retryIsCorrect: boolean | null;
+  retryRound: number;
+  retryRoundTotal: number;
+  retryRoundIndex: number;
 
   setQuestions: (questions: AnyQuizQuestion[]) => void;
   markAnswer: (correct: boolean) => void;
@@ -30,7 +33,6 @@ type QuizState = {
 
   enterRetry: () => void;
   markRetryAnswer: (correct: boolean) => void;
-  resetRetryAnswer: () => void;
   nextRetryQuestion: () => void;
 };
 
@@ -51,6 +53,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   retryCorrectCount: 0,
   retryAnswered: false,
   retryIsCorrect: null,
+  retryRound: 1,
+  retryRoundTotal: 0,
+  retryRoundIndex: 0,
 
   setQuestions: (questions) =>
     set({
@@ -111,6 +116,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       retryCorrectCount: 0,
       retryAnswered: false,
       retryIsCorrect: null,
+      retryRound: 1,
+      retryRoundTotal: 0,
+      retryRoundIndex: 0,
     }),
 
   enterRetry: () => {
@@ -123,6 +131,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       retryCorrectCount: 0,
       retryAnswered: false,
       retryIsCorrect: null,
+      retryRound: 1,
+      retryRoundTotal: wrongQuestions.length,
+      retryRoundIndex: 0,
     });
   },
 
@@ -130,14 +141,13 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({ retryAnswered: true, retryIsCorrect: correct });
   },
 
-  resetRetryAnswer: () => {
-    set({ retryAnswered: false, retryIsCorrect: null });
-  },
-
   nextRetryQuestion: () => {
-    const { retryQueue, retryCorrectCount } = get();
-    const newQueue = retryQueue.slice(1);
-    const newCorrectCount = retryCorrectCount + 1;
+    const { retryQueue, retryCorrectCount, retryIsCorrect, retryRound, retryRoundTotal, retryRoundIndex } = get();
+    const [current, ...rest] = retryQueue;
+
+    const newQueue = retryIsCorrect ? rest : [...rest, current];
+    const newCorrectCount = retryIsCorrect ? retryCorrectCount + 1 : retryCorrectCount;
+
     if (newQueue.length === 0) {
       set({
         isRetrying: false,
@@ -147,13 +157,20 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         retryAnswered: false,
         retryIsCorrect: null,
       });
-    } else {
-      set({
-        retryQueue: newQueue,
-        retryCorrectCount: newCorrectCount,
-        retryAnswered: false,
-        retryIsCorrect: null,
-      });
+      return;
     }
+
+    const nextRoundIndex = retryRoundIndex + 1;
+    const isNewRound = nextRoundIndex >= retryRoundTotal;
+
+    set({
+      retryQueue: newQueue,
+      retryCorrectCount: newCorrectCount,
+      retryAnswered: false,
+      retryIsCorrect: null,
+      retryRound: isNewRound ? retryRound + 1 : retryRound,
+      retryRoundTotal: isNewRound ? newQueue.length : retryRoundTotal,
+      retryRoundIndex: isNewRound ? 0 : nextRoundIndex,
+    });
   },
 }));

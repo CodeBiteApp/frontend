@@ -36,6 +36,7 @@ type UserState = {
   completeOnboarding: (position: string) => void;
   setUnauthorized: () => void;
   setUser: (user: User) => void;
+  applyQuizReward: (dotoriEarned: number, newStreak: number) => void;
   refreshUser: () => Promise<void>;
 };
 
@@ -183,6 +184,18 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
+
+  applyQuizReward: (dotoriEarned, newStreak) =>
+    set((state) => {
+      if (!state.user) return {};
+      return {
+        user: {
+          ...state.user,
+          dotori: state.user.dotori + dotoriEarned,
+          currentStreak: newStreak,
+        },
+      };
+    }),
 
   refreshUser: async () => {
     if (!get().isLoggedIn) return;

@@ -74,6 +74,9 @@ export default function QuizScreen() {
     retryCorrectCount,
     retryAnswered,
     retryIsCorrect,
+    retryRound,
+    retryRoundTotal,
+    retryRoundIndex,
     conceptId,
     randomSeed,
     userAnswers,
@@ -86,11 +89,10 @@ export default function QuizScreen() {
     recordAnswer,
     enterRetry,
     markRetryAnswer,
-    resetRetryAnswer,
     nextRetryQuestion,
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
-  const { refreshUser } = useUserStore();
+  const { applyQuizReward } = useUserStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
@@ -128,9 +130,9 @@ export default function QuizScreen() {
   useEffect(() => {
     if (!isFinished || !conceptId || !randomSeed) return;
     submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
-      .then(async (result) => {
+      .then((result) => {
         setServerResult(result);
-        await refreshUser();
+        applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
       .catch(console.error)
       .finally(() => setSubmitDone(true));
