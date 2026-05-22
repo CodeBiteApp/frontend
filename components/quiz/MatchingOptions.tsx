@@ -9,7 +9,7 @@ type Props = {
   correctPairs: Record<number, number>; // leftIndex -> rightIndex
   isAnswered: boolean;
   accentColor?: string;
-  onComplete: (pairs: Record<number, number>) => void;
+  onComplete: (pairs: Record<number, number>, hadMistake: boolean) => void;
 };
 
 export function MatchingOptions({
@@ -22,6 +22,7 @@ export function MatchingOptions({
 }: Props) {
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
   const [userPairs, setUserPairs] = useState<Record<number, number>>({});
+  const [hadMistake, setHadMistake] = useState(false);
 
   const handleLeftPress = (index: number) => {
     if (isAnswered) return;
@@ -30,6 +31,9 @@ export function MatchingOptions({
 
   const handleRightPress = (rightIndex: number) => {
     if (isAnswered || selectedLeft === null) return;
+    const isWrongPair = correctPairs[selectedLeft] !== rightIndex;
+    const newHadMistake = hadMistake || isWrongPair;
+    if (isWrongPair) setHadMistake(true);
     const newPairs = { ...userPairs };
     for (const k of Object.keys(newPairs)) {
       if (newPairs[Number(k)] === rightIndex) delete newPairs[Number(k)];
@@ -38,7 +42,7 @@ export function MatchingOptions({
     setUserPairs(newPairs);
     setSelectedLeft(null);
     if (Object.keys(newPairs).length === leftItems.length) {
-      onComplete(newPairs);
+      onComplete(newPairs, newHadMistake);
     }
   };
 

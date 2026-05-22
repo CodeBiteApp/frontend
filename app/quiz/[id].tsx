@@ -214,7 +214,9 @@ export default function QuizScreen() {
   // ── 일반 퀴즈 다음 버튼 핸들러 ───────────────────────────────
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
-      const hasWrong = isCorrect.some((v) => v === false);
+      const hasWrong = isCorrect.some(
+      (v, i) => v === false && getQuestionType(questions[i]) !== "matching",
+    );
       if (hasWrong) {
         enterRetry();
       } else {
@@ -308,8 +310,8 @@ export default function QuizScreen() {
           correctPairs={mt.correctPairs}
           isAnswered={answered}
           accentColor={currentAccent}
-          onComplete={(pairs) => {
-            const allCorrect = Object.entries(pairs).every(
+          onComplete={(pairs, hadMistake) => {
+            const allCorrect = !hadMistake && Object.entries(pairs).every(
               ([li, ri]) => mt.correctPairs[Number(li)] === ri,
             );
             // Record<number,number> → Record<string,number> (API 포맷)

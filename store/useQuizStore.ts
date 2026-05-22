@@ -123,7 +123,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   enterRetry: () => {
     const { questions, isCorrect } = get();
-    const wrongQuestions = questions.filter((_, i) => isCorrect[i] === false);
+    const wrongQuestions = questions.filter(
+      (q, i) => isCorrect[i] === false && (q as any).type !== "matching",
+    );
     set({
       isRetrying: true,
       retryQueue: wrongQuestions,
