@@ -74,7 +74,6 @@ export default function QuizScreen() {
     retryCorrectCount,
     retryAnswered,
     retryIsCorrect,
-    retryRound,
     retryRoundTotal,
     retryRoundIndex,
     conceptId,
@@ -229,17 +228,12 @@ export default function QuizScreen() {
 
   // ── 오답 노트 버튼 핸들러 ────────────────────────────────────
   const handleRetryNext = () => {
-    if (retryQueue.length === 1) {
-      // 마지막 오답 문제 정답 → 완전 종료
+    if (retryQueue.length === 1 && retryIsCorrect === true) {
       triggerEating(id ?? "1");
     }
-    nextRetryQuestion();
-  };
-
-  const handleRetryAgain = () => {
-    resetRetryAnswer();
     setMcSelected(null);
     setOxSelected(null);
+    nextRetryQuestion();
   };
 
   // ── 문제 옵션 렌더 (일반 & 오답 공용) ────────────────────────
@@ -339,21 +333,10 @@ export default function QuizScreen() {
     if (!isAnswered) return null;
 
     if (isRetrying) {
-      if (retryIsCorrect === false) {
-        return (
-          <Button
-            label="다시 풀기"
-            onPress={handleRetryAgain}
-            color="#FF4B4B"
-            style={{ paddingVertical: 16, marginTop: 8 }}
-            textStyle={{ fontWeight: "800" }}
-          />
-        );
-      }
-      const isLast = retryQueue.length === 1;
+      const isFinalCorrect = retryQueue.length === 1 && retryIsCorrect === true;
       return (
         <Button
-          label={isLast ? "결과 보기" : "다음 문제"}
+          label={isFinalCorrect ? "결과 보기" : "다음 문제"}
           onPress={handleRetryNext}
           color={RETRY_ACCENT}
           style={{ paddingVertical: 16, marginTop: 8 }}
@@ -376,8 +359,8 @@ export default function QuizScreen() {
   };
 
   // ── 진행 표시 (헤더용) ───────────────────────────────────────
-  const questionNumber = isRetrying ? retryCorrectCount + 1 : currentIndex + 1;
-  const questionTotal = isRetrying ? retryTotal : questions.length;
+  const questionNumber = isRetrying ? retryRoundIndex + 1 : currentIndex + 1;
+  const questionTotal = isRetrying ? retryRoundTotal : questions.length;
 
   return (
     <View style={styles.container}>

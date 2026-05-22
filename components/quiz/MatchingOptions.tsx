@@ -23,8 +23,6 @@ export function MatchingOptions({
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
   const [userPairs, setUserPairs] = useState<Record<number, number>>({});
 
-  const allPaired = Object.keys(userPairs).length === leftItems.length;
-
   const handleLeftPress = (index: number) => {
     if (isAnswered) return;
     setSelectedLeft((prev) => (prev === index ? null : index));
@@ -32,36 +30,36 @@ export function MatchingOptions({
 
   const handleRightPress = (rightIndex: number) => {
     if (isAnswered || selectedLeft === null) return;
-    setUserPairs((prev) => {
-      const next = { ...prev };
-      for (const k of Object.keys(next)) {
-        if (next[Number(k)] === rightIndex) delete next[Number(k)];
-      }
-      next[selectedLeft] = rightIndex;
-      return next;
-    });
+    const newPairs = { ...userPairs };
+    for (const k of Object.keys(newPairs)) {
+      if (newPairs[Number(k)] === rightIndex) delete newPairs[Number(k)];
+    }
+    newPairs[selectedLeft] = rightIndex;
+    setUserPairs(newPairs);
     setSelectedLeft(null);
-  };
-
-  const handleConfirm = () => {
-    if (allPaired) onComplete(userPairs);
+    if (Object.keys(newPairs).length === leftItems.length) {
+      onComplete(newPairs);
+    }
   };
 
   const getLeftColor = (i: number): string | null => {
     if (selectedLeft === i) return accentColor;
     if (!(i in userPairs)) return null;
-    if (isAnswered)
-      return correctPairs[i] === userPairs[i] ? "#58CC02" : "#FF4B4B";
-    return PAIR_COLORS[i % PAIR_COLORS.length];
+    return correctPairs[i] === userPairs[i] ? "#58CC02" : "#FF4B4B";
   };
 
   const getRightColor = (rightIndex: number): string | null => {
     const entry = Object.entries(userPairs).find(([, v]) => v === rightIndex);
     if (!entry) return null;
     const leftIndex = Number(entry[0]);
-    if (isAnswered)
-      return correctPairs[leftIndex] === rightIndex ? "#58CC02" : "#FF4B4B";
-    return PAIR_COLORS[leftIndex % PAIR_COLORS.length];
+    return correctPairs[leftIndex] === rightIndex ? "#58CC02" : "#FF4B4B";
+  };
+
+  const getRightIcon = (rightIndex: number): string | null => {
+    const entry = Object.entries(userPairs).find(([, v]) => v === rightIndex);
+    if (!entry) return null;
+    const leftIndex = Number(entry[0]);
+    return correctPairs[leftIndex] === rightIndex ? "✓" : "✗";
   };
 
   return (
@@ -113,6 +111,7 @@ export function MatchingOptions({
         <View style={styles.column}>
           {rightItems.map((item, i) => {
             const color = getRightColor(i);
+            const icon = getRightIcon(i);
             const isTargetable = selectedLeft !== null && !color;
             return (
               <TouchableOpacity
@@ -131,6 +130,9 @@ export function MatchingOptions({
                 <Text style={[styles.itemText, color ? { color } : null]}>
                   {item}
                 </Text>
+                {icon && (
+                  <Text style={[styles.icon, { color }]}>{icon}</Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -145,15 +147,6 @@ export function MatchingOptions({
         </Text>
       )}
 
-      {!isAnswered && allPaired && (
-        <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: accentColor }]}
-          onPress={handleConfirm}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.confirmBtnText}>확인</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -199,10 +192,9 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 13,
   },
-  confirmBtn: {
-    padding: 14,
-    borderRadius: 14,
-    alignItems: "center",
+  icon: {
+    fontSize: 16,
+    fontWeight: "700",
+    flexShrink: 0,
   },
-  confirmBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });
