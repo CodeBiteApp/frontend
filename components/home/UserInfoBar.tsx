@@ -1,6 +1,9 @@
 import Acorn from "@/components/charactor/Acorn";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   position: string | null;
@@ -56,8 +59,14 @@ function useCountUp(value: number) {
 }
 
 export default function UserInfoBar({ position, streak, acornCount }: Props) {
+  const router = useRouter();
   const { display: streakDisplay, scaleAnim: streakScale } = useCountUp(streak);
   const { display: acornDisplay, scaleAnim: acornScale } = useCountUp(acornCount);
+
+  const handlePressBookmark = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push("/bookmark");
+  };
 
   return (
     <View style={styles.userInfoBar}>
@@ -65,6 +74,14 @@ export default function UserInfoBar({ position, streak, acornCount }: Props) {
         <Text style={styles.positionText}>💼 {positionLabel(position)}</Text>
       </View>
       <View style={styles.statsGroup}>
+        <TouchableOpacity
+          style={styles.bookmarkBtn}
+          onPress={handlePressBookmark}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="bookmark-outline" size={18} color="#ffffff" />
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
         <Animated.View style={[styles.statItem, { transform: [{ scale: streakScale }] }]}>
           <Text style={styles.streakEmoji}>🔥</Text>
           <Text style={styles.statValue}>{streakDisplay}</Text>
@@ -104,4 +121,9 @@ const styles = StyleSheet.create({
   statValue: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
   statUnit: { color: "#888", fontSize: 12, fontWeight: "500" },
   statDivider: { width: 1, height: 16, backgroundColor: "#333537" },
+  bookmarkBtn: {
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

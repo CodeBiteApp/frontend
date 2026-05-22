@@ -1,5 +1,4 @@
 import { fetchQuizConceptData, submitQuizResult } from "@/api/quiz";
-import { STAGE_INFO } from "@/constants/stageInfo";
 import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
@@ -10,6 +9,7 @@ import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
+import { STAGE_INFO } from "@/constants/stageInfo";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -74,6 +74,8 @@ export default function QuizScreen() {
     retryCorrectCount,
     retryAnswered,
     retryIsCorrect,
+    retryRoundTotal,
+    retryRoundIndex,
     conceptId,
     randomSeed,
     userAnswers,
@@ -86,11 +88,10 @@ export default function QuizScreen() {
     recordAnswer,
     enterRetry,
     markRetryAnswer,
-    resetRetryAnswer,
     nextRetryQuestion,
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
-  const { refreshUser } = useUserStore();
+  const { applyQuizReward } = useUserStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
@@ -128,9 +129,9 @@ export default function QuizScreen() {
   useEffect(() => {
     if (!isFinished || !conceptId || !randomSeed) return;
     submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
-      .then(async (result) => {
+      .then((result) => {
         setServerResult(result);
-        await refreshUser();
+        applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
       .catch(console.error)
       .finally(() => setSubmitDone(true));
@@ -189,12 +190,12 @@ export default function QuizScreen() {
     }
     return (
       <ResultScreen
+        conceptId={conceptId || Number(id)}
         correct={correct}
         total={total}
         accentColor={accentColor}
         score={serverResult?.score}
         dotoriEarned={serverResult?.dotoriEarned}
-        onBack={() => router.back()}
         onNext={() => setPhase("streak")}
       />
     );
@@ -212,7 +213,9 @@ export default function QuizScreen() {
   // ── 일반 퀴즈 다음 버튼 핸들러 ───────────────────────────────
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
-      const hasWrong = isCorrect.some((v) => v === false);
+      const hasWrong = isCorrect.some(
+        (v, i) => v === false && getQuestionType(questions[i]) !== "matching",
+      );
       if (hasWrong) {
         enterRetry();
       } else {
@@ -226,17 +229,12 @@ export default function QuizScreen() {
 
   // ── 오답 노트 버튼 핸들러 ────────────────────────────────────
   const handleRetryNext = () => {
-    if (retryQueue.length === 1) {
-      // 마지막 오답 문제 정답 → 완전 종료
+    if (retryQueue.length === 1 && retryIsCorrect === true) {
       triggerEating(id ?? "1");
     }
-    nextRetryQuestion();
-  };
-
-  const handleRetryAgain = () => {
-    resetRetryAnswer();
     setMcSelected(null);
     setOxSelected(null);
+    nextRetryQuestion();
   };
 
   // ── 문제 옵션 렌더 (일반 & 오답 공용) ────────────────────────
@@ -311,10 +309,12 @@ export default function QuizScreen() {
           correctPairs={mt.correctPairs}
           isAnswered={answered}
           accentColor={currentAccent}
-          onComplete={(pairs) => {
-            const allCorrect = Object.entries(pairs).every(
-              ([li, ri]) => mt.correctPairs[Number(li)] === ri,
-            );
+          onComplete={(pairs, hadMistake) => {
+            const allCorrect =
+              !hadMistake &&
+              Object.entries(pairs).every(
+                ([li, ri]) => mt.correctPairs[Number(li)] === ri,
+              );
             // Record<number,number> → Record<string,number> (API 포맷)
             onRecord?.(
               Object.fromEntries(Object.entries(pairs)) as Record<
@@ -336,21 +336,10 @@ export default function QuizScreen() {
     if (!isAnswered) return null;
 
     if (isRetrying) {
-      if (retryIsCorrect === false) {
-        return (
-          <Button
-            label="다시 풀기"
-            onPress={handleRetryAgain}
-            color="#FF4B4B"
-            style={{ paddingVertical: 16, marginTop: 8 }}
-            textStyle={{ fontWeight: "800" }}
-          />
-        );
-      }
-      const isLast = retryQueue.length === 1;
+      const isFinalCorrect = retryQueue.length === 1 && retryIsCorrect === true;
       return (
         <Button
-          label={isLast ? "결과 보기" : "다음 문제"}
+          label={isFinalCorrect ? "결과 보기" : "다음 문제"}
           onPress={handleRetryNext}
           color={RETRY_ACCENT}
           style={{ paddingVertical: 16, marginTop: 8 }}
@@ -362,7 +351,10 @@ export default function QuizScreen() {
     return (
       <Button
         label={
-          currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"
+          currentIndex === questions.length - 1 &&
+          !isCorrect.some((v) => v === false)
+            ? "결과 보기"
+            : "다음 문제"
         }
         onPress={handleNext}
         color={accentColor}
@@ -373,8 +365,8 @@ export default function QuizScreen() {
   };
 
   // ── 진행 표시 (헤더용) ───────────────────────────────────────
-  const questionNumber = isRetrying ? retryCorrectCount + 1 : currentIndex + 1;
-  const questionTotal = isRetrying ? retryTotal : questions.length;
+  const questionNumber = isRetrying ? retryRoundIndex + 1 : currentIndex + 1;
+  const questionTotal = isRetrying ? retryRoundTotal : questions.length;
 
   return (
     <View style={styles.container}>
