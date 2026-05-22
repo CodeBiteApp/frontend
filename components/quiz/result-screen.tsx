@@ -15,7 +15,6 @@ type Props = {
   accentColor: string;
   score?: number;
   dotoriEarned?: number;
-  onBack: () => void;
   onNext: () => void;
 };
 
@@ -26,7 +25,6 @@ export function ResultScreen({
   accentColor,
   score,
   dotoriEarned,
-  onBack,
   onNext,
 }: Props) {
   const queryClient = useQueryClient();
@@ -100,18 +98,10 @@ export function ResultScreen({
     }
   };
 
-  const handlePressBack = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onBack();
-  };
-
   return (
     <View style={styles.container}>
       {/* 상단 액션 바 */}
       <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handlePressBack} activeOpacity={0.7}>
-          <Ionicons name="close" size={24} color="#ffffff" />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtn} onPress={handleToggleBookmark} activeOpacity={0.7}>
           <Ionicons
             name={isMarked ? "bookmark" : "bookmark-outline"}
@@ -178,7 +168,7 @@ const styles = StyleSheet.create({
   actionBar: {
     width: "100%",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     paddingVertical: 10,
     marginBottom: 8,

@@ -1,5 +1,4 @@
 import { fetchQuizConceptData, submitQuizResult } from "@/api/quiz";
-import { STAGE_INFO } from "@/constants/stageInfo";
 import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
@@ -10,6 +9,7 @@ import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
+import { STAGE_INFO } from "@/constants/stageInfo";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -196,7 +196,6 @@ export default function QuizScreen() {
         accentColor={accentColor}
         score={serverResult?.score}
         dotoriEarned={serverResult?.dotoriEarned}
-        onBack={() => router.back()}
         onNext={() => setPhase("streak")}
       />
     );
@@ -215,8 +214,8 @@ export default function QuizScreen() {
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
       const hasWrong = isCorrect.some(
-      (v, i) => v === false && getQuestionType(questions[i]) !== "matching",
-    );
+        (v, i) => v === false && getQuestionType(questions[i]) !== "matching",
+      );
       if (hasWrong) {
         enterRetry();
       } else {
@@ -311,9 +310,11 @@ export default function QuizScreen() {
           isAnswered={answered}
           accentColor={currentAccent}
           onComplete={(pairs, hadMistake) => {
-            const allCorrect = !hadMistake && Object.entries(pairs).every(
-              ([li, ri]) => mt.correctPairs[Number(li)] === ri,
-            );
+            const allCorrect =
+              !hadMistake &&
+              Object.entries(pairs).every(
+                ([li, ri]) => mt.correctPairs[Number(li)] === ri,
+              );
             // Record<number,number> → Record<string,number> (API 포맷)
             onRecord?.(
               Object.fromEntries(Object.entries(pairs)) as Record<
@@ -350,7 +351,8 @@ export default function QuizScreen() {
     return (
       <Button
         label={
-          currentIndex === questions.length - 1 && !isCorrect.some((v) => v === false)
+          currentIndex === questions.length - 1 &&
+          !isCorrect.some((v) => v === false)
             ? "결과 보기"
             : "다음 문제"
         }
