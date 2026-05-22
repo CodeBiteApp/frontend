@@ -1,9 +1,10 @@
+import { getGlobalRanking } from "@/api/ranking";
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
 import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useState, useCallback } from "react";
 import {
   Alert,
   ScrollView,
@@ -13,21 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// ── 목 통계 (실제 API 연결 시 교체) ─────────────────────────
-const MOCK_STATS = {
-  rank: 7,
-  score: 2200,
-  solvedCount: 48,
-};
-
-// ── 배지 목록 ─────────────────────────────────────────────
-const BADGES = [
-  { id: "1", emoji: "🔥", label: "3일 연속" },
-  { id: "2", emoji: "💡", label: "힌트왕" },
-  { id: "3", emoji: "🎯", label: "첫 만점" },
-  { id: "4", emoji: "🏅", label: "퀴즈 10회" },
-];
 
 // ── 아바타 배경색 팔레트 ──────────────────────────────────
 const AVATAR_COLORS = [
@@ -97,17 +83,45 @@ export default function SettingsScreen() {
   const user = useUserStore((s) => s.user);
   const logout = useUserStore((s) => s.logout);
   const isSocialLogin = useUserStore((s) => s.isSocialLogin);
+  const refreshUser = useUserStore((s) => s.refreshUser);
 
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [myRank, setMyRank] = useState<number | null>(null);
 
   const displayName =
     user?.nickname?.trim() || user?.email?.split("@")[0] || "사용자";
   const email = user?.email ?? "";
   const initials = displayName.charAt(0).toUpperCase();
   const bgColor = avatarColor(displayName);
+
+  const fetchMyRank = async () => {
+    try {
+      const res = await getGlobalRanking();
+      setMyRank(res.myRank);
+    } catch (error) {
+      console.error("Failed to fetch my rank on settings", error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUser();
+      void fetchMyRank();
+    }, [refreshUser])
+  );
+
+  const longestStreak = user?.longestStreak || 0;
+  const solvedCount = user?.studiedConceptCount || 0;
+
+  const badgesWithStatus = [
+    { id: "1", emoji: "🔥", label: "3일 연속", isEarned: longestStreak >= 3 },
+    { id: "2", emoji: "💡", label: "힌트왕", isEarned: solvedCount >= 3 },
+    { id: "3", emoji: "🎯", label: "첫 만점", isEarned: solvedCount >= 1 },
+    { id: "4", emoji: "🏅", label: "퀴즈 10회", isEarned: solvedCount >= 10 },
+  ];
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
@@ -153,7 +167,7 @@ export default function SettingsScreen() {
       {/* ── 통계 카드 ── */}
       <View style={styles.statsRow}>
         <StatCard
-          value={`${MOCK_STATS.rank}위`}
+          value={myRank !== null ? `${myRank}위` : "-위"}
           label="현재 랭킹"
           accent="#FFC800"
         />
@@ -163,7 +177,7 @@ export default function SettingsScreen() {
           accent="#FF6B00"
         />
         <StatCard
-          value={MOCK_STATS.solvedCount}
+          value={user?.studiedConceptCount || 0}
           label="푼 문제"
           accent="#1CB0F6"
         />
@@ -195,10 +209,14 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>🏆 획득 배지</Text>
         <View style={styles.badgeRow}>
-          {BADGES.map((b) => (
-            <View key={b.id} style={styles.badge}>
-              <Text style={styles.badgeEmoji}>{b.emoji}</Text>
-              <Text style={styles.badgeLabel}>{b.label}</Text>
+          {badgesWithStatus.map((b) => (
+            <View key={b.id} style={[styles.badge, !b.isEarned && styles.badgeLocked]}>
+              <Text style={[styles.badgeEmoji, !b.isEarned && styles.emojiLocked]}>
+                {b.isEarned ? b.emoji : "🔒"}
+              </Text>
+              <Text style={[styles.badgeLabel, !b.isEarned && styles.labelLocked]}>
+                {b.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -436,6 +454,16 @@ const styles = StyleSheet.create({
   },
   badgeEmoji: { fontSize: 22 },
   badgeLabel: { color: "#aaa", fontSize: 10, textAlign: "center" },
+  badgeLocked: {
+    backgroundColor: "#161719",
+    opacity: 0.4,
+  },
+  emojiLocked: {
+    opacity: 0.6,
+  },
+  labelLocked: {
+    color: "#555",
+  },
 
   // 섹션 헤더
   section: {
