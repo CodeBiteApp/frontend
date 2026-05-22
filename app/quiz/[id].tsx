@@ -348,7 +348,9 @@ export default function QuizScreen() {
     return (
       <Button
         label={
-          currentIndex === questions.length - 1 ? "결과 보기" : "다음 문제"
+          currentIndex === questions.length - 1 && !isCorrect.some((v) => v === false)
+            ? "결과 보기"
+            : "다음 문제"
         }
         onPress={handleNext}
         color={accentColor}
