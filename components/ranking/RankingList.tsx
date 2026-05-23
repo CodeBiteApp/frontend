@@ -10,9 +10,9 @@ type Props = {
 };
 
 export default function RankingList({ rankings, myUserId, myRank }: Props) {
-  const top3    = rankings.slice(0, 3);
-  const rest    = rankings.slice(3).filter((u) => u.userId !== myUserId);
-  const meEntry = rankings.find((u) => u.userId === myUserId) ?? null;
+  const top3      = rankings.slice(0, 3);
+  const listItems = rankings.filter((u) => u.userId !== myUserId);
+  const meEntry   = rankings.find((u) => u.userId === myUserId) ?? null;
 
   return (
     <>
@@ -28,7 +28,7 @@ export default function RankingList({ rankings, myUserId, myRank }: Props) {
           return (
             <View key={user.userId} style={styles.podiumItem}>
               <Text style={[styles.podiumName, isMe && styles.meHighlight]}>
-                {isMe ? "나" : user.nickname}
+                {isMe ? "나" : user.nickname} {user.equippedBannerId === 2 && "👑"}{user.equippedBannerId === 3 && "✨"}
               </Text>
               <View style={styles.podiumDotoriRow}>
                 <Text style={styles.podiumStreakLabel}>🔥</Text>
@@ -42,15 +42,46 @@ export default function RankingList({ rankings, myUserId, myRank }: Props) {
         })}
       </View>
 
-      {/* 4위~ 리스트 */}
+      {/* 랭킹 리스트 */}
       <View style={styles.listBox}>
-        {rest.map((user) => {
+        {listItems.map((user) => {
           const isMe = user.userId === myUserId;
+          const isGold = user.equippedBannerId === 2;
+          const isNeon = user.equippedBannerId === 3;
+          
+          const isTop3 = user.rank >= 1 && user.rank <= 3;
+          const getRankDisplay = (rank: number) => {
+            if (rank === 1) return "🥇";
+            if (rank === 2) return "🥈";
+            if (rank === 3) return "🥉";
+            return rank;
+          };
+          
+          const top3Styles = [
+            styles.goldText,
+            styles.silverText,
+            styles.bronzeText
+          ];
+          const rankColorStyle = isTop3 ? top3Styles[user.rank - 1] : null;
+
           return (
-            <View key={user.userId} style={[styles.row, isMe && styles.rowMe]}>
-              <Text style={[styles.rowRank, isMe && styles.meHighlight]}>{user.rank}</Text>
+            <View key={user.userId} style={[
+              styles.row,
+              isMe && styles.rowMe,
+              isGold && styles.rowGold,
+              isNeon && styles.rowNeon
+            ]}>
+              <Text style={[
+                styles.rowRank,
+                isMe && styles.meHighlight,
+                isGold && styles.goldText,
+                isNeon && styles.neonText,
+                rankColorStyle
+              ]}>
+                {getRankDisplay(user.rank)}
+              </Text>
               <Text style={[styles.rowName, isMe && styles.meHighlight]}>
-                {isMe ? `나 (${user.nickname})` : user.nickname}
+                {isMe ? `나 (${user.nickname})` : user.nickname} {isGold && "👑"}{isNeon && "✨"}
               </Text>
               <View style={styles.rowRight}>
                 <Text style={styles.streakIcon}>🔥</Text>
@@ -64,10 +95,13 @@ export default function RankingList({ rankings, myUserId, myRank }: Props) {
 
       {/* 내 순위 고정 카드 (항상 하단 표시) */}
       {meEntry && (
-        <View style={styles.meCard}>
+        <View style={[
+          styles.meCard,
+          meEntry.equippedBannerId === 3 && styles.meCardNeon
+        ]}>
           <View style={styles.meLeft}>
-            <Text style={styles.meRank}>{myRank ?? meEntry.rank}위</Text>
-            <Text style={styles.meName}>나 ({meEntry.nickname})</Text>
+            <Text style={[styles.meRank, meEntry.equippedBannerId === 3 && styles.neonText]}>{myRank ?? meEntry.rank}위</Text>
+            <Text style={styles.meName}>나 ({meEntry.nickname}) {meEntry.equippedBannerId === 2 && "👑"}{meEntry.equippedBannerId === 3 && "✨"}</Text>
           </View>
           <View style={styles.rowRight}>
             <Text style={styles.streakIcon}>🔥</Text>
@@ -119,13 +153,36 @@ const styles = StyleSheet.create({
     borderBottomColor: "#2e3032",
   },
   rowMe:       { backgroundColor: "#2C2A1E" },
-  rowRank:     { color: "#888", fontSize: 14, fontWeight: "700", width: 28 },
+  rowRank:     { color: "#888", fontSize: 14, fontWeight: "700", width: 32 },
   rowName:     { flex: 1, color: "#fff", fontSize: 15, fontWeight: "600" },
   rowRight:    { flexDirection: "row", alignItems: "center", gap: 4 },
   streakIcon:  { fontSize: 14 },
   rowDotori:   { color: "#FFC800", fontSize: 13, fontWeight: "700", marginRight: 8 },
   rowScore:    { color: "#aaa", fontSize: 13 },
   meHighlight: { color: "#FFC800" },
+
+  rowGold: {
+    backgroundColor: "#2e2718",
+    borderLeftWidth: 4,
+    borderLeftColor: "#FFD700",
+  },
+  rowNeon: {
+    backgroundColor: "#1c232c",
+    borderLeftWidth: 4,
+    borderLeftColor: "#1CB0F6",
+  },
+  goldText: {
+    color: "#FFC800",
+  },
+  silverText: {
+    color: "#C0C0C0",
+  },
+  bronzeText: {
+    color: "#CD7F32",
+  },
+  neonText: {
+    color: "#1CB0F6",
+  },
 
   meCard: {
     marginHorizontal: 20,
@@ -137,6 +194,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#FFC800",
+  },
+  meCardNeon: {
+    backgroundColor: "#1c232c",
+    borderColor: "#1CB0F6",
   },
   meLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   meRank: { color: "#FFC800", fontSize: 16, fontWeight: "800" },

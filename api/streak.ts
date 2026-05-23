@@ -1,15 +1,17 @@
-import axiosInstance from "./axios";
+import api from "./axios";
 
-export type StreakResponse = {
+export type StreakRestoreResponse = {
   currentStreak: number;
-  longestStreak: number;
-  lastStudy: string;
-  todayCheckedIn: boolean;
-  protectorCount: number;
-  studyHistory: string[];
+  protector: number;
+  lastStudy: string | null;
 };
 
-export const getStreakStatus = async (): Promise<StreakResponse> => {
-  const { data } = await axiosInstance.get<StreakResponse>("/api/streak");
+export async function restoreStreak(): Promise<StreakRestoreResponse> {
+  const { data } = await api.post("/api/streak/restore");
   return data;
-};
+}
+
+export async function resetStreak(): Promise<StreakRestoreResponse> {
+  const { data } = await api.post("/api/streak/reset");
+  return data;
+}
