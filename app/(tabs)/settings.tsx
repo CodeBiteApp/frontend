@@ -1,10 +1,13 @@
+import { getGlobalRanking } from "@/api/ranking";
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
+import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useState, useCallback } from "react";
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,24 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// ── 목 통계 (실제 API 연결 시 교체) ─────────────────────────
-const MOCK_STATS = {
-  rank: 7,
-  score: 2200,
-  dotori: 300,
-  currentStreak: 5,
-  longestStreak: 12,
-  solvedCount: 48,
-};
-
-// ── 배지 목록 ─────────────────────────────────────────────
-const BADGES = [
-  { id: "1", emoji: "🔥", label: "3일 연속" },
-  { id: "2", emoji: "💡", label: "힌트왕" },
-  { id: "3", emoji: "🎯", label: "첫 만점" },
-  { id: "4", emoji: "🏅", label: "퀴즈 10회" },
-];
 
 // ── 아바타 배경색 팔레트 ──────────────────────────────────
 const AVATAR_COLORS = [
@@ -98,16 +83,46 @@ export default function SettingsScreen() {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
   const logout = useUserStore((s) => s.logout);
+  const isSocialLogin = useUserStore((s) => s.isSocialLogin);
+  const refreshUser = useUserStore((s) => s.refreshUser);
 
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [myRank, setMyRank] = useState<number | null>(null);
 
   const displayName =
     user?.nickname?.trim() || user?.email?.split("@")[0] || "사용자";
   const email = user?.email ?? "";
   const initials = displayName.charAt(0).toUpperCase();
   const bgColor = avatarColor(displayName);
+
+  const fetchMyRank = async () => {
+    try {
+      const res = await getGlobalRanking();
+      setMyRank(res.myRank);
+    } catch (error) {
+      console.error("Failed to fetch my rank on settings", error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUser();
+      void fetchMyRank();
+    }, [refreshUser])
+  );
+
+  const longestStreak = user?.longestStreak || 0;
+  const solvedCount = user?.studiedConceptCount || 0;
+
+  const badgesWithStatus = [
+    { id: "1", emoji: "🔥", label: "3일 연속", isEarned: longestStreak >= 3 },
+    { id: "2", emoji: "💡", label: "힌트왕", isEarned: solvedCount >= 3 },
+    { id: "3", emoji: "🎯", label: "첫 만점", isEarned: solvedCount >= 1 },
+    { id: "4", emoji: "🏅", label: "퀴즈 10회", isEarned: solvedCount >= 10 },
+  ];
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
@@ -134,34 +149,36 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.displayName}>{displayName}</Text>
         {email ? <Text style={styles.email}>{email}</Text> : null}
-        {user?.userCode ? (
-          <View style={styles.codeBadge}>
-            <Text style={styles.codeLabel}>친구 코드</Text>
-            <Text style={styles.codeValue}>{user.userCode}</Text>
-          </View>
-        ) : null}
+        {/* 친구 코드 및 도토리 배지 가로 배치 */}
+        <View style={styles.badgeContainer}>
+          {user?.userCode ? (
+            <View style={styles.codeBadge}>
+              <Text style={styles.codeLabel}>친구 코드</Text>
+              <Text style={styles.codeValue}>{user.userCode}</Text>
+            </View>
+          ) : null}
 
-        {/* 도토리 잔액 뱃지 */}
-        <View style={styles.dotoriRow}>
-          <Acorn width={20} height={20} />
-          <Text style={styles.dotoriCount}>{MOCK_STATS.dotori} 도토리</Text>
+          <View style={styles.dotoriRow}>
+            <Acorn width={20} height={20} />
+            <Text style={styles.dotoriCount}>{user?.dotori || 0} 도토리</Text>
+          </View>
         </View>
       </View>
 
       {/* ── 통계 카드 ── */}
       <View style={styles.statsRow}>
         <StatCard
-          value={`${MOCK_STATS.rank}위`}
+          value={myRank !== null ? `${myRank}위` : "-위"}
           label="현재 랭킹"
           accent="#FFC800"
         />
         <StatCard
-          value={`${MOCK_STATS.currentStreak}일`}
+          value={`${user?.currentStreak || 0}일`}
           label="연속 학습"
           accent="#FF6B00"
         />
         <StatCard
-          value={MOCK_STATS.solvedCount}
+          value={user?.studiedConceptCount || 0}
           label="푼 문제"
           accent="#1CB0F6"
         />
@@ -172,20 +189,20 @@ export default function SettingsScreen() {
         <View style={styles.streakHeader}>
           <Text style={styles.cardTitle}>🔥 학습 스트릭</Text>
           <Text style={styles.streakBest}>
-            최장 {MOCK_STATS.longestStreak}일
+            최장 {user?.longestStreak || 0}일
           </Text>
         </View>
         <View style={styles.streakDots}>
           {Array.from({ length: 7 }).map((_, i) => {
-            const active =
-              i < MOCK_STATS.currentStreak % 7 || MOCK_STATS.currentStreak >= 7;
+            const currentStreak = user?.currentStreak || 0;
+            const active = i < currentStreak % 7 || currentStreak >= 7;
             return (
               <View key={i} style={[styles.dot, active && styles.dotActive]} />
             );
           })}
         </View>
         <Text style={styles.streakSub}>
-          이번 주 {Math.min(MOCK_STATS.currentStreak, 7)}/7일 완료
+          이번 주 {Math.min(user?.currentStreak || 0, 7)}/7일 완료
         </Text>
       </View>
 
@@ -193,26 +210,37 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>🏆 획득 배지</Text>
         <View style={styles.badgeRow}>
-          {BADGES.map((b) => (
-            <View key={b.id} style={styles.badge}>
-              <Text style={styles.badgeEmoji}>{b.emoji}</Text>
-              <Text style={styles.badgeLabel}>{b.label}</Text>
+          {badgesWithStatus.map((b) => (
+            <View key={b.id} style={[styles.badge, !b.isEarned && styles.badgeLocked]}>
+              <Text style={[styles.badgeEmoji, !b.isEarned && styles.emojiLocked]}>
+                {b.isEarned ? b.emoji : "🔒"}
+              </Text>
+              <Text style={[styles.badgeLabel, !b.isEarned && styles.labelLocked]}>
+                {b.label}
+              </Text>
             </View>
           ))}
         </View>
       </View>
 
+      <FriendSearchModal
+        visible={showFriendSearch}
+        onClose={() => setShowFriendSearch(false)}
+      />
+
       {/* ── 친구 찾기 버튼 ── */}
       <TouchableOpacity
         style={styles.findFriendBtn}
-        onPress={() => router.push("/friend-search")}
+        onPress={() => setShowFriendSearch(true)}
         activeOpacity={0.85}
         accessibilityLabel="친구 찾기"
       >
         <Text style={styles.findFriendEmoji}>👥</Text>
         <View style={styles.findFriendTextBox}>
           <Text style={styles.findFriendTitle}>친구 찾기</Text>
-          <Text style={styles.findFriendSub}>닉네임·코드로 팔로우할 유저를 검색해보세요</Text>
+          <Text style={styles.findFriendSub}>
+            닉네임·코드로 팔로우할 유저를 검색해보세요
+          </Text>
         </View>
         <Text style={styles.findFriendArrow}>›</Text>
       </TouchableOpacity>
@@ -257,9 +285,20 @@ export default function SettingsScreen() {
       {/* ── 계정 설정 ── */}
       <Text style={styles.section}>계정</Text>
       <View style={styles.settingGroup}>
-        <SettingRow label="닉네임 변경" onPress={() => { }} />
+        <SettingRow
+          label="닉네임 변경"
+          onPress={() => router.push("/change-nickname")}
+        />
         <View style={styles.divider} />
-        <SettingRow label="비밀번호 변경" onPress={() => { }} />
+        <SettingRow
+          label="비밀번호 변경"
+          onPress={isSocialLogin ? undefined : () => router.push("/change-password")}
+          right={
+            isSocialLogin ? (
+              <Text style={styles.settingDisabled}>소셜 로그인</Text>
+            ) : undefined
+          }
+        />
       </View>
 
       {/* ── 앱 정보 ── */}
@@ -270,9 +309,11 @@ export default function SettingsScreen() {
           right={<Text style={styles.settingValue}>1.0.0</Text>}
         />
         <View style={styles.divider} />
-        <SettingRow label="이용약관" onPress={() => { }} />
+        <SettingRow label="이용약관" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/terms")} />
         <View style={styles.divider} />
-        <SettingRow label="개인정보 처리방침" onPress={() => { }} />
+        <SettingRow label="개인정보 처리방침" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/privacy")} />
+        <View style={styles.divider} />
+        <SettingRow label="사용된 오픈소스" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/oss")} />
       </View>
 
       {/* ── 로그아웃 ── */}
@@ -314,28 +355,45 @@ const styles = StyleSheet.create({
   },
   email: { color: "#888", fontSize: 13, marginBottom: 12 },
   dotoriRow: {
+    flex: 1,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    backgroundColor: "#242628",
+    backgroundColor: "#2e3032",
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   dotoriImg: { width: 20, height: 20 },
-  dotoriCount: { color: "#FFC800", fontSize: 14, fontWeight: "700" },
+  dotoriCount: { color: "#FFC800", fontSize: 13, fontWeight: "700" },
   codeBadge: {
+    flex: 1,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#2e3032",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 8,
+    borderRadius: 20,
+    paddingHorizontal: 12,
     gap: 6,
   },
-  codeLabel: { color: "#888", fontSize: 11, fontWeight: "600" },
-  codeValue: { color: "#fff", fontSize: 13, fontWeight: "700", letterSpacing: 1 },
+  badgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 12,
+    width: "100%",
+    maxWidth: 320,
+  },
+  codeLabel: { color: "#888", fontSize: 13, fontWeight: "600" },
+  codeValue: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
 
   // 통계
   statsRow: {
@@ -397,6 +455,16 @@ const styles = StyleSheet.create({
   },
   badgeEmoji: { fontSize: 22 },
   badgeLabel: { color: "#aaa", fontSize: 10, textAlign: "center" },
+  badgeLocked: {
+    backgroundColor: "#161719",
+    opacity: 0.4,
+  },
+  emojiLocked: {
+    opacity: 0.6,
+  },
+  labelLocked: {
+    color: "#555",
+  },
 
   // 섹션 헤더
   section: {
@@ -427,6 +495,7 @@ const styles = StyleSheet.create({
   settingDanger: { color: "#FF4B4B" },
   settingArrow: { color: "#555", fontSize: 20 },
   settingValue: { color: "#888", fontSize: 14 },
+  settingDisabled: { color: "#555", fontSize: 13 },
   divider: { height: 1, backgroundColor: "#2e3032", marginHorizontal: 16 },
 
   // 친구 찾기 버튼
@@ -444,8 +513,12 @@ const styles = StyleSheet.create({
   },
   findFriendEmoji: { fontSize: 26 },
   findFriendTextBox: { flex: 1 },
-  findFriendTitle: { color: "#58CC02", fontSize: 15, fontWeight: "800", marginBottom: 2 },
+  findFriendTitle: {
+    color: "#58CC02",
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
   findFriendSub: { color: "#888", fontSize: 12 },
   findFriendArrow: { color: "#58CC02", fontSize: 22, fontWeight: "700" },
-
 });

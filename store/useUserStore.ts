@@ -4,7 +4,7 @@ import {
   register as registerApi,
 } from "@/api/auth";
 import { getMe } from "@/api/users";
-import type { LoginRequest, RegisterRequest, UserSummary } from "@/types/auth";
+import type { LoginRequest, RegisterRequest, User } from "@/types/auth";
 import {
   deleteSecureStore,
   getSecureStore,
@@ -18,15 +18,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
 const POSITION_KEY = "codebite_position";
-const STREAK_KEY = "codebite_streak";
+const SOCIAL_LOGIN_KEY = "codebite_social_login";
 
 type UserState = {
-  user: UserSummary | null;
+  user: User | null;
   isLoggedIn: boolean;
   hasOnboarded: boolean;
   isLoading: boolean;
   position: string | null;
-  streak: number;
+  isSocialLogin: boolean;
 
   login: (body: LoginRequest) => Promise<void>;
   register: (body: RegisterRequest) => Promise<void>;
@@ -35,16 +35,22 @@ type UserState = {
   restoreSession: () => Promise<boolean>;
   completeOnboarding: (position: string) => void;
   setUnauthorized: () => void;
+  setUser: (user: User) => void;
+  applyQuizReward: (dotoriEarned: number, newStreak: number) => void;
+  refreshUser: () => Promise<void>;
 };
 
-// AsyncStorage에서 position, streak 읽기
+// AsyncStorage에서 position, isSocialLogin 읽기
 async function readLocalSession() {
-  const results = await AsyncStorage.multiGet([POSITION_KEY, STREAK_KEY]).catch(
-    () => [],
-  );
-  const position = results.find(([k]) => k === POSITION_KEY)?.[1] ?? null;
-  const streak = Number(results.find(([k]) => k === STREAK_KEY)?.[1]) || 0;
-  return { position, streak };
+  const results = await AsyncStorage.multiGet([
+    POSITION_KEY,
+    SOCIAL_LOGIN_KEY,
+  ]).catch(() => []);
+  const position =
+    results.find(([k]) => k === POSITION_KEY)?.[1] ?? "자바 개발자";
+  const isSocialLogin =
+    results.find(([k]) => k === SOCIAL_LOGIN_KEY)?.[1] === "true";
+  return { position, isSocialLogin };
 }
 
 // 서버에서 유저 정보 + 로컬 세션 합쳐서 반환
@@ -54,21 +60,28 @@ async function fetchUserWithSession(skipUnauthorized = false) {
   return { user, ...local };
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   isLoggedIn: false,
   hasOnboarded: false,
   isLoading: true,
   position: null,
-  streak: 0,
+  isSocialLogin: false,
 
   login: async (body) => {
     set({ isLoading: true });
     try {
       const response = await loginApi(body);
       await saveSecureStore("accessToken", response.accessToken);
-      const { position, streak } = await readLocalSession();
-      set({ user: response.user, isLoggedIn: true, position, streak });
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "false");
+      const { position } = await readLocalSession();
+      set({
+        user: response.user,
+        isLoggedIn: true,
+        isSocialLogin: false,
+        position,
+        hasOnboarded: !!position,
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -82,25 +95,40 @@ export const useUserStore = create<UserState>((set) => ({
       console.log("[register] 서버 응답:", JSON.stringify(response));
 
       if (!response.accessToken) {
-        throw new Error(`accessToken 없음. 실제 응답: ${JSON.stringify(response)}`);
+        throw new Error(
+          `accessToken 없음. 실제 응답: ${JSON.stringify(response)}`,
+        );
       }
 
       await saveSecureStore("accessToken", response.accessToken);
-      const { position, streak } = await readLocalSession();
-      set({ user: response.user, isLoggedIn: true, position, streak });
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "false");
+      const { position } = await readLocalSession();
+      set({
+        user: response.user,
+        isLoggedIn: true,
+        isSocialLogin: false,
+        position,
+        hasOnboarded: !!position,
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
     }
   },
 
-  // OAuth 로그인 전용 — 외부(OAuth)에서 받은 accessToken으로 세션을 완성하는 함수
   completeSessionWithAccessToken: async (accessToken) => {
     set({ isLoading: true });
     try {
       await saveSecureStore("accessToken", accessToken);
-      const { user, position, streak } = await fetchUserWithSession();
-      set({ user, isLoggedIn: true, position, streak });
+      await AsyncStorage.setItem(SOCIAL_LOGIN_KEY, "true");
+      const { user, position } = await fetchUserWithSession();
+      set({
+        user,
+        isLoggedIn: true,
+        isSocialLogin: true,
+        position,
+        hasOnboarded: !!position,
+      });
       scheduleTokenRefresh();
     } finally {
       set({ isLoading: false });
@@ -112,20 +140,27 @@ export const useUserStore = create<UserState>((set) => ({
       await logoutApi();
     } finally {
       await deleteSecureStore("accessToken");
+      await AsyncStorage.removeItem(SOCIAL_LOGIN_KEY).catch(() => {});
       clearTokenRefreshTimer();
-      set({ user: null, isLoggedIn: false });
+      set({ user: null, isLoggedIn: false, isSocialLogin: false });
     }
   },
 
-  // 앱 재시작 시 SecureStore에 토큰이 있으면 세션 복원
   restoreSession: async () => {
     set({ isLoading: true });
     try {
       const token = await getSecureStore("accessToken");
       if (!token) return false;
 
-      const { user, position, streak } = await fetchUserWithSession(true);
-      set({ user, isLoggedIn: true, position, streak });
+      const { user, position, isSocialLogin } =
+        await fetchUserWithSession(true);
+      set({
+        user,
+        isLoggedIn: true,
+        isSocialLogin,
+        position,
+        hasOnboarded: !!position,
+      });
       scheduleTokenRefresh();
       return true;
     } catch {
@@ -136,19 +171,39 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  // 온보딩 완료 시 직군과 streak(1로 초기화)을 AsyncStorage에 저장하고 상태 반영
   completeOnboarding: (position) => {
-    const streak = 1;
     AsyncStorage.multiSet([
       [POSITION_KEY, position],
-      [STREAK_KEY, String(streak)],
     ]).catch(() => {});
-    set({ hasOnboarded: true, position, streak });
+    set({ hasOnboarded: true, position });
   },
 
-  // 토큰 만료 등으로 401 발생 시 강제 로그아웃 처리
   setUnauthorized: () => {
     clearTokenRefreshTimer();
     set({ user: null, isLoggedIn: false });
+  },
+
+  setUser: (user) => set({ user }),
+
+  applyQuizReward: (dotoriEarned, newStreak) =>
+    set((state) => {
+      if (!state.user) return {};
+      return {
+        user: {
+          ...state.user,
+          dotori: state.user.dotori + dotoriEarned,
+          currentStreak: newStreak,
+        },
+      };
+    }),
+
+  refreshUser: async () => {
+    if (!get().isLoggedIn) return;
+    try {
+      const user = await getMe(true);
+      set({ user });
+    } catch (e) {
+      console.error("[refreshUser] Failed to refresh user data", e);
+    }
   },
 }));

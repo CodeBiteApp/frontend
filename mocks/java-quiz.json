@@ -1,0 +1,43 @@
+{
+  "subject": { "id": 1, "name": "java" },
+  "concepts": [
+    { "id": 1,  "subject_id": 1, "parent_id": null, "title": "자바의 기초",           "rank": 6 },
+    { "id": 2,  "subject_id": 1, "parent_id": 1,    "title": "Java 프로그래밍이란",   "rank": 0 },
+    { "id": 3,  "subject_id": 1, "parent_id": 1,    "title": "Java SE와 Java EE 차이","rank": 2 },
+    { "id": 4,  "subject_id": 1, "parent_id": 1,    "title": "Java와 C/C++ 차이",     "rank": 0 },
+    { "id": 5,  "subject_id": 1, "parent_id": 1,    "title": "Java 언어의 장단점",    "rank": 0 },
+    { "id": 6,  "subject_id": 1, "parent_id": 1,    "title": "접근 제어자",           "rank": 4 },
+    { "id": 7,  "subject_id": 1, "parent_id": 1,    "title": "Java 데이터 타입",      "rank": 2 },
+    { "id": 8,  "subject_id": 1, "parent_id": 3,    "title": "Java SE",               "rank": 0 },
+    { "id": 9,  "subject_id": 1, "parent_id": 3,    "title": "Java EE",               "rank": 0 },
+    { "id": 10, "subject_id": 1, "parent_id": 6,    "title": "public",                "rank": 0 },
+    { "id": 11, "subject_id": 1, "parent_id": 6,    "title": "protected",             "rank": 0 },
+    { "id": 12, "subject_id": 1, "parent_id": 6,    "title": "default",               "rank": 0 },
+    { "id": 13, "subject_id": 1, "parent_id": 6,    "title": "private",               "rank": 0 },
+    { "id": 14, "subject_id": 1, "parent_id": 7,    "title": "기본형",                "rank": 0 },
+    { "id": 15, "subject_id": 1, "parent_id": 7,    "title": "참조형",                "rank": 0 }
+  ],
+  "conceptDetails": [
+    { "id": 1,  "concept_id": 2,  "key": "definition",    "value": "Java는 JVM 위에서 동작하는 객체지향 언어이며 '한 번 작성하면 여러 환경에서 실행'을 목표로 한다." },
+    { "id": 2,  "concept_id": 2,  "key": "specification", "value": "Java 소스 코드를 컴파일하면 바이트코드(.class)가 생성되고 JVM이 이를 실행한다." },
+    { "id": 3,  "concept_id": 2,  "key": "feature",       "value": "Java의 플랫폼 독립성은 JVM이 제공하고 실행 성능은 JIT 컴파일러가 보완한다." },
+    { "id": 4,  "concept_id": 3,  "key": "comparison",    "value": "Java SE는 '기본' 표준 플랫폼이고, Java EE(현재 Jakarta EE)는 '대규모 서버 애플리케이션용 확장' 플랫폼이다." },
+    { "id": 5,  "concept_id": 8,  "key": "definition",    "value": "Java SE는 언어와 기본 라이브러리 중심의 표준 플랫폼으로 컬렉션, IO, 스레드 등을 포함한다." },
+    { "id": 6,  "concept_id": 9,  "key": "definition",    "value": "Java EE(현재 Jakarta EE)는 웹과 엔터프라이즈 기능(API, 트랜잭션, DI 등)을 포함한 확장 플랫폼이다." },
+    { "id": 7,  "concept_id": 4,  "key": "comparison",    "value": "Java는 컴파일 후 바이트코드를 실행(JVM 필요)하며 자동 메모리 관리(GC)를 사용하지만, C/C++는 컴파일·링크 후 네이티브 바이너리를 실행하고 메모리 관리 책임이 개발자에게 더 크다." },
+    { "id": 8,  "concept_id": 4,  "key": "comparison",    "value": "Java는 이식성과 생산성이 강점이고, C/C++은 저수준 제어와 성능 최적화에 강점이 있다." },
+    { "id": 9,  "concept_id": 5,  "key": "feature",       "value": "Java의 장점은 플랫폼 독립성, 풍부한 생태계, 자동 메모리 관리, 멀티스레딩 지원, 유지보수성이다." },
+    { "id": 10, "concept_id": 5,  "key": "feature",       "value": "Java의 단점은 JVM 계층으로 인한 오버헤드 가능성, 런타임 튜닝 필요, 예외 처리 코드가 길어질 수 있다는 점이다." },
+    { "id": 11, "concept_id": 5,  "key": "best_practice", "value": "실무에서는 JIT와 GC의 지속적 개선으로 과거 대비 성능 격차가 많이 줄었다." },
+    { "id": 12, "concept_id": 6,  "key": "best_practice", "value": "캡슐화 관점에서 접근 제어자는 가능한 한 좁은 범위로 열어두는 것이 권장된다." },
+    { "id": 13, "concept_id": 10, "key": "definition",    "value": "public은 모든 곳에서 접근 가능한 접근 제어자이다." },
+    { "id": 14, "concept_id": 11, "key": "definition",    "value": "protected는 같은 패키지와 상속관계에서 접근 가능한 접근 제어자이다." },
+    { "id": 15, "concept_id": 12, "key": "definition",    "value": "default(package-private)는 같은 패키지에서만 접근 가능한 접근 제어자이다." },
+    { "id": 16, "concept_id": 13, "key": "definition",    "value": "private는 같은 클래스 내부에서만 접근 가능한 접근 제어자이다." },
+    { "id": 17, "concept_id": 7,  "key": "comparison",    "value": "기본형 변수는 값 자체를 보관하고, 참조형 변수는 객체의 참조값(주소 개념)을 보관한다." },
+    { "id": 18, "concept_id": 14, "key": "definition",    "value": "기본형(primitive)은 값 자체를 보관하는 Java의 기본 데이터 타입이다." },
+    { "id": 19, "concept_id": 14, "key": "specification", "value": "Java 기본형에는 byte, short, int, long, float, double, char, boolean 8가지가 있다." },
+    { "id": 20, "concept_id": 15, "key": "definition",    "value": "참조형(reference)은 객체의 참조값(주소 개념)을 보관하는 Java의 데이터 타입이다." },
+    { "id": 21, "concept_id": 15, "key": "specification", "value": "Java 참조형에는 배열, 클래스, 인터페이스, 열거형, String 등이 있다." }
+  ]
+}

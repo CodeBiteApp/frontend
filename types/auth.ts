@@ -13,7 +13,7 @@ export type AuthResponse = {
   accessToken: string;
   tokenType: "Bearer";
   expiresIn: number; // 초 단위 (1500 = 25분)
-  user: UserSummary;
+  user: User;
 };
 
 export type User = {
@@ -24,7 +24,7 @@ export type User = {
   profileImageUrl: string | null;
   currentStreak: number;
   longestStreak: number;
-  cookie: number;
+  dotori: number;
   protector: number;
   equippedBanner: string | null;
   studiedConceptCount: number;

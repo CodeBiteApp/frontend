@@ -14,10 +14,10 @@ const api = axios.create({
 
 setupAuthInterceptors(api);
 
-// // ── Mock (제거 시 import 포함 아래 4줄 삭제) ──────────────
+// ── Mock (제거 시 import 포함 아래 4줄 삭제) ──────────────
 // if (process.env.EXPO_PUBLIC_MOCK_AUTH === "true") {
 //   setupMocks(api);
 // }
-// // ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 
 export default api;
