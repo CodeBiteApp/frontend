@@ -7,6 +7,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useState, useCallback } from "react";
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -308,11 +309,11 @@ export default function SettingsScreen() {
           right={<Text style={styles.settingValue}>1.0.0</Text>}
         />
         <View style={styles.divider} />
-        <SettingRow label="이용약관" onPress={() => {}} />
+        <SettingRow label="이용약관" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/terms")} />
         <View style={styles.divider} />
-        <SettingRow label="개인정보 처리방침" onPress={() => {}} />
+        <SettingRow label="개인정보 처리방침" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/privacy")} />
         <View style={styles.divider} />
-        <SettingRow label="사용된 오픈소스" onPress={() => {}} />
+        <SettingRow label="사용된 오픈소스" onPress={() => Linking.openURL("https://codebite-info.netlify.app/#/oss")} />
       </View>
 
       {/* ── 로그아웃 ── */}
