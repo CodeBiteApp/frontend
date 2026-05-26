@@ -56,17 +56,32 @@ export function UserSearchCard({ user, initialFollowing = false }: Props) {
 
   const initials = user.nickname.charAt(0).toUpperCase();
   const bg = avatarColor(user.nickname);
+  const isGoldBanner = user.equippedBannerId === 2;
+  const isNeonBanner = user.equippedBannerId === 3;
 
   return (
-    <View style={styles.card}>
+    <View style={[
+      styles.card,
+      isGoldBanner && styles.cardGold,
+      isNeonBanner && styles.cardNeon
+    ]}>
       {/* 아바타 */}
-      <View style={[styles.avatar, { backgroundColor: bg }]}>
+      <View style={[
+        styles.avatar,
+        { backgroundColor: bg },
+        isGoldBanner && styles.avatarGold,
+        isNeonBanner && styles.avatarNeon
+      ]}>
         <Text style={styles.avatarText}>{initials}</Text>
       </View>
 
       {/* 유저 정보 */}
       <View style={styles.info}>
-        <Text style={styles.nickname}>{user.nickname}</Text>
+        <View style={styles.nicknameRow}>
+          <Text style={styles.nickname}>{user.nickname}</Text>
+          {isGoldBanner && <Text style={styles.badgeEmoji}>👑</Text>}
+          {isNeonBanner && <Text style={styles.badgeEmoji}>✨</Text>}
+        </View>
         <View style={styles.metaRow}>
           <Text style={styles.code}># {user.userCode}</Text>
           <Text style={styles.dot}>·</Text>
@@ -104,6 +119,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 10,
     gap: 12,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  cardGold: {
+    backgroundColor: "#2e2718",
+    borderColor: "#FFD700",
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardNeon: {
+    backgroundColor: "#1c232c",
+    borderColor: "#1CB0F6",
+    shadowColor: "#1CB0F6",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
   },
   avatar: {
     width: 44,
@@ -112,11 +147,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  avatarGold: {
+    borderColor: "#FFD700",
+  },
+  avatarNeon: {
+    borderColor: "#1CB0F6",
   },
   avatarText: { color: "#fff", fontSize: 18, fontWeight: "800" },
 
   info: { flex: 1 },
-  nickname: { color: "#fff", fontSize: 15, fontWeight: "700", marginBottom: 3 },
+  nicknameRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 3 },
+  nickname: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  badgeEmoji: { fontSize: 13 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   code: { color: "#888", fontSize: 12, fontFamily: "monospace" },
   dot: { color: "#555", fontSize: 12 },

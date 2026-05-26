@@ -7,6 +7,7 @@ export type RankingEntry = {
   nickname: string;
   currentStreak: number;
   longestStreak: number;
+  equippedBannerId?: number | null;
 };
 
 // 랭킹 API 최상위 응답

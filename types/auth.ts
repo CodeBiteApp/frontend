@@ -26,7 +26,8 @@ export type User = {
   longestStreak: number;
   dotori: number;
   protector: number;
-  equippedBanner: string | null;
+  equippedBanner: number | null;
+  lastStudy: string | null;
   studiedConceptCount: number;
   followingCount: number;
   followerCount: number;

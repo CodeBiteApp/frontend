@@ -21,6 +21,8 @@ type ItemState = {
   toggleEquip: (itemId: number, equip: boolean) => Promise<boolean>;
 };
 
+import { Alert } from "react-native";
+
 export const useItemStore = create<ItemState>((set, get) => ({
   shopItems: [],
   inventory: [],
@@ -75,8 +77,12 @@ export const useItemStore = create<ItemState>((set, get) => ({
     try {
       await equipItem({ itemId, equip });
       await get().fetchInventory();
+      // Refresh user profile as well to keep equippedBannerId in sync!
+      await useUserStore.getState().refreshUser();
       return true;
     } catch (e: any) {
+      console.error("[toggleEquip] 실패:", e);
+      Alert.alert("장착 실패", e.response?.data?.message || e.message || "장착 처리 중 오류가 발생했습니다.");
       set({ error: e.message || "Equip failed" });
       return false;
     } finally {

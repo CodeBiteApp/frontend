@@ -5,6 +5,7 @@ export type UserSearchResult = {
   nickname: string;
   currentStreak: number;
   isFollowing: boolean;
+  equippedBannerId?: number | null;
 };
 
 // POST/DELETE /api/follow/{targetUserId} 응답
