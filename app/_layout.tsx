@@ -1,4 +1,10 @@
 import { setUnauthorizedHandler } from "@/api/axios";
+import { recordVisit, registerPushToken } from "@/api/users";
+import {
+  getOrRefreshToken,
+  setupAndroidChannel,
+  setupNotificationHandlers,
+} from "@/lib/notifications";
 import { useUserStore } from "@/store/useUserStore";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
@@ -24,7 +30,15 @@ export default function RootLayout() {
     // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
     restoreSession().catch(() => {});
 
-    // 백그라운드 → 포그라운드 전환 시 자동 로그인 시도
+    // 알림 초기화
+    setupAndroidChannel();
+    const removeNotificationHandlers = setupNotificationHandlers();
+    getOrRefreshToken().then((token) => {
+      if (token) registerPushToken(token).catch(() => {});
+    });
+    recordVisit().catch(() => {});
+
+    // 백그라운드 → 포그라운드 전환 시 자동 로그인 시도 + 방문 기록
     const subscription = AppState.addEventListener(
       "change",
       (nextState: AppStateStatus) => {
@@ -32,6 +46,8 @@ export default function RootLayout() {
           appState.current.match(/inactive|background/) &&
           nextState === "active"
         ) {
+          recordVisit().catch(() => {});
+
           const { isLoggedIn } = useUserStore.getState();
           if (!isLoggedIn) {
             useUserStore
@@ -47,7 +63,10 @@ export default function RootLayout() {
       },
     );
 
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      removeNotificationHandlers();
+    };
   }, [restoreSession, setUnauthorized]);
 
   return (
