@@ -27,6 +27,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "color": "#FFC800"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/codebite_icon.png",

@@ -1,20 +1,24 @@
-import { CHAPTER_COLORS, CHAPTER_NAMES } from "@/constants/stageInfo";
 import React from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   currentChapter: number;
   fadeAnim: Animated.Value;
+  subjectNames: string[];
+  colors: string[];
 };
 
-export default function StickyChapterBar({ currentChapter, fadeAnim }: Props) {
-  const color = CHAPTER_COLORS[currentChapter];
+export default function StickyChapterBar({ currentChapter, fadeAnim, subjectNames, colors }: Props) {
+  const color = colors[currentChapter] ?? "#58CC02";
+  const name = subjectNames[currentChapter] ?? "";
+  const letter = String.fromCharCode(65 + currentChapter);
+
   return (
     <Animated.View style={[styles.bar, { borderColor: color, opacity: fadeAnim }]}>
       <View style={[styles.badge, { backgroundColor: color }]}>
-        <Text style={styles.badgeText}>{String.fromCharCode(65 + currentChapter)}</Text>
+        <Text style={styles.badgeText}>{letter}</Text>
       </View>
-      <Text style={styles.name}>{CHAPTER_NAMES[currentChapter]}</Text>
+      <Text style={styles.name}>{name}</Text>
     </Animated.View>
   );
 }

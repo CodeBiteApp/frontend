@@ -135,7 +135,7 @@ export function MatchingOptions({
                   {item}
                 </Text>
                 {icon && (
-                  <Text style={[styles.icon, { color }]}>{icon}</Text>
+                  <Text style={[styles.icon, color ? { color } : undefined]}>{icon}</Text>
                 )}
               </TouchableOpacity>
             );

@@ -12,7 +12,6 @@ import {
   STAGES_TOP_PAD,
   ZIGZAG,
 } from "@/constants/homeLayout";
-import { CHAPTER_NAMES } from "@/constants/stageInfo";
 import React from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 
@@ -20,11 +19,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type Props = {
   letter: string;
-  chapterIdx: number;
+  name: string;
   color: string;
   darkColor: string;
   stageIds: number[];
   completedStages: string[];
+  studiedConceptIds: Set<number>;
   currentStageId: number;
   animatingStageId: string | null;
   buttonRefs: React.MutableRefObject<Record<number, View | null>>;
@@ -33,11 +33,12 @@ type Props = {
 
 export default function ChapterSection({
   letter,
-  chapterIdx,
+  name,
   color,
   darkColor,
   stageIds,
   completedStages,
+  studiedConceptIds,
   currentStageId,
   animatingStageId,
   buttonRefs,
@@ -49,7 +50,7 @@ export default function ChapterSection({
         <View style={[styles.dividerLine, { backgroundColor: color }]} />
         <View style={[styles.dividerBadge, { backgroundColor: color }]}>
           <Text style={styles.dividerText}>
-            {letter}. {CHAPTER_NAMES[chapterIdx]}
+            {letter}. {name}
           </Text>
         </View>
         <View style={[styles.dividerLine, { backgroundColor: color }]} />
@@ -61,7 +62,8 @@ export default function ChapterSection({
           const x = xRatio * (SCREEN_WIDTH - ACORN_W);
           const y = s * ROW_HEIGHT + STAGES_TOP_PAD;
           const side = x > SCREEN_WIDTH / 2 ? "left" : "right";
-          const isCompleted = completedStages.includes(String(stageId));
+          const isCompleted =
+            studiedConceptIds.has(stageId) || completedStages.includes(String(stageId));
           const isAnimating = animatingStageId === String(stageId);
 
           return (

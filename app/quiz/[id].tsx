@@ -9,9 +9,11 @@ import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
-import { STAGE_INFO } from "@/constants/stageInfo";
+import { CHAPTER_COLORS } from "@/constants/stageInfo";
+import { useQuizPoolStore } from "@/store/useQuizPoolStore";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
+import { useSubjectStore } from "@/store/useSubjectStore";
 import { useUserStore } from "@/store/useUserStore";
 import {
   AnyQuizQuestion,
@@ -22,9 +24,9 @@ import {
   SubmitResultResponse,
   UserAnswer,
 } from "@/types/quiz";
-import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
+import { generateQuestionsFromConceptData, selectBalancedQuestions } from "@/utils/quizGenerator";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -33,26 +35,9 @@ import {
   View,
 } from "react-native";
 
-const CHAPTER_COLORS = [
-  "#58CC02",
-  "#1CB0F6",
-  "#00CD9C",
-  "#FFC800",
-  "#FF9600",
-  "#FF4B4B",
-  "#FF86D0",
-  "#CE82FF",
-  "#2B70C9",
-  "#FF6B00",
-];
+const QUIZ_COUNT = 5;
 
 const RETRY_ACCENT = "#FF9600";
-
-function getAccentColor(stageId: string): string {
-  const chapter = STAGE_INFO[Number(stageId)]?.chapter ?? "A";
-  const idx = chapter.charCodeAt(0) - "A".charCodeAt(0);
-  return CHAPTER_COLORS[Math.min(idx, CHAPTER_COLORS.length - 1)];
-}
 
 function getQuestionType(q: AnyQuizQuestion) {
   return (q as any).type ?? "multiple-choice";
@@ -92,26 +77,41 @@ export default function QuizScreen() {
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
   const { applyQuizReward } = useUserStore();
+  const { getSubjectIndexByConceptId, getSubjectByConceptId } = useSubjectStore();
+  const { popFromPool, initPool } = useQuizPoolStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
-  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(
-    null,
-  );
+  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
+  const [conceptTitle, setConceptTitle] = useState<string>("");
+  const submitAttempted = useRef(false);
 
-  const accentColor = getAccentColor(id ?? "1");
+  const conceptIdNum = Number(id ?? "1");
+  const subjectIdx = getSubjectIndexByConceptId(conceptIdNum);
+  const subjectName = getSubjectByConceptId(conceptIdNum)?.name ?? "";
+  const accentColor = CHAPTER_COLORS[subjectIdx % CHAPTER_COLORS.length] ?? "#58CC02";
+
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
-    const stageConceptId = Number(id ?? "1");
     setIsLoading(true);
-    fetchQuizConceptData(stageConceptId)
+    fetchQuizConceptData(conceptIdNum)
       .then((data) => {
         setConceptMeta(data.conceptId, data.randomSeed);
-        setQuestions(generateQuestionsFromConceptData(data));
+        setConceptTitle(data.conceptTitle);
+
+        const pooled = popFromPool(conceptIdNum, QUIZ_COUNT);
+        if (pooled.length >= QUIZ_COUNT) {
+          setQuestions(pooled);
+        } else {
+          const all = generateQuestionsFromConceptData(data);
+          const { selected, rest } = selectBalancedQuestions(all, QUIZ_COUNT, data.randomSeed);
+          initPool(conceptIdNum, rest);
+          setQuestions(selected);
+        }
       })
       .catch(() => {
         setQuestions([]);
@@ -123,29 +123,33 @@ export default function QuizScreen() {
       setPhase("result");
       setServerResult(null);
       setSubmitDone(false);
+      setConceptTitle("");
+      submitAttempted.current = false;
     };
-  }, [id, setQuestions, resetQuiz, setConceptMeta]);
+  }, [conceptIdNum, setQuestions, resetQuiz, setConceptMeta, popFromPool, initPool]);
 
   useEffect(() => {
-    if (!isFinished || !conceptId || !randomSeed) return;
-    submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
+    if (!isFinished || !conceptId || !randomSeed || submitAttempted.current) return;
+    submitAttempted.current = true;
+    const body = { conceptId, randomSeed, isCompleted: true, userAnswers };
+    console.log("[submit] request body:", JSON.stringify(body));
+    submitQuizResult(body)
       .then((result) => {
         setServerResult(result);
         applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error("[submit] 400 error response:", err?.response?.data ?? err);
+      })
       .finally(() => setSubmitDone(true));
-    // userAnswers는 isFinished 전환 시점 스냅샷이므로 deps에서 제외
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 
-  // 일반 문제 바뀔 때 로컬 선택 초기화
   useEffect(() => {
     setMcSelected(null);
     setOxSelected(null);
   }, [currentIndex]);
 
-  // 오답 노트 문제 바뀔 때 로컬 선택 초기화
   useEffect(() => {
     if (isRetrying) {
       setMcSelected(null);
@@ -190,7 +194,7 @@ export default function QuizScreen() {
     }
     return (
       <ResultScreen
-        conceptId={conceptId || Number(id)}
+        conceptId={conceptId || conceptIdNum}
         correct={correct}
         total={total}
         accentColor={accentColor}
@@ -201,16 +205,12 @@ export default function QuizScreen() {
     );
   }
 
-  // ── 현재 렌더할 문제 결정 ──────────────────────────────────────
   const current = isRetrying ? retryQueue[0] : questions[currentIndex];
   const currentAccent = isRetrying ? RETRY_ACCENT : accentColor;
-  const isAnswered = isRetrying
-    ? retryAnswered
-    : isCorrect[currentIndex] !== null;
+  const isAnswered = isRetrying ? retryAnswered : isCorrect[currentIndex] !== null;
 
   if (!current) return null;
 
-  // ── 일반 퀴즈 다음 버튼 핸들러 ───────────────────────────────
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
       const hasWrong = isCorrect.some(
@@ -227,7 +227,6 @@ export default function QuizScreen() {
     }
   };
 
-  // ── 오답 노트 버튼 핸들러 ────────────────────────────────────
   const handleRetryNext = () => {
     if (retryQueue.length === 1 && retryIsCorrect === true) {
       triggerEating(id ?? "1");
@@ -237,7 +236,6 @@ export default function QuizScreen() {
     nextRetryQuestion();
   };
 
-  // ── 문제 옵션 렌더 (일반 & 오답 공용) ────────────────────────
   const renderOptions = (
     q: AnyQuizQuestion,
     answered: boolean,
@@ -315,12 +313,8 @@ export default function QuizScreen() {
               Object.entries(pairs).every(
                 ([li, ri]) => mt.correctPairs[Number(li)] === ri,
               );
-            // Record<number,number> → Record<string,number> (API 포맷)
             onRecord?.(
-              Object.fromEntries(Object.entries(pairs)) as Record<
-                string,
-                number
-              >,
+              Object.fromEntries(Object.entries(pairs)) as Record<string, number>,
             );
             onMark(allCorrect);
           }}
@@ -331,7 +325,6 @@ export default function QuizScreen() {
     return null;
   };
 
-  // ── 하단 버튼 ────────────────────────────────────────────────
   const renderButton = () => {
     if (!isAnswered) return null;
 
@@ -351,8 +344,7 @@ export default function QuizScreen() {
     return (
       <Button
         label={
-          currentIndex === questions.length - 1 &&
-          !isCorrect.some((v) => v === false)
+          currentIndex === questions.length - 1 && !isCorrect.some((v) => v === false)
             ? "결과 보기"
             : "다음 문제"
         }
@@ -364,7 +356,6 @@ export default function QuizScreen() {
     );
   };
 
-  // ── 진행 표시 (헤더용) ───────────────────────────────────────
   const questionNumber = isRetrying ? retryRoundIndex + 1 : currentIndex + 1;
   const questionTotal = isRetrying ? retryRoundTotal : questions.length;
 
@@ -372,12 +363,8 @@ export default function QuizScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerChapter}>
-            {STAGE_INFO[Number(id)]?.chapter ?? "A"}
-          </Text>
-          <Text style={styles.headerTitle}>
-            {STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}
-          </Text>
+          <Text style={styles.headerChapter}>{subjectName}</Text>
+          <Text style={styles.headerTitle}>{conceptTitle || `스테이지 ${id}`}</Text>
         </View>
       </View>
 
@@ -419,18 +406,9 @@ export default function QuizScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
-  header: {
-    alignItems: "center",
-    paddingTop: 56,
-    paddingBottom: 12,
-  },
+  header: { alignItems: "center", paddingTop: 56, paddingBottom: 12 },
   headerTitleWrap: { alignItems: "center", gap: 2 },
-  headerChapter: {
-    color: "#aaa",
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
+  headerChapter: { color: "#aaa", fontSize: 11, fontWeight: "600", letterSpacing: 1 },
   headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   content: { padding: 20, paddingTop: 8, gap: 12 },
   options: { gap: 10 },

@@ -20,3 +20,11 @@ export async function updatePassword(
 ): Promise<void> {
   await api.patch("/api/users/me/password", { currentPassword, newPassword });
 }
+
+export async function registerPushToken(pushToken: string): Promise<void> {
+  await api.put("/api/users/me/push-token", { pushToken });
+}
+
+export async function recordVisit(): Promise<void> {
+  await api.post("/api/users/me/visit");
+}

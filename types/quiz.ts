@@ -5,6 +5,28 @@ export type QuizCategory = {
   count: number;
 };
 
+// ── Subject / Concept Stage Types ─────────────────────────────────────────────
+
+export type Subject = {
+  subjectId: number;
+  name: string;
+  conceptCount: number;
+};
+
+export type SubjectPage = {
+  content: Subject[];
+  hasNext: boolean;
+  totalCount?: number;
+};
+
+export type ConceptStage = {
+  conceptId: number;
+  parentId: number | null;
+  title: string;
+  hasChild: boolean;
+  isStudied: boolean;
+};
+
 // ── API Response Types ────────────────────────────────────────────────────────
 
 export type ConceptDetailKey =
