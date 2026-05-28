@@ -10,6 +10,7 @@ import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
 import type { RankingResponse } from "@/types/ranking";
 import React, { useCallback, useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Pressable,
   RefreshControl,
@@ -20,7 +21,8 @@ import {
   View,
 } from "react-native";
 
-export default function RankingScreen() {
+export default function RankingScreen({ isFocused }: { isFocused?: boolean }) {
+  const insets = useSafeAreaInsets();
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "friends">("all");
   const [data, setData] = useState<RankingResponse | null>(null);
@@ -55,8 +57,10 @@ export default function RankingScreen() {
   };
 
   useEffect(() => {
-    fetchRanking();
-  }, [fetchRanking]);
+    if (isFocused || isFocused === undefined) {
+      fetchRanking();
+    }
+  }, [isFocused, fetchRanking]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -78,10 +82,10 @@ export default function RankingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       {/* 친구추가 버튼 */}
       <TouchableOpacity
-        style={styles.friendBtn}
+        style={[styles.friendBtn, { top: insets.top + 16 }]}
         onPress={() => setShowFriendSearch(true)}
         accessibilityLabel="친구 찾기"
       >
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#888", fontSize: 14, fontWeight: "700" },
   tabTextActive: { color: "#191A1C" },
 
-friendBtn: {
+  friendBtn: {
     position: "absolute",
     top: 56,
     right: 20,

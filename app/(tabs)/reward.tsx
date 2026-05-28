@@ -2,6 +2,7 @@ import Acorn from "@/components/charactor/Acorn";
 import DobiShop from "@/components/charactor/dobi-shop";
 import { Button } from "@/components/common/Button";
 import React, { useEffect, useState, useCallback } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Modal,
   Pressable,
@@ -28,10 +29,11 @@ const BUBBLE_MESSAGES = [
   "이번엔 어떤\n아이템 쓸거야? 🌟",
 ];
 
-export default function RewardScreen() {
+export default function RewardScreen({ isFocused }: { isFocused?: boolean }) {
+  const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const { shopItems, inventory, protectorCount, isLoading, fetchShopItems, fetchInventory, buyItem, toggleEquip } = useItemStore();
-  
+
   const [tabMode, setTabMode] = useState<"SHOP" | "INVENTORY">("SHOP");
   const [selected, setSelected] = useState<ShopItemResponse | null>(null);
   const [category, setCategory] = useState<Category>("전체");
@@ -39,12 +41,22 @@ export default function RewardScreen() {
 
   const dotori = user?.dotori || 0;
 
+  const handleFocus = useCallback(() => {
+    fetchShopItems();
+    fetchInventory();
+  }, [fetchShopItems, fetchInventory]);
+
   useFocusEffect(
     useCallback(() => {
-      fetchShopItems();
-      fetchInventory();
-    }, [fetchShopItems, fetchInventory])
+      handleFocus();
+    }, [handleFocus])
   );
+
+  useEffect(() => {
+    if (isFocused) {
+      handleFocus();
+    }
+  }, [isFocused, handleFocus]);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -67,14 +79,14 @@ export default function RewardScreen() {
   const filteredItems = category === "전체"
     ? shopItems
     : shopItems.filter((i) => {
-        const asset = getAssetForItem(i.itemType, i.id);
-        return asset.category === category;
-      });
+      const asset = getAssetForItem(i.itemType, i.id);
+      return asset.category === category;
+    });
 
   return (
     <View style={styles.container}>
       {/* 헤더 - 제목 + 도토리 잔액 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>도비의 상점</Text>
         <View style={styles.balanceChip}>
           <Acorn width={18} height={18} />
@@ -156,7 +168,7 @@ export default function RewardScreen() {
                   const asset = getAssetForItem(item.itemType, item.id);
                   const affordable = dotori >= item.price;
                   const isBought = item.isPurchased;
-                  
+
                   return (
                     <TouchableOpacity
                       key={item.id}

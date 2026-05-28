@@ -10,6 +10,7 @@ import { useStageStore } from "@/store/useStageStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Animated,
   Dimensions,
@@ -46,7 +47,7 @@ function getSeoulDate(dateInput: string | Date | null): string | null {
   if (!dateInput) return null;
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return null;
-  
+
   const seoulFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -62,14 +63,14 @@ function getSeoulDate(dateInput: string | Date | null): string | null {
 
 function calculateMissedDays(lastStudyStr: string | null): number {
   if (!lastStudyStr) return 0;
-  
+
   const lastStudySeoul = getSeoulDate(lastStudyStr);
   const todaySeoul = getSeoulDate(new Date());
   if (!lastStudySeoul || !todaySeoul) return 0;
-  
+
   const lastDate = new Date(lastStudySeoul);
   const todayDate = new Date(todaySeoul);
-  
+
   const diffTime = todayDate.getTime() - lastDate.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
@@ -83,8 +84,9 @@ function darken(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { position, user, refreshUser } = useUserStore();
   const streak = user?.currentStreak ?? 0;
 
@@ -155,12 +157,22 @@ export default function HomeScreen() {
     }
   };
 
+  const handleFocus = useCallback(() => {
+    setHasCheckedStreak(false);
+    refreshUser();
+  }, [refreshUser]);
+
   useFocusEffect(
     useCallback(() => {
-      setHasCheckedStreak(false);
-      refreshUser();
-    }, [refreshUser]),
+      handleFocus();
+    }, [handleFocus]),
   );
+
+  useEffect(() => {
+    if (isFocused) {
+      handleFocus();
+    }
+  }, [isFocused, handleFocus]);
 
   useFocusEffect(
     useCallback(() => {
@@ -235,7 +247,7 @@ export default function HomeScreen() {
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.fixedTop}>
+        <View style={[styles.fixedTop, { paddingTop: Math.max(insets.top, 16) }]}>
           <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
           <TouchableOpacity style={styles.resetBtn} onPress={resetStages} activeOpacity={0.7}>
             <Text style={styles.resetBtnText}>🔄 테스트 초기화</Text>
