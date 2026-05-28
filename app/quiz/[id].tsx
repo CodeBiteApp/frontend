@@ -10,6 +10,7 @@ import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { CHAPTER_COLORS } from "@/constants/stageInfo";
+import { useQuizPoolStore } from "@/store/useQuizPoolStore";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useSubjectStore } from "@/store/useSubjectStore";
@@ -23,7 +24,9 @@ import {
   SubmitResultResponse,
   UserAnswer,
 } from "@/types/quiz";
-import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
+import { generateQuestionsFromConceptData, selectBalancedQuestions } from "@/utils/quizGenerator";
+
+const QUIZ_COUNT = 5;
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -75,6 +78,7 @@ export default function QuizScreen() {
   const { triggerEating, completedStages } = useStageStore();
   const { applyQuizReward } = useUserStore();
   const { getSubjectIndexByConceptId, getSubjectByConceptId } = useSubjectStore();
+  const { popFromPool, initPool } = useQuizPoolStore();
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
@@ -97,7 +101,16 @@ export default function QuizScreen() {
       .then((data) => {
         setConceptMeta(data.conceptId, data.randomSeed);
         setConceptTitle(data.conceptTitle);
-        setQuestions(generateQuestionsFromConceptData(data));
+
+        const pooled = popFromPool(conceptIdNum, QUIZ_COUNT);
+        if (pooled.length >= QUIZ_COUNT) {
+          setQuestions(pooled);
+        } else {
+          const all = generateQuestionsFromConceptData(data);
+          const { selected, rest } = selectBalancedQuestions(all, QUIZ_COUNT, data.randomSeed);
+          initPool(conceptIdNum, rest);
+          setQuestions(selected);
+        }
       })
       .catch(() => {
         setQuestions([]);
@@ -111,7 +124,7 @@ export default function QuizScreen() {
       setSubmitDone(false);
       setConceptTitle("");
     };
-  }, [conceptIdNum, setQuestions, resetQuiz, setConceptMeta]);
+  }, [conceptIdNum, setQuestions, resetQuiz, setConceptMeta, popFromPool, initPool]);
 
   useEffect(() => {
     if (!isFinished || !conceptId || !randomSeed) return;

@@ -1,6 +1,7 @@
 import { AnimatedDobiTransition } from "@/components/charactor/AnimatedDobiTransition";
 import { ACORN_H } from "@/components/common/AcornButton";
 import ChapterSection from "@/components/home/ChapterSection";
+import HomeSkeleton from "@/components/home/HomeSkeleton";
 import StageModal, { SelectedStage } from "@/components/home/StageModal";
 import StickyChapterBar from "@/components/home/StickyChapterBar";
 import UserInfoBar from "@/components/home/UserInfoBar";
@@ -87,7 +88,7 @@ export default function HomeScreen() {
   const { position, user, refreshUser } = useUserStore();
   const streak = user?.currentStreak ?? 0;
 
-  const { subjects, conceptsMap, isLoading, loadSubjects, loadAllConcepts } = useSubjectStore();
+  const { subjects, conceptsMap, isLoading, isHydrated, hasMoreSubjects, refreshConcepts, loadMoreSubjects } = useSubjectStore();
   const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
 
   const [selected, setSelected] = useState<SelectedStage | null>(null);
@@ -149,11 +150,8 @@ export default function HomeScreen() {
     useCallback(() => {
       setHasCheckedStreak(false);
       refreshUser();
-      loadSubjects().then(() => {
-        const { subjects: latest } = useSubjectStore.getState();
-        loadAllConcepts(latest);
-      });
-    }, [refreshUser, loadSubjects, loadAllConcepts]),
+      refreshConcepts();
+    }, [refreshUser, refreshConcepts]),
   );
 
   // 스트릭 체크
@@ -223,7 +221,10 @@ export default function HomeScreen() {
 
   const handleScroll = useCallback(
     (event: any) => {
-      const y = event.nativeEvent.contentOffset.y;
+      const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+      const y = contentOffset.y;
+
+      // 챕터 sticky bar 감지
       let chapter = 0;
       for (let i = chapterBreakpoints.length - 1; i >= 0; i--) {
         if (y >= chapterBreakpoints[i]) {
@@ -239,8 +240,14 @@ export default function HomeScreen() {
         ]).start();
         setCurrentChapter(chapter);
       }
+
+      // 하단 200px 이내 진입 시 다음 페이지 로드
+      const isNearBottom = y + layoutMeasurement.height >= contentSize.height - 200;
+      if (isNearBottom && hasMoreSubjects && !isLoading) {
+        loadMoreSubjects();
+      }
     },
-    [fadeAnim, chapterBreakpoints],
+    [fadeAnim, chapterBreakpoints, hasMoreSubjects, isLoading, loadMoreSubjects],
   );
 
   const handleRestoreStreak = async () => {
@@ -271,10 +278,15 @@ export default function HomeScreen() {
     }
   };
 
-  if (isLoading && subjects.length === 0) {
+  if (!isHydrated && subjects.length === 0) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#58CC02" />
+      <View style={styles.container}>
+        <View style={styles.fixedTop}>
+          <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
+        </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} scrollEnabled={false}>
+          <HomeSkeleton />
+        </ScrollView>
       </View>
     );
   }
@@ -334,6 +346,11 @@ export default function HomeScreen() {
               />
             );
           })}
+          {isLoading && subjects.length > 0 && (
+            <View style={styles.bottomLoader}>
+              <ActivityIndicator size="small" color="#58CC02" />
+            </View>
+          )}
           <View style={{ height: 40 }} />
         </ScrollView>
       </View>
@@ -474,4 +491,5 @@ const styles = StyleSheet.create({
   modalBtnConfirmText: { color: "#191A1C", fontSize: 15, fontWeight: "800" },
   modalBtnCancel: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "#444" },
   modalBtnCancelText: { color: "#888", fontSize: 14, fontWeight: "700" },
+  bottomLoader: { paddingVertical: 16, alignItems: "center" },
 });

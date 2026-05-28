@@ -171,7 +171,10 @@ function generateMatching(rawData: RawItem[], rng: JavaRandom): MatchingQuestion
   for (let i = 0; i < rawData.length - 2; i++) {
     for (let j = i + 1; j < rawData.length - 1; j++) {
       for (let k = j + 1; k < rawData.length; k++) {
-        combos.push([rawData[i], rawData[j], rawData[k]]);
+        const titles = [rawData[i].title, rawData[j].title, rawData[k].title];
+        if (new Set(titles).size === 3) {
+          combos.push([rawData[i], rawData[j], rawData[k]]);
+        }
       }
     }
   }
@@ -207,6 +210,60 @@ function generateMatching(rawData: RawItem[], rng: JavaRandom): MatchingQuestion
   });
 
   return questions;
+}
+
+export function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+  const rng = new JavaRandom(seed);
+  return rng.shuffle([...array]);
+}
+
+export function selectBalancedQuestions(
+  all: AnyQuizQuestion[],
+  count: number,
+  seed: number,
+): { selected: AnyQuizQuestion[]; rest: AnyQuizQuestion[] } {
+  const rng = new JavaRandom(seed);
+
+  const byType: Record<string, AnyQuizQuestion[]> = {
+    "multiple-choice": [],
+    ox: [],
+    "short-answer": [],
+    matching: [],
+  };
+
+  for (const q of all) {
+    const t = (q as any).type ?? "multiple-choice";
+    if (byType[t]) byType[t].push(q);
+  }
+
+  for (const t in byType) {
+    rng.shuffle(byType[t]);
+  }
+
+  const selected: AnyQuizQuestion[] = [];
+  const types = ["multiple-choice", "ox", "short-answer", "matching"] as const;
+
+  for (const t of types) {
+    if (selected.length < count && byType[t].length > 0) {
+      selected.push(byType[t].shift()!);
+    }
+  }
+
+  const remaining = [
+    ...byType["multiple-choice"],
+    ...byType["ox"],
+    ...byType["short-answer"],
+    ...byType["matching"],
+  ];
+  rng.shuffle(remaining);
+
+  while (selected.length < count && remaining.length > 0) {
+    selected.push(remaining.shift()!);
+  }
+
+  rng.shuffle(selected);
+
+  return { selected, rest: remaining };
 }
 
 export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuizQuestion[] {

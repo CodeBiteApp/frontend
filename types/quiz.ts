@@ -13,6 +13,12 @@ export type Subject = {
   conceptCount: number;
 };
 
+export type SubjectPage = {
+  content: Subject[];
+  hasNext: boolean;
+  totalCount?: number;
+};
+
 export type ConceptStage = {
   conceptId: number;
   parentId: number | null;
