@@ -64,17 +64,6 @@ function toRawData(data: QuizConceptData): RawItem[] {
     });
   });
 
-  data.siblings.forEach((s) => {
-    s.detailsList.forEach((d) => {
-      all.push({
-        concept_id: String(s.conceptId),
-        title: s.conceptTitle,
-        key: d.key,
-        value: d.value,
-      });
-    });
-  });
-
   // 시드 동기화: 서버와 동일한 정렬 순서 유지
   all.sort((a, b) => {
     if (a.concept_id !== b.concept_id) return a.concept_id.localeCompare(b.concept_id);

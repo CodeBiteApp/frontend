@@ -25,10 +25,8 @@ import {
   UserAnswer,
 } from "@/types/quiz";
 import { generateQuestionsFromConceptData, selectBalancedQuestions } from "@/utils/quizGenerator";
-
-const QUIZ_COUNT = 5;
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -36,6 +34,8 @@ import {
   Text,
   View,
 } from "react-native";
+
+const QUIZ_COUNT = 5;
 
 const RETRY_ACCENT = "#FF9600";
 
@@ -87,6 +87,7 @@ export default function QuizScreen() {
   const [submitDone, setSubmitDone] = useState(false);
   const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
   const [conceptTitle, setConceptTitle] = useState<string>("");
+  const submitAttempted = useRef(false);
 
   const conceptIdNum = Number(id ?? "1");
   const subjectIdx = getSubjectIndexByConceptId(conceptIdNum);
@@ -123,17 +124,23 @@ export default function QuizScreen() {
       setServerResult(null);
       setSubmitDone(false);
       setConceptTitle("");
+      submitAttempted.current = false;
     };
   }, [conceptIdNum, setQuestions, resetQuiz, setConceptMeta, popFromPool, initPool]);
 
   useEffect(() => {
-    if (!isFinished || !conceptId || !randomSeed) return;
-    submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
+    if (!isFinished || !conceptId || !randomSeed || submitAttempted.current) return;
+    submitAttempted.current = true;
+    const body = { conceptId, randomSeed, isCompleted: true, userAnswers };
+    console.log("[submit] request body:", JSON.stringify(body));
+    submitQuizResult(body)
       .then((result) => {
         setServerResult(result);
         applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error("[submit] 400 error response:", err?.response?.data ?? err);
+      })
       .finally(() => setSubmitDone(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
