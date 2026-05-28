@@ -24,11 +24,11 @@ export async function setupAndroidChannel() {
 }
 
 export async function requestPermissionsAndGetToken(): Promise<string | null> {
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  const { status: existing } = (await Notifications.getPermissionsAsync()) as any;
   let finalStatus = existing;
 
   if (existing !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = (await Notifications.requestPermissionsAsync()) as any;
     finalStatus = status;
   }
 
@@ -61,7 +61,7 @@ export async function getOrRefreshToken(): Promise<string | null> {
 export function setupNotificationHandlers() {
   // 알림 탭 시 화면 이동
   const subscription = Notifications.addNotificationResponseReceivedListener(
-    (response) => {
+    (response: Notifications.NotificationResponse) => {
       const type = response.notification.request.content.data?.type;
       if (type === "ranking_overtaken") {
         router.push("/(tabs)/ranking");
