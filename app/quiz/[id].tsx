@@ -25,13 +25,17 @@ import {
   UserAnswer,
 } from "@/types/quiz";
 import { generateQuestionsFromConceptData, selectBalancedQuestions } from "@/utils/quizGenerator";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter, useNavigation, Stack } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  BackHandler,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -48,6 +52,7 @@ type ResultPhase = "result" | "streak" | "quest";
 export default function QuizScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const {
     questions,
     currentIndex,
@@ -83,7 +88,7 @@ export default function QuizScreen() {
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [submitDone, setSubmitDone] = useState(false);
   const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
   const [conceptTitle, setConceptTitle] = useState<string>("");
@@ -97,6 +102,51 @@ export default function QuizScreen() {
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (isFinished || isLoading || questions.length === 0) {
+        return;
+      }
+
+      e.preventDefault();
+
+      Alert.alert(
+        "학습을 종료하시겠습니까?",
+        "지금 나가시면 진행 중인 퀴즈 데이터와 점수가 기록되지 않습니다.",
+        [
+          { text: "계속 풀기", style: "cancel", onPress: () => {} },
+          {
+            text: "나가기",
+            style: "destructive",
+            onPress: () => {
+              navigation.dispatch(e.data.action);
+            },
+          },
+        ]
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation, isFinished, isLoading, questions.length]);
+
+  useEffect(() => {
+    const onHardwareBack = () => {
+      if (!isFinished && !isLoading && questions.length > 0) {
+        router.back();
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onHardwareBack
+    );
+
+    return () => subscription.remove();
+  }, [isFinished, isLoading, questions.length, router]);
+
+  useEffect(() => {
+    resetQuiz();
     setIsLoading(true);
     fetchQuizConceptData(conceptIdNum)
       .then((data) => {
@@ -119,7 +169,6 @@ export default function QuizScreen() {
       .finally(() => setIsLoading(false));
 
     return () => {
-      resetQuiz();
       setPhase("result");
       setServerResult(null);
       setSubmitDone(false);
@@ -361,11 +410,20 @@ export default function QuizScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ gestureEnabled: isFinished }} />
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.closeBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="close" size={24} color="#ffffff" />
+        </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerChapter}>{subjectName}</Text>
           <Text style={styles.headerTitle}>{conceptTitle || `스테이지 ${id}`}</Text>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       {isRetrying && (
@@ -406,7 +464,22 @@ export default function QuizScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
-  header: { alignItems: "center", paddingTop: 56, paddingBottom: 12 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 12,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: "#242628",
+  },
   headerTitleWrap: { alignItems: "center", gap: 2 },
   headerChapter: { color: "#aaa", fontSize: 11, fontWeight: "600", letterSpacing: 1 },
   headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
