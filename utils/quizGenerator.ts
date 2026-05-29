@@ -8,39 +8,29 @@ import {
   SiblingConcept,
 } from "@/types/quiz";
 
-// Java java.util.Random과 100% 호환되는 LCG 난수 생성기
-class JavaRandom {
-  private seed: bigint;
+// 백엔드 SeededRandom과 동일한 Numerical Recipes LCG (2^32)
+// state = (1664525 * state + 1013904223) & 0xFFFFFFFF
+// nextInt(bound) = floor(state / 2^32 * bound)
+class SeededRandom {
+  private state: number;
 
   constructor(seed: number) {
-    this.seed = (BigInt(seed) ^ 0x5deece66dn) & ((1n << 48n) - 1n);
+    this.state = (seed & 0xFFFFFFFF) >>> 0;
   }
 
-  private next(bits: number): number {
-    this.seed = (this.seed * 0x5deece66dn + 0xbn) & ((1n << 48n) - 1n);
-    return Number(this.seed >> BigInt(48 - bits));
+  private nextDouble(): number {
+    this.state = ((1664525 * this.state + 1013904223) & 0xFFFFFFFF) >>> 0;
+    return this.state / 4294967296.0;
   }
 
-  nextInt(n: number): number {
-    if (n <= 0) throw new Error("n must be positive");
-    if ((n & -n) === n) {
-      return Number((BigInt(n) * BigInt(this.next(31))) >> 31n);
-    }
-    let bits: number, val: number;
-    do {
-      bits = this.next(31);
-      val = bits % n;
-    } while (bits - val + (n - 1) < 0);
-    return val;
+  nextInt(bound: number): number {
+    return Math.floor(this.nextDouble() * bound);
   }
 
-  // Java Collections.shuffle과 동일한 역방향 Fisher-Yates
   shuffle<T>(array: T[]): T[] {
     for (let i = array.length; i > 1; i--) {
       const j = this.nextInt(i);
-      const temp = array[i - 1];
-      array[i - 1] = array[j];
-      array[j] = temp;
+      [array[i - 1], array[j]] = [array[j], array[i - 1]];
     }
     return array;
   }
@@ -74,7 +64,7 @@ function toRawData(data: QuizConceptData): RawItem[] {
   return all;
 }
 
-function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom, siblings?: SiblingConcept[]): QuizQuestion[] {
+function generateMultipleChoice(rawData: RawItem[], rng: SeededRandom, siblings?: SiblingConcept[]): QuizQuestion[] {
   const questions: QuizQuestion[] = [];
 
   rawData.forEach((item, idx) => {
@@ -94,15 +84,10 @@ function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom, siblings?: 
       distractors = [...distractors, ...extra];
     }
 
-    let sampledDistractors: string[];
-    if (distractors.length < 3) {
-      sampledDistractors = [...distractors];
-    } else {
-      // 시드 동기화: 정렬된 오답 풀 전체 셔플 후 상위 3개
-      const tempDist = [...distractors];
-      rng.shuffle(tempDist);
-      sampledDistractors = tempDist.slice(0, 3);
-    }
+    // 시드 동기화: 항상 shuffle하여 RNG 소비 경로 단일화
+    const tempDist = [...distractors];
+    rng.shuffle(tempDist);
+    const sampledDistractors = tempDist.slice(0, Math.min(3, tempDist.length));
 
     const choices = [...sampledDistractors, item.value];
     rng.shuffle(choices);
@@ -121,7 +106,7 @@ function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom, siblings?: 
   return questions;
 }
 
-function generateOx(rawData: RawItem[], rng: JavaRandom): OXQuestion[] {
+function generateOx(rawData: RawItem[], rng: SeededRandom): OXQuestion[] {
   const questions: OXQuestion[] = [];
 
   rawData.forEach((item, idx) => {
@@ -134,8 +119,10 @@ function generateOx(rawData: RawItem[], rng: JavaRandom): OXQuestion[] {
       answer: true,
     });
 
-    // X 문제: rng.nextInt로 오답 선택
-    const distractors = rawData.filter((x) => x.value !== item.value);
+    // X 문제: rng.nextInt로 오답 선택 (시드 동기화: 사전순 정렬)
+    const distractors = rawData
+      .filter((x) => x.value !== item.value)
+      .sort((a, b) => a.value.localeCompare(b.value));
     if (distractors.length > 0) {
       const dist = distractors[rng.nextInt(distractors.length)];
       questions.push({
@@ -162,7 +149,7 @@ function generateShortAnswer(rawData: RawItem[]): ShortAnswerQuestion[] {
   }));
 }
 
-function generateMatching(rawData: RawItem[], rng: JavaRandom): MatchingQuestion[] {
+function generateMatching(rawData: RawItem[], rng: SeededRandom): MatchingQuestion[] {
   const questions: MatchingQuestion[] = [];
   if (rawData.length < 3) return questions;
 
@@ -212,7 +199,7 @@ function generateMatching(rawData: RawItem[], rng: JavaRandom): MatchingQuestion
 }
 
 export function shuffleWithSeed<T>(array: T[], seed: number): T[] {
-  const rng = new JavaRandom(seed);
+  const rng = new SeededRandom(seed);
   return rng.shuffle([...array]);
 }
 
@@ -221,7 +208,7 @@ export function selectBalancedQuestions(
   count: number,
   seed: number,
 ): { selected: AnyQuizQuestion[]; rest: AnyQuizQuestion[] } {
-  const rng = new JavaRandom(seed);
+  const rng = new SeededRandom(seed);
 
   const byType: Record<string, AnyQuizQuestion[]> = {
     "multiple-choice": [],
@@ -266,7 +253,7 @@ export function selectBalancedQuestions(
 }
 
 export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuizQuestion[] {
-  const rng = new JavaRandom(data.randomSeed);
+  const rng = new SeededRandom(data.randomSeed);
   const rawData = toRawData(data);
 
   if (rawData.length === 0) return [];
