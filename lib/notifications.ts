@@ -34,9 +34,9 @@ export async function requestPermissionsAndGetToken(): Promise<string | null> {
 
   if (finalStatus !== "granted") return null;
 
-  // 실기기에서만 토큰 발급 가능
+  // 실기기에서만 토큰 발급 가능 (FCM 구글 네이티브 푸시 토큰 획득)
   try {
-    const { data } = await Notifications.getExpoPushTokenAsync();
+    const { data } = await Notifications.getDevicePushTokenAsync();
     return data;
   } catch {
     return null;
