@@ -5,6 +5,7 @@ import {
   QuizConceptData,
   QuizQuestion,
   ShortAnswerQuestion,
+  SiblingConcept,
 } from "@/types/quiz";
 
 // Java java.util.Random과 100% 호환되는 LCG 난수 생성기
@@ -73,7 +74,7 @@ function toRawData(data: QuizConceptData): RawItem[] {
   return all;
 }
 
-function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom): QuizQuestion[] {
+function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom, siblings?: SiblingConcept[]): QuizQuestion[] {
   const questions: QuizQuestion[] = [];
 
   rawData.forEach((item, idx) => {
@@ -83,6 +84,15 @@ function generateMultipleChoice(rawData: RawItem[], rng: JavaRandom): QuizQuesti
 
     // 시드 동기화: 중복 제거 후 사전순 정렬
     distractors = Array.from(new Set(distractors)).sort();
+
+    // 오답이 3개 미만이면 인접 개념(siblings)에서 보충
+    if (distractors.length < 3 && siblings && siblings.length > 0) {
+      const siblingValues = siblings
+        .flatMap((s) => s.detailsList.map((d) => d.value))
+        .filter((v) => v !== item.value && !distractors.includes(v));
+      const extra = Array.from(new Set(siblingValues)).sort();
+      distractors = [...distractors, ...extra];
+    }
 
     let sampledDistractors: string[];
     if (distractors.length < 3) {
@@ -262,7 +272,7 @@ export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuiz
   if (rawData.length === 0) return [];
 
   return [
-    ...generateMultipleChoice(rawData, rng),
+    ...generateMultipleChoice(rawData, rng, data.siblings),
     ...generateOx(rawData, rng),
     ...generateShortAnswer(rawData),
     ...generateMatching(rawData, rng),
