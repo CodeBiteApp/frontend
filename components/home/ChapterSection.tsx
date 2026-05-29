@@ -22,13 +22,15 @@ type Props = {
   name: string;
   color: string;
   darkColor: string;
-  stageIds: number[];
+  subjectId: number;
+  batchCount: number;
   completedStages: string[];
-  studiedConceptIds: Set<number>;
-  currentStageId: number;
+  studiedBatchKeys: Set<string>;
+  currentSubjectId: number;
+  currentBatchIndex: number;
   animatingStageId: string | null;
   buttonRefs: React.MutableRefObject<Record<number, View | null>>;
-  onStagePress: (stageId: number, color: string) => void;
+  onStagePress: (subjectId: number, batchIndex: number, color: string) => void;
 };
 
 export default function ChapterSection({
@@ -36,10 +38,12 @@ export default function ChapterSection({
   name,
   color,
   darkColor,
-  stageIds,
+  subjectId,
+  batchCount,
   completedStages,
-  studiedConceptIds,
-  currentStageId,
+  studiedBatchKeys,
+  currentSubjectId,
+  currentBatchIndex,
   animatingStageId,
   buttonRefs,
   onStagePress,
@@ -56,19 +60,21 @@ export default function ChapterSection({
         <View style={[styles.dividerLine, { backgroundColor: color }]} />
       </View>
 
-      <View style={{ height: ROW_HEIGHT * stageIds.length + STAGES_TOP_PAD, position: "relative" }}>
-        {stageIds.map((stageId, s) => {
-          const xRatio = ZIGZAG[s % ZIGZAG.length];
+      <View style={{ height: ROW_HEIGHT * batchCount + STAGES_TOP_PAD, position: "relative" }}>
+        {Array.from({ length: batchCount }, (_, batchIndex) => {
+          const batchKey = `${subjectId}_${batchIndex}`;
+          const virtualId = subjectId * 10000 + batchIndex;
+          const xRatio = ZIGZAG[batchIndex % ZIGZAG.length];
           const x = xRatio * (SCREEN_WIDTH - ACORN_W);
-          const y = s * ROW_HEIGHT + STAGES_TOP_PAD;
+          const y = batchIndex * ROW_HEIGHT + STAGES_TOP_PAD;
           const side = x > SCREEN_WIDTH / 2 ? "left" : "right";
-          const isCompleted =
-            studiedConceptIds.has(stageId) || completedStages.includes(String(stageId));
-          const isAnimating = animatingStageId === String(stageId);
+          const isCompleted = studiedBatchKeys.has(batchKey) || completedStages.includes(batchKey);
+          const isCurrent = subjectId === currentSubjectId && batchIndex === currentBatchIndex;
+          const isAnimating = animatingStageId === batchKey;
 
           return (
-            <React.Fragment key={stageId}>
-              {stageId === currentStageId && !animatingStageId && (
+            <React.Fragment key={batchKey}>
+              {isCurrent && !animatingStageId && (
                 <View
                   style={{
                     position: "absolute",
@@ -82,7 +88,7 @@ export default function ChapterSection({
                   <DobiCommon size={DOBI_SIZE} />
                 </View>
               )}
-              {s === DOTORI_STAGE_IDX && (
+              {batchIndex === DOTORI_STAGE_IDX && (
                 <View
                   style={[
                     styles.dotoriImg,
@@ -92,19 +98,19 @@ export default function ChapterSection({
                   <Acorn width={72} height={72} />
                 </View>
               )}
-              {s === CODING_DOBI_STAGE_IDX && (
+              {batchIndex === CODING_DOBI_STAGE_IDX && (
                 <View style={[styles.codingDobiImg, { left: 8, top: y - ROW_HEIGHT }]}>
                   <DobiCodingAnimated size={CODING_DOBI_SIZE} />
                 </View>
               )}
               <AcornButton
-                ref={(r) => { buttonRefs.current[stageId] = r; }}
-                stageNum={stageId}
+                ref={(r) => { buttonRefs.current[virtualId] = r; }}
+                stageNum={batchIndex + 1}
                 color={color}
                 darkColor={darkColor}
                 completed={isCompleted}
                 style={{ left: x, top: y, opacity: isAnimating ? 0 : 1 }}
-                onPress={() => onStagePress(stageId, color)}
+                onPress={() => onStagePress(subjectId, batchIndex, color)}
               />
             </React.Fragment>
           );

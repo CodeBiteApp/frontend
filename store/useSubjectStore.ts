@@ -26,6 +26,8 @@ type SubjectState = {
   getConceptById: (conceptId: number) => ConceptStage | undefined;
   getSubjectIndexByConceptId: (conceptId: number) => number;
   getSubjectByConceptId: (conceptId: number) => Subject | undefined;
+  getSubjectById: (subjectId: number) => Subject | undefined;
+  getSubjectIndex: (subjectId: number) => number;
 };
 
 export const useSubjectStore = create<SubjectState>((set, get) => ({
@@ -186,5 +188,14 @@ export const useSubjectStore = create<SubjectState>((set, get) => ({
       if (concepts.some((c) => c.conceptId === conceptId)) return subject;
     }
     return undefined;
+  },
+
+  getSubjectById: (subjectId: number) => {
+    return get().subjects.find(s => s.subjectId === subjectId);
+  },
+
+  getSubjectIndex: (subjectId: number) => {
+    const idx = get().subjects.findIndex(s => s.subjectId === subjectId);
+    return idx === -1 ? 0 : idx;
   },
 }));

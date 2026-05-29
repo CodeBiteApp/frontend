@@ -56,6 +56,7 @@ export type QuizConceptData = {
   parentId: number | null;
   detailsList: ConceptDetail[];
   siblings: SiblingConcept[];
+  globalDistractorCandidatesByKey: Record<string, string[]>;
 };
 
 // 객관식
@@ -139,6 +140,33 @@ export type UserAnswer = {
 
 export type SubmitResultRequest = {
   conceptId: number;
+  randomSeed: number;
+  isCompleted: boolean;
+  userAnswers: UserAnswer[];
+};
+
+// ── Batch Quiz Types ──────────────────────────────────────────────────────────
+
+export type ConceptSlot = {
+  conceptId: number;
+  conceptTitle: string;
+  parentId: number | null;
+  detailsList: ConceptDetail[];
+  siblings: SiblingConcept[];
+};
+
+export type SubjectBatchQuizData = {
+  randomSeed: number;
+  subjectId: number;
+  subjectName: string;
+  batchIndex: number;
+  totalBatches: number;
+  slots: ConceptSlot[];
+};
+
+export type BatchSubmitRequest = {
+  subjectId: number;
+  batchIndex: number;
   randomSeed: number;
   isCompleted: boolean;
   userAnswers: UserAnswer[];
