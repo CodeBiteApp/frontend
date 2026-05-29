@@ -39,16 +39,24 @@ class SeededRandom {
   }
 }
 
+type QuizType = 'MULTIPLE_CASE' | 'SHORT_ANSWER' | 'OX';
+const TYPE_PRIORITY: QuizType[] = ['MULTIPLE_CASE', 'SHORT_ANSWER', 'OX'];
+
 /**
  * 배치 퀴즈: slot당 1문제씩, BE ValidationService.verifyBatchAnswers와 동일한 RNG 소비.
- * 유형 우선순위: MULTIPLE_CASE → SHORT_ANSWER → OX (조건 미충족 시 다음 유형)
+ * Plan C: RNG로 typePool 셔플 후 슬롯별 목표 유형 배정 → 유형 다양성 보장.
  */
 export function generateQuestionsFromBatchData(data: SubjectBatchQuizData): AnyQuizQuestion[] {
   const rng = new SeededRandom(data.randomSeed);
   const questions: AnyQuizQuestion[] = [];
 
+  // typePool 셔플: BE와 동일 순서/RNG 소비 (4회)
+  const typePool: QuizType[] = ['MULTIPLE_CASE', 'MULTIPLE_CASE', 'SHORT_ANSWER', 'SHORT_ANSWER', 'OX'];
+  rng.shuffle(typePool);
+
   data.slots.forEach((slot, slotIdx) => {
-    const q = generateSlotQuestion(slot, slotIdx + 1, rng, data.subjectId);
+    const targetType = typePool[slotIdx] ?? 'SHORT_ANSWER';
+    const q = generateSlotQuestion(slot, slotIdx + 1, rng, data.subjectId, targetType);
     if (q) questions.push(q);
   });
 
@@ -60,11 +68,11 @@ function generateSlotQuestion(
   questionNumber: number,
   rng: SeededRandom,
   subjectId: number,
+  targetType: QuizType,
 ): AnyQuizQuestion | null {
   const conceptDef = slot.detailsList.find(d => d.key === "definition")
     ?? (slot.detailsList.length > 0 ? slot.detailsList[0] : undefined);
 
-  // siblings는 BE에서 conceptId 오름차순으로 전달됨
   const siblings = slot.siblings;
 
   // BE extractSiblingDefs와 동일: definition 키만 추출 → 중복 제거 → 사전순 정렬
@@ -74,56 +82,61 @@ function generateSlotQuestion(
   const siblingDefs = Array.from(new Set(rawDefs)).sort();
 
   const id = `${subjectId}-${slot.conceptId}`;
+  const canMultipleCase = !!conceptDef && siblingDefs.length >= 3;
+  const canShortAnswer = !!conceptDef;
+  const canOX = siblings.length >= 1;
 
-  if (conceptDef && siblingDefs.length >= 3) {
-    // MULTIPLE_CASE
-    const distractors = [...siblingDefs];
-    rng.shuffle(distractors);
-    const options = [...distractors.slice(0, 3), conceptDef.value];
-    rng.shuffle(options);
-    const answerIndex = options.indexOf(conceptDef.value);
-    return {
-      id: `${id}-mc`,
-      categoryId: String(slot.conceptId),
-      question: `[${slot.conceptTitle}]에 대한 설명으로 올바른 것은?`,
-      options,
-      answerIndex,
-    } as QuizQuestion;
-  }
+  // 목표 유형을 우선 시도, 불가능하면 나머지 우선순위 순으로 fallback
+  const tryOrder: QuizType[] = [targetType, ...TYPE_PRIORITY.filter(t => t !== targetType)];
 
-  if (conceptDef) {
-    // SHORT_ANSWER — RNG 소비 없음
-    return {
-      id: `${id}-sa`,
-      categoryId: String(slot.conceptId),
-      type: "short-answer" as const,
-      question: `다음은 무엇에 관한 설명인가?\n\n${conceptDef.value}`,
-      answer: slot.conceptTitle,
-    } as ShortAnswerQuestion;
-  }
-
-  if (siblings.length >= 1) {
-    // OX
-    const isTrue = rng.nextInt(2) === 0;
-    let answer: boolean;
-    let oxText: string;
-    if (isTrue) {
-      answer = true;
-      oxText = conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
-    } else {
-      const sibIdx = rng.nextInt(siblings.length);
-      const sib = siblings[sibIdx];
-      const sibDef = sib.detailsList.find(d => d.key === "definition");
-      answer = sibDef == null;
-      oxText = sibDef?.value ?? conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
+  for (const type of tryOrder) {
+    if (type === 'MULTIPLE_CASE' && canMultipleCase) {
+      const distractors = [...siblingDefs];
+      rng.shuffle(distractors);
+      const options = [...distractors.slice(0, 3), conceptDef!.value];
+      rng.shuffle(options);
+      const answerIndex = options.indexOf(conceptDef!.value);
+      return {
+        id: `${id}-mc`,
+        categoryId: String(slot.conceptId),
+        question: `[${slot.conceptTitle}]에 대한 설명으로 올바른 것은?`,
+        options,
+        answerIndex,
+      } as QuizQuestion;
     }
-    return {
-      id: `${id}-ox`,
-      categoryId: String(slot.conceptId),
-      type: "ox" as const,
-      question: `[${slot.conceptTitle}]에 대한 설명으로 다음 내용은 참인가 거짓인가?\n\n${oxText}`,
-      answer,
-    } as OXQuestion;
+
+    if (type === 'SHORT_ANSWER' && canShortAnswer) {
+      return {
+        id: `${id}-sa`,
+        categoryId: String(slot.conceptId),
+        type: "short-answer" as const,
+        question: `다음은 무엇에 관한 설명인가?\n\n${conceptDef!.value}`,
+        answer: slot.conceptTitle,
+      } as ShortAnswerQuestion;
+    }
+
+    if (type === 'OX' && canOX) {
+      const isTrue = rng.nextInt(2) === 0;
+      let answer: boolean;
+      let oxText: string;
+      if (isTrue) {
+        answer = true;
+        oxText = conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
+      } else {
+        const sibIdx = rng.nextInt(siblings.length);
+        const sib = siblings[sibIdx];
+        const sibDef = sib.detailsList.find(d => d.key === "definition");
+        answer = sibDef == null;
+        oxText = sibDef?.value ?? conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
+      }
+      return {
+        id: `${id}-ox`,
+        categoryId: String(slot.conceptId),
+        type: "ox" as const,
+        question: `[${slot.conceptTitle}]에 대한 설명으로 다음 내용은 참인가 거짓인가?\n\n${oxText}`,
+        answer,
+      } as OXQuestion;
+    }
   }
 
   return null;

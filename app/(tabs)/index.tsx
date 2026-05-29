@@ -73,6 +73,26 @@ function darken(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
+// Plan A: BE getSlotConcepts와 동일한 parentId 라운드로빈 인터리빙 (배치 완료 판정에 사용)
+function buildInterleavedOrder<T extends { conceptId: number; parentId: number | null }>(concepts: T[]): T[] {
+  const groupMap = new Map<number, T[]>();
+  for (const c of concepts) {
+    const key = c.parentId ?? -(c.conceptId);
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(c);
+  }
+  const sortedKeys = Array.from(groupMap.keys()).sort((a, b) => a - b);
+  const groups = sortedKeys.map(k => groupMap.get(k)!);
+  const maxLen = Math.max(...groups.map(g => g.length), 0);
+  const interleaved: T[] = [];
+  for (let round = 0; round < maxLen; round++) {
+    for (const group of groups) {
+      if (round < group.length) interleaved.push(group[round]);
+    }
+  }
+  return interleaved;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { position, user, refreshUser } = useUserStore();
@@ -108,11 +128,11 @@ export default function HomeScreen() {
     [subjects, conceptsMap],
   );
 
-  // 서버 기준으로 완료된 배치 키 Set (모든 slot 개념이 isStudied인 배치)
+  // 서버 기준으로 완료된 배치 키 Set (BE getSlotConcepts와 동일한 인터리빙 순서 기준)
   const studiedBatchKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const subject of subjects) {
-      const concepts = conceptsMap[subject.subjectId] ?? [];
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
       const n = concepts.length;
       if (n === 0) continue;
       const totalBatches = Math.ceil(n / BATCH_SIZE);
@@ -126,10 +146,10 @@ export default function HomeScreen() {
     return keys;
   }, [subjects, conceptsMap]);
 
-  // 다음에 풀어야 할 배치 (미완료 첫 번째)
+  // 다음에 풀어야 할 배치 (BE 인터리빙 순서 기준 미완료 첫 번째)
   const currentBatch = useMemo(() => {
     for (const subject of subjects) {
-      const concepts = conceptsMap[subject.subjectId] ?? [];
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
       const n = concepts.length;
       if (n === 0) continue;
       const totalBatches = Math.ceil(n / BATCH_SIZE);
