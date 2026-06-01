@@ -12,6 +12,7 @@ import { useSubjectStore } from "@/store/useSubjectStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -41,6 +42,7 @@ function getSeoulDate(dateInput: string | Date | null): string | null {
   if (!dateInput) return null;
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return null;
+
   const seoulFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -56,11 +58,14 @@ function getSeoulDate(dateInput: string | Date | null): string | null {
 
 function calculateMissedDays(lastStudyStr: string | null): number {
   if (!lastStudyStr) return 0;
+
   const lastStudySeoul = getSeoulDate(lastStudyStr);
   const todaySeoul = getSeoulDate(new Date());
   if (!lastStudySeoul || !todaySeoul) return 0;
+
   const lastDate = new Date(lastStudySeoul);
   const todayDate = new Date(todaySeoul);
+
   const diffTime = todayDate.getTime() - lastDate.getTime();
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
@@ -73,28 +78,9 @@ function darken(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-// Plan A: BE getSlotConcepts와 동일한 parentId 라운드로빈 인터리빙 (배치 완료 판정에 사용)
-function buildInterleavedOrder<T extends { conceptId: number; parentId: number | null }>(concepts: T[]): T[] {
-  const groupMap = new Map<number, T[]>();
-  for (const c of concepts) {
-    const key = c.parentId ?? -(c.conceptId);
-    if (!groupMap.has(key)) groupMap.set(key, []);
-    groupMap.get(key)!.push(c);
-  }
-  const sortedKeys = Array.from(groupMap.keys()).sort((a, b) => a - b);
-  const groups = sortedKeys.map(k => groupMap.get(k)!);
-  const maxLen = Math.max(...groups.map(g => g.length), 0);
-  const interleaved: T[] = [];
-  for (let round = 0; round < maxLen; round++) {
-    for (const group of groups) {
-      if (round < group.length) interleaved.push(group[round]);
-    }
-  }
-  return interleaved;
-}
-
-export default function HomeScreen() {
+export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { position, user, refreshUser } = useUserStore();
   const streak = user?.currentStreak ?? 0;
 
@@ -358,7 +344,7 @@ export default function HomeScreen() {
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.fixedTop}>
+        <View style={[styles.fixedTop, { paddingTop: Math.max(insets.top, 16) }]}>
           <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
           <TouchableOpacity style={styles.resetBtn} onPress={resetStages} activeOpacity={0.7}>
             <Text style={styles.resetBtnText}>🔄 테스트 초기화</Text>

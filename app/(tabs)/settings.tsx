@@ -4,7 +4,8 @@ import { Button } from "@/components/common/Button";
 import FriendSearchModal from "@/components/social/FriendSearchModal";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Alert,
   Linking,
@@ -79,8 +80,9 @@ function StatCard({
 }
 
 // ─────────────────────────────────────────────────────────
-export default function SettingsScreen() {
+export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useUserStore((s) => s.user);
   const logout = useUserStore((s) => s.logout);
   const isSocialLogin = useUserStore((s) => s.isSocialLogin);
@@ -107,12 +109,22 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleFocus = useCallback(() => {
+    void refreshUser();
+    void fetchMyRank();
+  }, [refreshUser]);
+
   useFocusEffect(
     useCallback(() => {
-      void refreshUser();
-      void fetchMyRank();
-    }, [refreshUser])
+      handleFocus();
+    }, [handleFocus])
   );
+
+  useEffect(() => {
+    if (isFocused) {
+      handleFocus();
+    }
+  }, [isFocused, handleFocus]);
 
   const longestStreak = user?.longestStreak || 0;
   const solvedCount = user?.studiedConceptCount || 0;
@@ -139,7 +151,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* ── 프로필 헤더 ── */}
