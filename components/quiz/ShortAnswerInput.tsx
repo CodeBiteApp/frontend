@@ -29,12 +29,12 @@ export function ShortAnswerInput({
 
   const handleSubmit = () => {
     if (!value.trim() || locked) return;
-    const trimmed = value.trim();
+    const normalized = value.replace(/\s/g, "").toLowerCase();
     const correct =
-      trimmed.toLowerCase() === correctAnswer.toLowerCase().trim();
-    setSubmittedValue(trimmed);
+      normalized === correctAnswer.replace(/\s/g, "").toLowerCase();
+    setSubmittedValue(normalized);
     setIsCorrect(correct);
-    onSubmit(trimmed, correct);
+    onSubmit(normalized, correct);
   };
 
   const borderColor =
