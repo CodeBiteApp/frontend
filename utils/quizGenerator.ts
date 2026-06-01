@@ -1,129 +1,261 @@
 import {
   AnyQuizQuestion,
+  ConceptSlot,
   MatchingQuestion,
   OXQuestion,
   QuizConceptData,
   QuizQuestion,
   ShortAnswerQuestion,
+  SubjectBatchQuizData,
 } from "@/types/quiz";
 
-function createSeededRandom(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = ((Math.imul(1664525, s) + 1013904223) >>> 0);
-    return s / 4294967296;
-  };
-}
+export const BATCH_SIZE = 5;
 
-function shuffle<T>(arr: T[], rand: () => number): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+// 백엔드 SeededRandom과 동일한 Numerical Recipes LCG (2^32)
+// state = (1664525 * state + 1013904223) & 0xFFFFFFFF
+// nextInt(bound) = floor(state / 2^32 * bound)
+class SeededRandom {
+  private state: number;
+
+  constructor(seed: number) {
+    this.state = (seed & 0xFFFFFFFF) >>> 0;
   }
-  return a;
+
+  private nextDouble(): number {
+    this.state = ((1664525 * this.state + 1013904223) & 0xFFFFFFFF) >>> 0;
+    return this.state / 4294967296.0;
+  }
+
+  nextInt(bound: number): number {
+    return Math.floor(this.nextDouble() * bound);
+  }
+
+  shuffle<T>(array: T[]): T[] {
+    for (let i = array.length; i > 1; i--) {
+      const j = this.nextInt(i);
+      [array[i - 1], array[j]] = [array[j], array[i - 1]];
+    }
+    return array;
+  }
 }
 
-export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuizQuestion[] {
-  const rand = createSeededRandom(data.randomSeed);
+type QuizType = 'MULTIPLE_CASE' | 'SHORT_ANSWER' | 'OX';
+const TYPE_PRIORITY: QuizType[] = ['MULTIPLE_CASE', 'SHORT_ANSWER', 'OX'];
+
+/**
+ * 배치 퀴즈: slot당 1문제씩, BE ValidationService.verifyBatchAnswers와 동일한 RNG 소비.
+ * Plan C: RNG로 typePool 셔플 후 슬롯별 목표 유형 배정 → 유형 다양성 보장.
+ */
+export function generateQuestionsFromBatchData(data: SubjectBatchQuizData): AnyQuizQuestion[] {
+  const rng = new SeededRandom(data.randomSeed);
   const questions: AnyQuizQuestion[] = [];
-  const { conceptId, conceptTitle, detailsList, siblings } = data;
 
-  const cid = String(conceptId);
-  const definition = detailsList.find((d) => d.key === "definition") ?? detailsList[0];
-  const feature = detailsList.find((d) => d.key === "feature");
+  // typePool 셔플: BE와 동일 순서/RNG 소비 (4회)
+  const typePool: QuizType[] = ['MULTIPLE_CASE', 'MULTIPLE_CASE', 'SHORT_ANSWER', 'SHORT_ANSWER', 'OX'];
+  rng.shuffle(typePool);
 
-  // 1. 객관식 — definition 기반 (현재 정답 + 형제 oops 3개)
-  if (definition && siblings.length >= 3) {
-    const wrongOptions = siblings
-      .map((s) => s.detailsList.find((d) => d.key === "definition")?.value ?? s.detailsList[0]?.value)
-      .filter((v): v is string => !!v)
-      .slice(0, 3);
+  data.slots.forEach((slot, slotIdx) => {
+    const targetType = typePool[slotIdx] ?? 'SHORT_ANSWER';
+    const q = generateSlotQuestion(slot, slotIdx + 1, rng, data.subjectId, targetType);
+    if (q) questions.push(q);
+  });
 
-    const allOptions = shuffle([definition.value, ...wrongOptions], rand);
-    const answerIndex = allOptions.indexOf(definition.value);
+  return questions;
+}
+
+function generateSlotQuestion(
+  slot: ConceptSlot,
+  questionNumber: number,
+  rng: SeededRandom,
+  subjectId: number,
+  targetType: QuizType,
+): AnyQuizQuestion | null {
+  const conceptDef = slot.detailsList.find(d => d.key === "definition")
+    ?? (slot.detailsList.length > 0 ? slot.detailsList[0] : undefined);
+
+  const siblings = slot.siblings;
+
+  // BE extractSiblingDefs와 동일: definition 키만 추출 → 중복 제거 → 사전순 정렬
+  const rawDefs = siblings
+    .map(s => s.detailsList.find(d => d.key === "definition")?.value)
+    .filter((v): v is string => v !== undefined);
+  const siblingDefs = Array.from(new Set(rawDefs)).sort();
+
+  const id = `${subjectId}-${slot.conceptId}`;
+  const canMultipleCase = !!conceptDef && siblingDefs.length >= 3;
+  const canShortAnswer = !!conceptDef;
+  const canOX = siblings.length >= 1;
+
+  // 목표 유형을 우선 시도, 불가능하면 나머지 우선순위 순으로 fallback
+  const tryOrder: QuizType[] = [targetType, ...TYPE_PRIORITY.filter(t => t !== targetType)];
+
+  for (const type of tryOrder) {
+    if (type === 'MULTIPLE_CASE' && canMultipleCase) {
+      const distractors = [...siblingDefs];
+      rng.shuffle(distractors);
+      const options = [...distractors.slice(0, 3), conceptDef!.value];
+      rng.shuffle(options);
+      const answerIndex = options.indexOf(conceptDef!.value);
+      return {
+        id: `${id}-mc`,
+        categoryId: String(slot.conceptId),
+        question: `[${slot.conceptTitle}]에 대한 설명으로 올바른 것은?`,
+        options,
+        answerIndex,
+      } as QuizQuestion;
+    }
+
+    if (type === 'SHORT_ANSWER' && canShortAnswer) {
+      return {
+        id: `${id}-sa`,
+        categoryId: String(slot.conceptId),
+        type: "short-answer" as const,
+        question: `다음은 무엇에 관한 설명인가?\n\n${conceptDef!.value}`,
+        answer: slot.conceptTitle,
+      } as ShortAnswerQuestion;
+    }
+
+    if (type === 'OX' && canOX) {
+      const isTrue = rng.nextInt(2) === 0;
+      let answer: boolean;
+      let oxText: string;
+      if (isTrue) {
+        answer = true;
+        oxText = conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
+      } else {
+        const sibIdx = rng.nextInt(siblings.length);
+        const sib = siblings[sibIdx];
+        const sibDef = sib.detailsList.find(d => d.key === "definition");
+        answer = sibDef == null;
+        oxText = sibDef?.value ?? conceptDef?.value ?? slot.detailsList[0]?.value ?? "";
+      }
+      return {
+        id: `${id}-ox`,
+        categoryId: String(slot.conceptId),
+        type: "ox" as const,
+        question: `[${slot.conceptTitle}]에 대한 설명으로 다음 내용은 참인가 거짓인가?\n\n${oxText}`,
+        answer,
+      } as OXQuestion;
+    }
+  }
+
+  return null;
+}
+
+export function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+  const rng = new SeededRandom(seed);
+  return rng.shuffle([...array]);
+}
+
+/**
+ * 백엔드 ValidationService와 동일한 순서/RNG 소비로 문제를 생성합니다.
+ * 생성 순서: MULTIPLE_CASE → OX → SHORT_ANSWER → MATCHING (각 1문제)
+ * 조건 미충족 시 해당 유형은 생략됩니다.
+ */
+export function generateQuestionsFromConceptData(data: QuizConceptData): AnyQuizQuestion[] {
+  const rng = new SeededRandom(data.randomSeed);
+  const questions: AnyQuizQuestion[] = [];
+
+  const conceptDef = data.detailsList.find(d => d.key === "definition");
+
+  // siblings를 conceptId 기준 오름차순 정렬 (결정론적 순서)
+  const siblings = [...data.siblings].sort((a, b) => a.conceptId - b.conceptId);
+
+  // 형제들의 definition 값 수집 → 중복 제거 → 사전순 정렬
+  const rawSiblingDefs = siblings
+    .map(s => s.detailsList.find(d => d.key === "definition")?.value)
+    .filter((v): v is string => v !== undefined);
+  const siblingDefs = Array.from(new Set(rawSiblingDefs)).sort();
+
+  // 1. MULTIPLE_CASE: 형제 definition이 3개 이상이고 개념 definition 존재
+  if (siblingDefs.length >= 3 && conceptDef) {
+    const distractors = [...siblingDefs];
+    rng.shuffle(distractors);
+    const sampledDistractors = distractors.slice(0, 3);
+    const choices = [...sampledDistractors, conceptDef.value];
+    rng.shuffle(choices);
+    const answerIndex = choices.indexOf(conceptDef.value);
 
     questions.push({
-      id: `${cid}-mc`,
-      categoryId: cid,
-      question: `"${conceptTitle}"에 대한 설명으로 옳은 것은?`,
-      options: allOptions,
+      id: `${data.conceptId}-mc`,
+      categoryId: String(data.conceptId),
+      question: `[${data.conceptTitle}]에 대한 설명으로 올바른 것은?`,
+      options: choices,
       answerIndex,
-      explanation: definition.value,
     } as QuizQuestion);
   }
 
-  // 2. OX — feature 우선, 없으면 definition 사용
-  // O: 현재 concept의 값 / X: 형제의 definition으로 속이기
-  const oxSource = feature ?? definition;
-  if (oxSource && siblings.length >= 1) {
-    const useCorrect = rand() > 0.5;
-    let question: string;
-    let answer: boolean;
-
-    if (useCorrect) {
-      question = `다음 설명은 "${conceptTitle}"에 대한 옳은 설명인가?\n\n${oxSource.value}`;
-      answer = true;
+  // 2. OX: 형제가 1개 이상
+  if (siblings.length >= 1) {
+    const isTrue = rng.nextInt(2) === 0;
+    if (isTrue) {
+      const detail = conceptDef ?? data.detailsList[0];
+      if (detail) {
+        questions.push({
+          id: `${data.conceptId}-ox`,
+          categoryId: String(data.conceptId),
+          type: "ox" as const,
+          question: `[${data.conceptTitle}]에 대한 설명으로 다음 내용은 참인가 거짓인가?\n\n${detail.value}`,
+          answer: true,
+        } as OXQuestion);
+      }
     } else {
-      const sibling = siblings[Math.floor(rand() * siblings.length)];
-      const sibDef = sibling.detailsList.find((d) => d.key === "definition");
+      const sibIdx = rng.nextInt(siblings.length);
+      const sib = siblings[sibIdx];
+      const sibDef = sib.detailsList.find(d => d.key === "definition");
       if (sibDef) {
-        question = `다음 설명은 "${conceptTitle}"에 대한 옳은 설명인가?\n\n${sibDef.value}`;
-        answer = false;
-      } else {
-        question = `다음 설명은 "${conceptTitle}"에 대한 옳은 설명인가?\n\n${oxSource.value}`;
-        answer = true;
+        questions.push({
+          id: `${data.conceptId}-ox`,
+          categoryId: String(data.conceptId),
+          type: "ox" as const,
+          question: `[${data.conceptTitle}]에 대한 설명으로 다음 내용은 참인가 거짓인가?\n\n${sibDef.value}`,
+          answer: false,
+        } as OXQuestion);
       }
     }
-
-    questions.push({
-      id: `${cid}-ox`,
-      categoryId: cid,
-      type: "ox",
-      question,
-      answer,
-    } as OXQuestion);
   }
 
-  // 3. 단답형 — definition value → conceptTitle 맞추기
-  if (definition) {
+  // 3. SHORT_ANSWER: 개념 definition 존재
+  if (conceptDef) {
     questions.push({
-      id: `${cid}-sa`,
-      categoryId: cid,
-      type: "short-answer",
-      question: `"${definition.value}"\n\n무엇에 관한 설명인가?`,
-      answer: conceptTitle,
+      id: `${data.conceptId}-sa`,
+      categoryId: String(data.conceptId),
+      type: "short-answer" as const,
+      question: `다음은 무엇에 관한 설명인가?\n\n${conceptDef.value}`,
+      answer: data.conceptTitle,
     } as ShortAnswerQuestion);
   }
 
-  // 4. 매칭형 — 현재 + 형제에서 3개 선택 → title ↔ definition
-  const allConcepts = [
-    { title: conceptTitle, def: definition?.value ?? "" },
-    ...siblings.map((s) => ({
-      title: s.conceptTitle,
-      def: s.detailsList.find((d) => d.key === "definition")?.value ?? s.detailsList[0]?.value ?? "",
-    })),
-  ].filter((c) => c.def);
+  // 4. MATCHING: 개념 + definition 있는 형제 2개 이상
+  const siblingsWithDef = siblings.filter(s =>
+    s.detailsList.some(d => d.key === "definition"),
+  );
+  if (siblingsWithDef.length >= 2 && conceptDef) {
+    const selected = siblingsWithDef.slice(0, 2);
+    const items = [
+      { title: data.conceptTitle, def: conceptDef.value },
+      ...selected.map(s => ({
+        title: s.conceptTitle,
+        def: s.detailsList.find(d => d.key === "definition")!.value,
+      })),
+    ];
 
-  if (allConcepts.length >= 3) {
-    const picked = shuffle(allConcepts, rand).slice(0, 3);
-    const leftItems = picked.map((c) => c.title);
+    const leftItems = items.map(c => c.title);
+    const shuffledDefs = items.map(c => c.def);
+    rng.shuffle(shuffledDefs);
 
-    // indices 셔플로 rightItems 구성 → correctPairs 충돌 없이 계산
-    const shuffledIndices = shuffle([0, 1, 2], rand);
-    const rightItems = shuffledIndices.map((i) => picked[i].def);
     const correctPairs: Record<number, number> = {};
-    picked.forEach((_, li) => {
-      correctPairs[li] = shuffledIndices.indexOf(li);
+    items.forEach((item, i) => {
+      correctPairs[i] = shuffledDefs.indexOf(item.def);
     });
 
     questions.push({
-      id: `${cid}-matching`,
-      categoryId: cid,
-      type: "matching",
+      id: `${data.conceptId}-mt`,
+      categoryId: String(data.conceptId),
+      type: "matching" as const,
       question: "각 개념과 그 설명을 올바르게 연결하세요.",
       leftItems,
-      rightItems,
+      rightItems: shuffledDefs,
       correctPairs,
     } as MatchingQuestion);
   }

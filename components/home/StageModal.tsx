@@ -1,4 +1,3 @@
-import { CHAPTER_LETTERS, CHAPTER_NAMES, STAGE_INFO } from "@/constants/stageInfo";
 import React from "react";
 import {
   Modal,
@@ -9,20 +8,20 @@ import {
   View,
 } from "react-native";
 
-export type SelectedStage = { id: number; color: string };
+export type SelectedStage = {
+  subjectId: number;
+  batchIndex: number;
+  color: string;
+  chapterName: string;
+};
 
 type Props = {
   selected: SelectedStage | null;
   onClose: () => void;
-  onStart: (stageId: number) => void;
+  onStart: (subjectId: number, batchIndex: number) => void;
 };
 
 export default function StageModal({ selected, onClose, onStart }: Props) {
-  const info = selected ? STAGE_INFO[selected.id] : null;
-  const chapterName = info
-    ? CHAPTER_NAMES[CHAPTER_LETTERS.indexOf(info.chapter as typeof CHAPTER_LETTERS[number])]
-    : "";
-
   return (
     <Modal
       visible={!!selected}
@@ -32,19 +31,23 @@ export default function StageModal({ selected, onClose, onStart }: Props) {
     >
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
-        {selected && info && (
+        {selected && (
           <>
             <View style={[styles.accent, { backgroundColor: selected.color }]} />
             <View style={styles.body}>
-              <Text style={styles.stageLabel}>스테이지 {selected.id}</Text>
-              <Text style={styles.title}>{info.title}</Text>
+              <Text style={styles.stageLabel}>
+                {selected.chapterName} {selected.batchIndex + 1}번
+              </Text>
+              <Text style={styles.title}>
+                {selected.chapterName} {selected.batchIndex + 1}
+              </Text>
               <Text style={styles.description}>
-                {chapterName} 파트의 {info.title} 퀴즈가 준비되어 있습니다.
+                {selected.chapterName} 파트의 {selected.batchIndex + 1}번 퀴즈가 준비되어 있습니다.
               </Text>
               <TouchableOpacity
                 style={[styles.startBtn, { backgroundColor: selected.color }]}
                 activeOpacity={0.85}
-                onPress={() => onStart(selected.id)}
+                onPress={() => onStart(selected.subjectId, selected.batchIndex)}
               >
                 <Text style={styles.startBtnText}>시작하기</Text>
               </TouchableOpacity>

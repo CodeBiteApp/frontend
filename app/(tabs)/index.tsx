@@ -1,26 +1,28 @@
 import { AnimatedDobiTransition } from "@/components/charactor/AnimatedDobiTransition";
 import { ACORN_H } from "@/components/common/AcornButton";
 import ChapterSection from "@/components/home/ChapterSection";
+import HomeSkeleton from "@/components/home/HomeSkeleton";
 import StageModal, { SelectedStage } from "@/components/home/StageModal";
 import StickyChapterBar from "@/components/home/StickyChapterBar";
 import UserInfoBar from "@/components/home/UserInfoBar";
-import { BANNER_H, CHAPTER_BREAKPOINTS, ROW_HEIGHT, STAGES_TOP_PAD } from "@/constants/homeLayout";
-import { CHAPTER_COLORS, CHAPTER_LETTERS, CHAPTER_STAGES } from "@/constants/stageInfo";
+import { BANNER_H, computeBreakpoints, ROW_HEIGHT, STAGES_TOP_PAD } from "@/constants/homeLayout";
+import { CHAPTER_COLORS } from "@/constants/stageInfo";
 import { useStageStore } from "@/store/useStageStore";
+import { useSubjectStore } from "@/store/useSubjectStore";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Alert,
-  Modal,
 } from "react-native";
 import { restoreStreak, resetStreak } from "@/api/streak";
 
@@ -34,45 +36,33 @@ type AnimatingStage = {
   nextPosition: { x: number; y: number; width: number; height: number } | null;
 };
 
-function getStagePosition(stageId: number): { chapterIdx: number; stageInChapter: number } {
-  for (let ci = 0; ci < CHAPTER_LETTERS.length; ci++) {
-    const si = CHAPTER_STAGES[CHAPTER_LETTERS[ci]].indexOf(stageId);
-    if (si !== -1) return { chapterIdx: ci, stageInChapter: si };
-  }
-  return { chapterIdx: 0, stageInChapter: 0 };
-}
 
 function getSeoulDate(dateInput: string | Date | null): string | null {
   if (!dateInput) return null;
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return null;
-  
   const seoulFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
-    day: "2-digit"
+    day: "2-digit",
   });
   const parts = seoulFormatter.formatToParts(d);
-  const year = parts.find(p => p.type === "year")?.value;
-  const month = parts.find(p => p.type === "month")?.value;
-  const day = parts.find(p => p.type === "day")?.value;
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
   return `${year}-${month}-${day}`;
 }
 
 function calculateMissedDays(lastStudyStr: string | null): number {
   if (!lastStudyStr) return 0;
-  
   const lastStudySeoul = getSeoulDate(lastStudyStr);
   const todaySeoul = getSeoulDate(new Date());
   if (!lastStudySeoul || !todaySeoul) return 0;
-  
   const lastDate = new Date(lastStudySeoul);
   const todayDate = new Date(todaySeoul);
-  
   const diffTime = todayDate.getTime() - lastDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function darken(hex: string, amount: number): string {
@@ -83,16 +73,37 @@ function darken(hex: string, amount: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
+// Plan A: BE getSlotConcepts와 동일한 parentId 라운드로빈 인터리빙 (배치 완료 판정에 사용)
+function buildInterleavedOrder<T extends { conceptId: number; parentId: number | null }>(concepts: T[]): T[] {
+  const groupMap = new Map<number, T[]>();
+  for (const c of concepts) {
+    const key = c.parentId ?? -(c.conceptId);
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(c);
+  }
+  const sortedKeys = Array.from(groupMap.keys()).sort((a, b) => a - b);
+  const groups = sortedKeys.map(k => groupMap.get(k)!);
+  const maxLen = Math.max(...groups.map(g => g.length), 0);
+  const interleaved: T[] = [];
+  for (let round = 0; round < maxLen; round++) {
+    for (const group of groups) {
+      if (round < group.length) interleaved.push(group[round]);
+    }
+  }
+  return interleaved;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { position, user, refreshUser } = useUserStore();
   const streak = user?.currentStreak ?? 0;
 
+  const { subjects, conceptsMap, isLoading, isHydrated, hasMoreSubjects, refreshConcepts, loadMoreSubjects } = useSubjectStore();
+  const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
+
   const [selected, setSelected] = useState<SelectedStage | null>(null);
   const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
   const [currentChapter, setCurrentChapter] = useState(0);
-
-  // 스트릭 보호권 소모 팝업 관련 상태
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [missedDays, setMissedDays] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -102,36 +113,212 @@ export default function HomeScreen() {
   const prevChapterRef = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const buttonRefs = useRef<Record<number, View | null>>({});
+  const animatedStageRef = useRef<string | null>(null);
 
-  const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
   const acornCount = user?.dotori ?? 0;
 
-  const currentStageId = useMemo(() => {
-    for (let i = 1; i <= 84; i++) {
-      if (!completedStages.includes(String(i))) return i;
-    }
-    return 84;
-  }, [completedStages]);
+  const BATCH_SIZE = 5;
 
-  // 스트릭 체크 로직
+  // 챕터별 배치 수 배열
+  const batchCountPerSubject = useMemo(
+    () => subjects.map((s) => {
+      const n = (conceptsMap[s.subjectId] ?? []).length;
+      return n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
+    }),
+    [subjects, conceptsMap],
+  );
+
+  // 서버 기준으로 완료된 배치 키 Set (BE getSlotConcepts와 동일한 인터리빙 순서 기준)
+  const studiedBatchKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const subject of subjects) {
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const n = concepts.length;
+      if (n === 0) continue;
+      const totalBatches = Math.ceil(n / BATCH_SIZE);
+      for (let b = 0; b < totalBatches; b++) {
+        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
+        if (batchConcepts.every(c => c.isStudied)) {
+          keys.add(`${subject.subjectId}_${b}`);
+        }
+      }
+    }
+    return keys;
+  }, [subjects, conceptsMap]);
+
+  // 다음에 풀어야 할 배치 (BE 인터리빙 순서 기준 미완료 첫 번째)
+  const currentBatch = useMemo(() => {
+    for (const subject of subjects) {
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const n = concepts.length;
+      if (n === 0) continue;
+      const totalBatches = Math.ceil(n / BATCH_SIZE);
+      for (let b = 0; b < totalBatches; b++) {
+        const batchKey = `${subject.subjectId}_${b}`;
+        if (completedStages.includes(batchKey)) continue;
+        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
+        if (!batchConcepts.every(c => c.isStudied)) {
+          return { subjectId: subject.subjectId, batchIndex: b };
+        }
+      }
+    }
+    const last = subjects[subjects.length - 1];
+    if (!last) return { subjectId: 0, batchIndex: 0 };
+    const n = (conceptsMap[last.subjectId] ?? []).length;
+    return { subjectId: last.subjectId, batchIndex: Math.max(0, Math.ceil(n / BATCH_SIZE) - 1) };
+  }, [subjects, conceptsMap, completedStages]);
+
+  // 스크롤 기반 챕터 감지용 breakpoints
+  const chapterBreakpoints = useMemo(
+    () => computeBreakpoints(batchCountPerSubject),
+    [batchCountPerSubject],
+  );
+
+  // 서브젝트 이름/색상 배열
+  const subjectNames = useMemo(() => subjects.map((s) => s.name), [subjects]);
+  const subjectColors = useMemo(
+    () => subjects.map((_, i) => CHAPTER_COLORS[i % CHAPTER_COLORS.length]),
+    [subjects],
+  );
+
+  // 포커스 시 subjects + concepts + user 리프레시
+  useFocusEffect(
+    useCallback(() => {
+      setHasCheckedStreak(false);
+      refreshUser();
+      refreshConcepts();
+    }, [refreshUser, refreshConcepts]),
+  );
+
+  // 스트릭 체크
   useEffect(() => {
     if (!user || hasCheckedStreak) return;
-
     const d = calculateMissedDays(user.lastStudy);
-    if (d >= 2) {
-      if (user.protector >= d && user.currentStreak > 0) {
-        setMissedDays(d);
-        setShowStreakModal(true);
-      }
+    if (d >= 2 && user.protector >= d && user.currentStreak > 0) {
+      setMissedDays(d);
+      setShowStreakModal(true);
     }
     setHasCheckedStreak(true);
   }, [user, hasCheckedStreak]);
+
+  // 퀴즈 완료 후 도비 애니메이션
+  useFocusEffect(
+    useCallback(() => {
+      if (!justCompletedStageId) return;
+      if (animatedStageRef.current === justCompletedStageId) return;
+      animatedStageRef.current = justCompletedStageId;
+
+      // batchKey 파싱: "${subjectId}_${batchIndex}"
+      const [sidStr, biStr] = justCompletedStageId.split("_");
+      const sid = Number(sidStr);
+      const bi = Number(biStr);
+      const chapterIdx = subjects.findIndex(s => s.subjectId === sid);
+      const stageInChapter = bi;
+
+      const estimatedStageY =
+        chapterBreakpoints[chapterIdx >= 0 ? chapterIdx : 0] + BANNER_H + STAGES_TOP_PAD + stageInChapter * ROW_HEIGHT;
+      const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
+      scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
+
+      setTimeout(() => {
+        const virtualId = sid * 10000 + bi;
+        const ref = buttonRefs.current[virtualId];
+        if (!ref) return;
+        ref.measureInWindow((x, y, w, h) => {
+          if (w === 0 || h === 0) return;
+          const color = subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
+
+          // 다음 배치 계산
+          const allBatchKeys = subjects.flatMap((s) => {
+            const n = (conceptsMap[s.subjectId] ?? []).length;
+            const total = n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
+            return Array.from({ length: total }, (_, i) => `${s.subjectId}_${i}`);
+          });
+          const currentPos = allBatchKeys.indexOf(justCompletedStageId);
+          const nextBatchKey = currentPos !== -1 && currentPos < allBatchKeys.length - 1
+            ? allBatchKeys[currentPos + 1]
+            : null;
+
+          const showWithNextRef = (nextVirtualId: number | null) => {
+            if (nextVirtualId !== null) {
+              const nextRef = buttonRefs.current[nextVirtualId];
+              if (nextRef) {
+                nextRef.measureInWindow((nx, ny, nw, nh) => {
+                  setAnimatingStage({
+                    stageId: justCompletedStageId,
+                    color,
+                    darkColor: darken(color, 0.25),
+                    position: { x, y, width: w, height: h },
+                    nextPosition: nw > 0 && nh > 0 ? { x: nx, y: ny, width: nw, height: nh } : null,
+                  });
+                });
+                return;
+              }
+            }
+            setAnimatingStage({
+              stageId: justCompletedStageId,
+              color,
+              darkColor: darken(color, 0.25),
+              position: { x, y, width: w, height: h },
+              nextPosition: null,
+            });
+          };
+
+          if (nextBatchKey) {
+            const [nsid, nbi] = nextBatchKey.split("_").map(Number);
+            showWithNextRef(nsid * 10000 + nbi);
+          } else {
+            showWithNextRef(null);
+          }
+        });
+      }, 650);
+    }, [justCompletedStageId, chapterBreakpoints, subjects, conceptsMap, subjectColors]),
+  );
+
+  const handleEatingFinish = useCallback(() => {
+    if (animatingStage) {
+      confirmComplete(animatingStage.stageId);
+      setAnimatingStage(null);
+      animatedStageRef.current = null;
+    }
+  }, [animatingStage, confirmComplete]);
+
+  const handleScroll = useCallback(
+    (event: any) => {
+      const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+      const y = contentOffset.y;
+
+      // 챕터 sticky bar 감지
+      let chapter = 0;
+      for (let i = chapterBreakpoints.length - 1; i >= 0; i--) {
+        if (y >= chapterBreakpoints[i]) {
+          chapter = i;
+          break;
+        }
+      }
+      if (chapter !== prevChapterRef.current) {
+        prevChapterRef.current = chapter;
+        Animated.sequence([
+          Animated.timing(fadeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+          Animated.timing(fadeAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+        ]).start();
+        setCurrentChapter(chapter);
+      }
+
+      // 하단 200px 이내 진입 시 다음 페이지 로드
+      const isNearBottom = y + layoutMeasurement.height >= contentSize.height - 200;
+      if (isNearBottom && hasMoreSubjects && !isLoading) {
+        loadMoreSubjects();
+      }
+    },
+    [fadeAnim, chapterBreakpoints, hasMoreSubjects, isLoading, loadMoreSubjects],
+  );
 
   const handleRestoreStreak = async () => {
     setIsRestoring(true);
     try {
       await restoreStreak();
-      Alert.alert("스트릭 유지 완료", "보호권이 성공적으로 소모되었으며 스트릭이 안전하게 보존되었습니다! 🛡️");
+      Alert.alert("스트릭 유지 완료", "보호권이 소모되었으며 스트릭이 보존되었습니다! 🛡️");
       setShowStreakModal(false);
       await refreshUser();
     } catch (e: any) {
@@ -155,82 +342,18 @@ export default function HomeScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      setHasCheckedStreak(false);
-      refreshUser();
-    }, [refreshUser]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!justCompletedStageId) return;
-
-      const stageId = Number(justCompletedStageId);
-      const { chapterIdx, stageInChapter } = getStagePosition(stageId);
-
-      const estimatedStageY =
-        CHAPTER_BREAKPOINTS[chapterIdx] + BANNER_H + STAGES_TOP_PAD + stageInChapter * ROW_HEIGHT;
-      const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
-      scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
-
-      setTimeout(() => {
-        const ref = buttonRefs.current[stageId];
-        if (!ref) return;
-        ref.measureInWindow((x, y, w, h) => {
-          if (w === 0 || h === 0) return;
-          const color = CHAPTER_COLORS[chapterIdx];
-          const nextStageId = stageId < 84 ? stageId + 1 : null;
-          const nextRef = nextStageId ? buttonRefs.current[nextStageId] : null;
-          if (nextRef) {
-            nextRef.measureInWindow((nx, ny, nw, nh) => {
-              setAnimatingStage({
-                stageId: justCompletedStageId,
-                color,
-                darkColor: darken(color, 0.25),
-                position: { x, y, width: w, height: h },
-                nextPosition: nw > 0 && nh > 0 ? { x: nx, y: ny, width: nw, height: nh } : null,
-              });
-            });
-          } else {
-            setAnimatingStage({
-              stageId: justCompletedStageId,
-              color,
-              darkColor: darken(color, 0.25),
-              position: { x, y, width: w, height: h },
-              nextPosition: null,
-            });
-          }
-        });
-      }, 650);
-    }, [justCompletedStageId]),
-  );
-
-  const handleEatingFinish = useCallback(() => {
-    if (animatingStage) {
-      confirmComplete(animatingStage.stageId);
-      setAnimatingStage(null);
-    }
-  }, [animatingStage, confirmComplete]);
-
-  const handleScroll = useCallback(
-    (event: any) => {
-      const y = event.nativeEvent.contentOffset.y;
-      let chapter = 0;
-      for (let i = CHAPTER_BREAKPOINTS.length - 1; i >= 0; i--) {
-        if (y >= CHAPTER_BREAKPOINTS[i]) { chapter = i; break; }
-      }
-      if (chapter !== prevChapterRef.current) {
-        prevChapterRef.current = chapter;
-        Animated.sequence([
-          Animated.timing(fadeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
-          Animated.timing(fadeAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
-        ]).start();
-        setCurrentChapter(chapter);
-      }
-    },
-    [fadeAnim],
-  );
+  if (!isHydrated && subjects.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.fixedTop}>
+          <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
+        </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} scrollEnabled={false}>
+          <HomeSkeleton />
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -240,7 +363,12 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.resetBtn} onPress={resetStages} activeOpacity={0.7}>
             <Text style={styles.resetBtnText}>🔄 테스트 초기화</Text>
           </TouchableOpacity>
-          <StickyChapterBar currentChapter={currentChapter} fadeAnim={fadeAnim} />
+          <StickyChapterBar
+            currentChapter={currentChapter}
+            fadeAnim={fadeAnim}
+            subjectNames={subjectNames}
+            colors={subjectColors}
+          />
         </View>
 
         <ScrollView
@@ -251,24 +379,42 @@ export default function HomeScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {CHAPTER_LETTERS.map((letter, c) => {
-            const color = CHAPTER_COLORS[c];
+          {subjects.map((subject, idx) => {
+            const color = subjectColors[idx];
+            const letter = String.fromCharCode(65 + idx);
+            const batchCount = batchCountPerSubject[idx] ?? 0;
+
             return (
               <ChapterSection
-                key={letter}
+                key={subject.subjectId}
                 letter={letter}
-                chapterIdx={c}
+                name={subject.name}
                 color={color}
                 darkColor={darken(color, 0.25)}
-                stageIds={CHAPTER_STAGES[letter]}
+                subjectId={subject.subjectId}
+                batchCount={batchCount}
                 completedStages={completedStages}
-                currentStageId={currentStageId}
+                studiedBatchKeys={studiedBatchKeys}
+                currentSubjectId={currentBatch.subjectId}
+                currentBatchIndex={currentBatch.batchIndex}
                 animatingStageId={animatingStage?.stageId ?? null}
                 buttonRefs={buttonRefs}
-                onStagePress={(stageId, stageColor) => setSelected({ id: stageId, color: stageColor })}
+                onStagePress={(sid, bi, stageColor) => {
+                  setSelected({
+                    subjectId: sid,
+                    batchIndex: bi,
+                    color: stageColor,
+                    chapterName: subject.name,
+                  });
+                }}
               />
             );
           })}
+          {isLoading && subjects.length > 0 && (
+            <View style={styles.bottomLoader}>
+              <ActivityIndicator size="small" color="#58CC02" />
+            </View>
+          )}
           <View style={{ height: 40 }} />
         </ScrollView>
       </View>
@@ -276,9 +422,9 @@ export default function HomeScreen() {
       <StageModal
         selected={selected}
         onClose={() => setSelected(null)}
-        onStart={(stageId) => {
+        onStart={(subjectId, batchIndex) => {
           setSelected(null);
-          router.push(`/quiz/${stageId}` as never);
+          router.push(`/quiz/${subjectId}_${batchIndex}` as never);
         }}
       />
 
@@ -293,7 +439,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* 스트릭 보호권 소모 여부 팝업 모달 */}
+      {/* 스트릭 보호권 팝업 */}
       <Modal
         visible={showStreakModal}
         transparent
@@ -306,7 +452,8 @@ export default function HomeScreen() {
             <Text style={styles.modalTitle}>스트릭을 보호할까요?</Text>
             <Text style={styles.modalDesc}>
               {missedDays}일 동안 접속하지 않으셨네요!{"\n"}
-              보유한 스트릭 보호권 <Text style={styles.highlightText}>{missedDays}개</Text>를 소모하여 현재의 연속 학습 스트릭을 유지할 수 있습니다.
+              보유한 스트릭 보호권{" "}
+              <Text style={styles.highlightText}>{missedDays}개</Text>를 소모하여 스트릭을 유지할 수 있습니다.
             </Text>
 
             <View style={styles.modalInfoBox}>
@@ -316,7 +463,9 @@ export default function HomeScreen() {
               </View>
               <View style={styles.modalInfoItem}>
                 <Text style={styles.modalInfoLabel}>소모 보호권</Text>
-                <Text style={[styles.modalInfoVal, { color: "#ff4b4b", fontWeight: "700" }]}>-{missedDays}개</Text>
+                <Text style={[styles.modalInfoVal, { color: "#ff4b4b", fontWeight: "700" }]}>
+                  -{missedDays}개
+                </Text>
               </View>
               <View style={styles.modalInfoItem}>
                 <Text style={styles.modalInfoLabel}>현재 스트릭</Text>
@@ -357,6 +506,7 @@ const styles = StyleSheet.create({
   fixedTop: { backgroundColor: "#191A1C", paddingTop: 44 },
   scrollView: { flex: 1 },
   content: { paddingTop: 8, paddingBottom: 24 },
+  center: { alignItems: "center", justifyContent: "center" },
   resetBtn: {
     alignSelf: "center",
     marginBottom: 8,
@@ -369,7 +519,6 @@ const styles = StyleSheet.create({
   },
   resetBtnText: { color: "#aaa", fontSize: 12, fontWeight: "600" },
 
-  // 스트릭 보호 모달 스타일
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.75)",
@@ -386,27 +535,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#333537",
   },
-  modalEmoji: {
-    fontSize: 56,
-    marginBottom: 16,
-  },
-  modalTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 12,
-  },
-  modalDesc: {
-    color: "#aaa",
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  highlightText: {
-    color: "#FFC800",
-    fontWeight: "700",
-  },
+  modalEmoji: { fontSize: 56, marginBottom: 16 },
+  modalTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 12 },
+  modalDesc: { color: "#aaa", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 20 },
+  highlightText: { color: "#FFC800", fontWeight: "700" },
   modalInfoBox: {
     width: "100%",
     backgroundColor: "#191A1C",
@@ -415,44 +547,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  modalInfoItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  modalInfoLabel: {
-    color: "#888",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  modalInfoVal: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  modalBtn: {
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  modalBtnConfirm: {
-    backgroundColor: "#FFC800",
-  },
-  modalBtnConfirmText: {
-    color: "#191A1C",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  modalBtnCancel: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: "#444",
-  },
-  modalBtnCancelText: {
-    color: "#888",
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  modalInfoItem: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  modalInfoLabel: { color: "#888", fontSize: 13, fontWeight: "600" },
+  modalInfoVal: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  modalBtn: { width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginBottom: 10 },
+  modalBtnConfirm: { backgroundColor: "#FFC800" },
+  modalBtnConfirmText: { color: "#191A1C", fontSize: 15, fontWeight: "800" },
+  modalBtnCancel: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "#444" },
+  modalBtnCancelText: { color: "#888", fontSize: 14, fontWeight: "700" },
+  bottomLoader: { paddingVertical: 16, alignItems: "center" },
 });

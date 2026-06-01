@@ -1,4 +1,4 @@
-import { fetchQuizConceptData, submitQuizResult } from "@/api/quiz";
+import { fetchBatchQuizData, submitBatchResult } from "@/api/quiz";
 import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
@@ -9,9 +9,10 @@ import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
-import { STAGE_INFO } from "@/constants/stageInfo";
+import { CHAPTER_COLORS } from "@/constants/stageInfo";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
+import { useSubjectStore } from "@/store/useSubjectStore";
 import { useUserStore } from "@/store/useUserStore";
 import {
   AnyQuizQuestion,
@@ -22,9 +23,9 @@ import {
   SubmitResultResponse,
   UserAnswer,
 } from "@/types/quiz";
-import { generateQuestionsFromConceptData } from "@/utils/quizGenerator";
+import { generateQuestionsFromBatchData } from "@/utils/quizGenerator";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -33,26 +34,7 @@ import {
   View,
 } from "react-native";
 
-const CHAPTER_COLORS = [
-  "#58CC02",
-  "#1CB0F6",
-  "#00CD9C",
-  "#FFC800",
-  "#FF9600",
-  "#FF4B4B",
-  "#FF86D0",
-  "#CE82FF",
-  "#2B70C9",
-  "#FF6B00",
-];
-
 const RETRY_ACCENT = "#FF9600";
-
-function getAccentColor(stageId: string): string {
-  const chapter = STAGE_INFO[Number(stageId)]?.chapter ?? "A";
-  const idx = chapter.charCodeAt(0) - "A".charCodeAt(0);
-  return CHAPTER_COLORS[Math.min(idx, CHAPTER_COLORS.length - 1)];
-}
 
 function getQuestionType(q: AnyQuizQuestion) {
   return (q as any).type ?? "multiple-choice";
@@ -63,6 +45,13 @@ type ResultPhase = "result" | "streak" | "quest";
 export default function QuizScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+
+  // id 포맷: "${subjectId}_${batchIndex}"
+  const parts = (id ?? "").split("_");
+  const subjectId = Number(parts[0]);
+  const batchIndex = Number(parts[1] ?? "0");
+  const batchKey = `${subjectId}_${batchIndex}`;
+
   const {
     questions,
     currentIndex,
@@ -76,7 +65,6 @@ export default function QuizScreen() {
     retryIsCorrect,
     retryRoundTotal,
     retryRoundIndex,
-    conceptId,
     randomSeed,
     userAnswers,
     setQuestions,
@@ -84,7 +72,7 @@ export default function QuizScreen() {
     nextQuestion,
     finishQuiz,
     resetQuiz,
-    setConceptMeta,
+    setBatchMeta,
     recordAnswer,
     enterRetry,
     markRetryAnswer,
@@ -92,30 +80,30 @@ export default function QuizScreen() {
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
   const { applyQuizReward } = useUserStore();
+  const { getSubjectById, getSubjectIndex } = useSubjectStore();
+
+  const subject = getSubjectById(subjectId);
+  const subjectName = subject?.name ?? "";
+  const accentColor = CHAPTER_COLORS[getSubjectIndex(subjectId) % CHAPTER_COLORS.length] ?? "#58CC02";
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
   const [oxSelected, setOxSelected] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
-  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(
-    null,
-  );
+  const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
+  const submitAttempted = useRef(false);
 
-  const accentColor = getAccentColor(id ?? "1");
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
   useEffect(() => {
-    const stageConceptId = Number(id ?? "1");
     setIsLoading(true);
-    fetchQuizConceptData(stageConceptId)
+    fetchBatchQuizData(subjectId, batchIndex)
       .then((data) => {
-        setConceptMeta(data.conceptId, data.randomSeed);
-        setQuestions(generateQuestionsFromConceptData(data));
+        setBatchMeta(data.subjectId, data.batchIndex, data.randomSeed);
+        setQuestions(generateQuestionsFromBatchData(data));
       })
-      .catch(() => {
-        setQuestions([]);
-      })
+      .catch(() => setQuestions([]))
       .finally(() => setIsLoading(false));
 
     return () => {
@@ -123,35 +111,39 @@ export default function QuizScreen() {
       setPhase("result");
       setServerResult(null);
       setSubmitDone(false);
+      submitAttempted.current = false;
     };
-  }, [id, setQuestions, resetQuiz, setConceptMeta]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchKey]);
 
   useEffect(() => {
-    if (!isFinished || !conceptId || !randomSeed) return;
-    submitQuizResult({ conceptId, randomSeed, isCompleted: true, userAnswers })
+    if (!isFinished || !randomSeed || submitAttempted.current) return;
+    submitAttempted.current = true;
+    const body = { subjectId, batchIndex, randomSeed, isCompleted: true, userAnswers };
+    submitBatchResult(body)
       .then((result) => {
         setServerResult(result);
         applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error("[submit-batch] error:", err?.response?.data ?? err);
+      })
       .finally(() => setSubmitDone(true));
-    // userAnswers는 isFinished 전환 시점 스냅샷이므로 deps에서 제외
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 
-  // 일반 문제 바뀔 때 로컬 선택 초기화
   useEffect(() => {
     setMcSelected(null);
     setOxSelected(null);
   }, [currentIndex]);
 
-  // 오답 노트 문제 바뀔 때 로컬 선택 초기화
+  const retryHeadId = retryQueue[0]?.id;
   useEffect(() => {
     if (isRetrying) {
       setMcSelected(null);
       setOxSelected(null);
     }
-  }, [retryQueue[0]?.id, isRetrying]);
+  }, [retryHeadId, isRetrying]);
 
   if (isLoading) {
     return (
@@ -190,7 +182,7 @@ export default function QuizScreen() {
     }
     return (
       <ResultScreen
-        conceptId={conceptId || Number(id)}
+        conceptId={subjectId}
         correct={correct}
         total={total}
         accentColor={accentColor}
@@ -201,16 +193,12 @@ export default function QuizScreen() {
     );
   }
 
-  // ── 현재 렌더할 문제 결정 ──────────────────────────────────────
   const current = isRetrying ? retryQueue[0] : questions[currentIndex];
   const currentAccent = isRetrying ? RETRY_ACCENT : accentColor;
-  const isAnswered = isRetrying
-    ? retryAnswered
-    : isCorrect[currentIndex] !== null;
+  const isAnswered = isRetrying ? retryAnswered : isCorrect[currentIndex] !== null;
 
   if (!current) return null;
 
-  // ── 일반 퀴즈 다음 버튼 핸들러 ───────────────────────────────
   const handleNext = () => {
     if (currentIndex === questions.length - 1) {
       const hasWrong = isCorrect.some(
@@ -219,25 +207,23 @@ export default function QuizScreen() {
       if (hasWrong) {
         enterRetry();
       } else {
-        triggerEating(id ?? "1");
-        finishQuiz(id ?? "1");
+        triggerEating(batchKey);
+        finishQuiz(batchKey);
       }
     } else {
       nextQuestion();
     }
   };
 
-  // ── 오답 노트 버튼 핸들러 ────────────────────────────────────
   const handleRetryNext = () => {
     if (retryQueue.length === 1 && retryIsCorrect === true) {
-      triggerEating(id ?? "1");
+      triggerEating(batchKey);
     }
     setMcSelected(null);
     setOxSelected(null);
     nextRetryQuestion();
   };
 
-  // ── 문제 옵션 렌더 (일반 & 오답 공용) ────────────────────────
   const renderOptions = (
     q: AnyQuizQuestion,
     answered: boolean,
@@ -315,13 +301,7 @@ export default function QuizScreen() {
               Object.entries(pairs).every(
                 ([li, ri]) => mt.correctPairs[Number(li)] === ri,
               );
-            // Record<number,number> → Record<string,number> (API 포맷)
-            onRecord?.(
-              Object.fromEntries(Object.entries(pairs)) as Record<
-                string,
-                number
-              >,
-            );
+            onRecord?.(Object.fromEntries(Object.entries(pairs)) as Record<string, number>);
             onMark(allCorrect);
           }}
         />
@@ -331,7 +311,6 @@ export default function QuizScreen() {
     return null;
   };
 
-  // ── 하단 버튼 ────────────────────────────────────────────────
   const renderButton = () => {
     if (!isAnswered) return null;
 
@@ -351,8 +330,7 @@ export default function QuizScreen() {
     return (
       <Button
         label={
-          currentIndex === questions.length - 1 &&
-          !isCorrect.some((v) => v === false)
+          currentIndex === questions.length - 1 && !isCorrect.some((v) => v === false)
             ? "결과 보기"
             : "다음 문제"
         }
@@ -364,7 +342,6 @@ export default function QuizScreen() {
     );
   };
 
-  // ── 진행 표시 (헤더용) ───────────────────────────────────────
   const questionNumber = isRetrying ? retryRoundIndex + 1 : currentIndex + 1;
   const questionTotal = isRetrying ? retryRoundTotal : questions.length;
 
@@ -372,12 +349,8 @@ export default function QuizScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerChapter}>
-            {STAGE_INFO[Number(id)]?.chapter ?? "A"}
-          </Text>
-          <Text style={styles.headerTitle}>
-            {STAGE_INFO[Number(id)]?.title ?? `스테이지 ${id}`}
-          </Text>
+          <Text style={styles.headerChapter}>{subjectName}</Text>
+          <Text style={styles.headerTitle}>{subjectName} {batchIndex + 1}</Text>
         </View>
       </View>
 
@@ -419,18 +392,9 @@ export default function QuizScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
-  header: {
-    alignItems: "center",
-    paddingTop: 56,
-    paddingBottom: 12,
-  },
+  header: { alignItems: "center", paddingTop: 56, paddingBottom: 12 },
   headerTitleWrap: { alignItems: "center", gap: 2 },
-  headerChapter: {
-    color: "#aaa",
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
+  headerChapter: { color: "#aaa", fontSize: 11, fontWeight: "600", letterSpacing: 1 },
   headerTitle: { color: "#fff", fontSize: 15, fontWeight: "700" },
   content: { padding: 20, paddingTop: 8, gap: 12 },
   options: { gap: 10 },
