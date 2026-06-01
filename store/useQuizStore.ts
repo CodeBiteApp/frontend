@@ -12,6 +12,9 @@ type QuizState = {
   randomSeed: number | null;
   userAnswers: UserAnswer[];
 
+  subjectId: number | null;
+  batchIndex: number | null;
+
   isRetrying: boolean;
   retryQueue: AnyQuizQuestion[];
   retryTotal: number;
@@ -29,6 +32,7 @@ type QuizState = {
   resetQuiz: () => void;
 
   setConceptMeta: (conceptId: number, randomSeed: number) => void;
+  setBatchMeta: (subjectId: number, batchIndex: number, randomSeed: number) => void;
   recordAnswer: (questionNumber: number, quizType: UserAnswer["quizType"], answer: UserAnswer["answer"]) => void;
 
   enterRetry: () => void;
@@ -46,6 +50,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   conceptId: null,
   randomSeed: null,
   userAnswers: [],
+
+  subjectId: null,
+  batchIndex: null,
 
   isRetrying: false,
   retryQueue: [],
@@ -95,6 +102,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   },
 
   setConceptMeta: (conceptId, randomSeed) => set({ conceptId, randomSeed }),
+  setBatchMeta: (subjectId, batchIndex, randomSeed) => set({ subjectId, batchIndex, randomSeed }),
 
   recordAnswer: (questionNumber, quizType, answer) => {
     const { userAnswers } = get();
@@ -110,6 +118,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       conceptId: null,
       randomSeed: null,
       userAnswers: [],
+      subjectId: null,
+      batchIndex: null,
       isRetrying: false,
       retryQueue: [],
       retryTotal: 0,

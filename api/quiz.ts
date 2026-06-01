@@ -1,8 +1,10 @@
 import api from "@/api/axios";
 import {
+  BatchSubmitRequest,
   ConceptStage,
   QuizConceptData,
   Subject,
+  SubjectBatchQuizData,
   SubjectPage,
   SubmitResultRequest,
   SubmitResultResponse,
@@ -52,9 +54,25 @@ export async function submitQuizResult(
     "/api/quiz/submit-result",
     body,
   );
-  // console.log(
-  //   "[quiz/submitQuizResult] 응답:",
-  //   JSON.stringify(res.data, null, 2),
-  // );
+  return res.data;
+}
+
+export async function fetchBatchQuizData(
+  subjectId: number,
+  batchIndex: number,
+): Promise<SubjectBatchQuizData> {
+  const res = await api.get<SubjectBatchQuizData>("/api/quiz/batch-data", {
+    params: { subjectId, batchIndex },
+  });
+  return res.data;
+}
+
+export async function submitBatchResult(
+  body: BatchSubmitRequest,
+): Promise<SubmitResultResponse> {
+  const res = await api.post<SubmitResultResponse>(
+    "/api/quiz/submit-batch-result",
+    body,
+  );
   return res.data;
 }

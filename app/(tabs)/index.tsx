@@ -37,16 +37,6 @@ type AnimatingStage = {
   nextPosition: { x: number; y: number; width: number; height: number } | null;
 };
 
-function getStagePosition(
-  stageId: number,
-  conceptsPerSubject: number[][],
-): { chapterIdx: number; stageInChapter: number } {
-  for (let ci = 0; ci < conceptsPerSubject.length; ci++) {
-    const si = conceptsPerSubject[ci].indexOf(stageId);
-    if (si !== -1) return { chapterIdx: ci, stageInChapter: si };
-  }
-  return { chapterIdx: 0, stageInChapter: 0 };
-}
 
 function getSeoulDate(dateInput: string | Date | null): string | null {
   if (!dateInput) return null;
@@ -109,39 +99,65 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   const prevChapterRef = useRef(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const buttonRefs = useRef<Record<number, View | null>>({});
+  const animatedStageRef = useRef<string | null>(null);
 
   const acornCount = user?.dotori ?? 0;
 
-  // 챕터별 conceptId 배열
-  const conceptsPerSubject = useMemo(
-    () => subjects.map((s) => (conceptsMap[s.subjectId] ?? []).map((c) => c.conceptId)),
+  const BATCH_SIZE = 5;
+
+  // 챕터별 배치 수 배열
+  const batchCountPerSubject = useMemo(
+    () => subjects.map((s) => {
+      const n = (conceptsMap[s.subjectId] ?? []).length;
+      return n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
+    }),
     [subjects, conceptsMap],
   );
 
-  // 서버 isStudied 기준 완료 개념 Set
-  const studiedConceptIds = useMemo(() => {
-    const ids = new Set<number>();
-    for (const concepts of Object.values(conceptsMap)) {
-      for (const c of concepts) {
-        if (c.isStudied) ids.add(c.conceptId);
+  // 서버 기준으로 완료된 배치 키 Set (BE getSlotConcepts와 동일한 인터리빙 순서 기준)
+  const studiedBatchKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const subject of subjects) {
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const n = concepts.length;
+      if (n === 0) continue;
+      const totalBatches = Math.ceil(n / BATCH_SIZE);
+      for (let b = 0; b < totalBatches; b++) {
+        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
+        if (batchConcepts.every(c => c.isStudied)) {
+          keys.add(`${subject.subjectId}_${b}`);
+        }
       }
     }
-    return ids;
-  }, [conceptsMap]);
+    return keys;
+  }, [subjects, conceptsMap]);
 
-  // 다음에 풀어야 할 스테이지 (서버 isStudied + 로컬 completedStages 기준)
-  const currentStageId = useMemo(() => {
-    const allConcepts = subjects.flatMap((s) => conceptsMap[s.subjectId] ?? []);
-    const first = allConcepts.find(
-      (c) => !c.isStudied && !completedStages.includes(String(c.conceptId)),
-    );
-    return first?.conceptId ?? allConcepts[allConcepts.length - 1]?.conceptId ?? 1;
+  // 다음에 풀어야 할 배치 (BE 인터리빙 순서 기준 미완료 첫 번째)
+  const currentBatch = useMemo(() => {
+    for (const subject of subjects) {
+      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const n = concepts.length;
+      if (n === 0) continue;
+      const totalBatches = Math.ceil(n / BATCH_SIZE);
+      for (let b = 0; b < totalBatches; b++) {
+        const batchKey = `${subject.subjectId}_${b}`;
+        if (completedStages.includes(batchKey)) continue;
+        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
+        if (!batchConcepts.every(c => c.isStudied)) {
+          return { subjectId: subject.subjectId, batchIndex: b };
+        }
+      }
+    }
+    const last = subjects[subjects.length - 1];
+    if (!last) return { subjectId: 0, batchIndex: 0 };
+    const n = (conceptsMap[last.subjectId] ?? []).length;
+    return { subjectId: last.subjectId, batchIndex: Math.max(0, Math.ceil(n / BATCH_SIZE) - 1) };
   }, [subjects, conceptsMap, completedStages]);
 
   // 스크롤 기반 챕터 감지용 breakpoints
   const chapterBreakpoints = useMemo(
-    () => computeBreakpoints(conceptsPerSubject.map((ids) => ids.length)),
-    [conceptsPerSubject],
+    () => computeBreakpoints(batchCountPerSubject),
+    [batchCountPerSubject],
   );
 
   // 서브젝트 이름/색상 배열
@@ -175,36 +191,56 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   useFocusEffect(
     useCallback(() => {
       if (!justCompletedStageId) return;
-      const stageId = Number(justCompletedStageId);
-      const { chapterIdx, stageInChapter } = getStagePosition(stageId, conceptsPerSubject);
+      if (animatedStageRef.current === justCompletedStageId) return;
+      animatedStageRef.current = justCompletedStageId;
+
+      // batchKey 파싱: "${subjectId}_${batchIndex}"
+      const [sidStr, biStr] = justCompletedStageId.split("_");
+      const sid = Number(sidStr);
+      const bi = Number(biStr);
+      const chapterIdx = subjects.findIndex(s => s.subjectId === sid);
+      const stageInChapter = bi;
+
       const estimatedStageY =
-        chapterBreakpoints[chapterIdx] + BANNER_H + STAGES_TOP_PAD + stageInChapter * ROW_HEIGHT;
+        chapterBreakpoints[chapterIdx >= 0 ? chapterIdx : 0] + BANNER_H + STAGES_TOP_PAD + stageInChapter * ROW_HEIGHT;
       const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
       scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
 
       setTimeout(() => {
-        const ref = buttonRefs.current[stageId];
+        const virtualId = sid * 10000 + bi;
+        const ref = buttonRefs.current[virtualId];
         if (!ref) return;
         ref.measureInWindow((x, y, w, h) => {
           if (w === 0 || h === 0) return;
-          const color = subjectColors[chapterIdx] ?? "#58CC02";
-          const allIds = conceptsPerSubject.flat();
-          const currentPos = allIds.indexOf(stageId);
-          const nextStageId = currentPos !== -1 && currentPos < allIds.length - 1
-            ? allIds[currentPos + 1]
+          const color = subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
+
+          // 다음 배치 계산
+          const allBatchKeys = subjects.flatMap((s) => {
+            const n = (conceptsMap[s.subjectId] ?? []).length;
+            const total = n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
+            return Array.from({ length: total }, (_, i) => `${s.subjectId}_${i}`);
+          });
+          const currentPos = allBatchKeys.indexOf(justCompletedStageId);
+          const nextBatchKey = currentPos !== -1 && currentPos < allBatchKeys.length - 1
+            ? allBatchKeys[currentPos + 1]
             : null;
-          const nextRef = nextStageId ? buttonRefs.current[nextStageId] : null;
-          if (nextRef) {
-            nextRef.measureInWindow((nx, ny, nw, nh) => {
-              setAnimatingStage({
-                stageId: justCompletedStageId,
-                color,
-                darkColor: darken(color, 0.25),
-                position: { x, y, width: w, height: h },
-                nextPosition: nw > 0 && nh > 0 ? { x: nx, y: ny, width: nw, height: nh } : null,
-              });
-            });
-          } else {
+
+          const showWithNextRef = (nextVirtualId: number | null) => {
+            if (nextVirtualId !== null) {
+              const nextRef = buttonRefs.current[nextVirtualId];
+              if (nextRef) {
+                nextRef.measureInWindow((nx, ny, nw, nh) => {
+                  setAnimatingStage({
+                    stageId: justCompletedStageId,
+                    color,
+                    darkColor: darken(color, 0.25),
+                    position: { x, y, width: w, height: h },
+                    nextPosition: nw > 0 && nh > 0 ? { x: nx, y: ny, width: nw, height: nh } : null,
+                  });
+                });
+                return;
+              }
+            }
             setAnimatingStage({
               stageId: justCompletedStageId,
               color,
@@ -212,16 +248,24 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
               position: { x, y, width: w, height: h },
               nextPosition: null,
             });
+          };
+
+          if (nextBatchKey) {
+            const [nsid, nbi] = nextBatchKey.split("_").map(Number);
+            showWithNextRef(nsid * 10000 + nbi);
+          } else {
+            showWithNextRef(null);
           }
         });
       }, 650);
-    }, [justCompletedStageId, chapterBreakpoints, conceptsPerSubject, subjectColors]),
+    }, [justCompletedStageId, chapterBreakpoints, subjects, conceptsMap, subjectColors]),
   );
 
   const handleEatingFinish = useCallback(() => {
     if (animatingStage) {
       confirmComplete(animatingStage.stageId);
       setAnimatingStage(null);
+      animatedStageRef.current = null;
     }
   }, [animatingStage, confirmComplete]);
 
@@ -323,9 +367,8 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
         >
           {subjects.map((subject, idx) => {
             const color = subjectColors[idx];
-            const concepts = conceptsMap[subject.subjectId] ?? [];
-            const stageIds = concepts.map((c) => c.conceptId);
             const letter = String.fromCharCode(65 + idx);
+            const batchCount = batchCountPerSubject[idx] ?? 0;
 
             return (
               <ChapterSection
@@ -334,18 +377,19 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
                 name={subject.name}
                 color={color}
                 darkColor={darken(color, 0.25)}
-                stageIds={stageIds}
+                subjectId={subject.subjectId}
+                batchCount={batchCount}
                 completedStages={completedStages}
-                studiedConceptIds={studiedConceptIds}
-                currentStageId={currentStageId}
+                studiedBatchKeys={studiedBatchKeys}
+                currentSubjectId={currentBatch.subjectId}
+                currentBatchIndex={currentBatch.batchIndex}
                 animatingStageId={animatingStage?.stageId ?? null}
                 buttonRefs={buttonRefs}
-                onStagePress={(stageId, stageColor) => {
-                  const concept = concepts.find((c) => c.conceptId === stageId);
+                onStagePress={(sid, bi, stageColor) => {
                   setSelected({
-                    id: stageId,
+                    subjectId: sid,
+                    batchIndex: bi,
                     color: stageColor,
-                    title: concept?.title ?? `스테이지 ${stageId}`,
                     chapterName: subject.name,
                   });
                 }}
@@ -364,9 +408,9 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       <StageModal
         selected={selected}
         onClose={() => setSelected(null)}
-        onStart={(stageId) => {
+        onStart={(subjectId, batchIndex) => {
           setSelected(null);
-          router.push(`/quiz/${stageId}` as never);
+          router.push(`/quiz/${subjectId}_${batchIndex}` as never);
         }}
       />
 

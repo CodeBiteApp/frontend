@@ -1,4 +1,4 @@
-import { fetchQuizConceptData, submitQuizResult } from "@/api/quiz";
+import { fetchBatchQuizData, submitBatchResult } from "@/api/quiz";
 import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
@@ -10,7 +10,6 @@ import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { CHAPTER_COLORS } from "@/constants/stageInfo";
-import { useQuizPoolStore } from "@/store/useQuizPoolStore";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useSubjectStore } from "@/store/useSubjectStore";
@@ -39,8 +38,6 @@ import {
   View,
 } from "react-native";
 
-const QUIZ_COUNT = 5;
-
 const RETRY_ACCENT = "#FF9600";
 
 function getQuestionType(q: AnyQuizQuestion) {
@@ -66,7 +63,6 @@ export default function QuizScreen() {
     retryIsCorrect,
     retryRoundTotal,
     retryRoundIndex,
-    conceptId,
     randomSeed,
     userAnswers,
     setQuestions,
@@ -74,7 +70,7 @@ export default function QuizScreen() {
     nextQuestion,
     finishQuiz,
     resetQuiz,
-    setConceptMeta,
+    setBatchMeta,
     recordAnswer,
     enterRetry,
     markRetryAnswer,
@@ -82,8 +78,11 @@ export default function QuizScreen() {
   } = useQuizStore();
   const { triggerEating, completedStages } = useStageStore();
   const { applyQuizReward } = useUserStore();
-  const { getSubjectIndexByConceptId, getSubjectByConceptId } = useSubjectStore();
-  const { popFromPool, initPool } = useQuizPoolStore();
+  const { getSubjectById, getSubjectIndex } = useSubjectStore();
+
+  const subject = getSubjectById(subjectId);
+  const subjectName = subject?.name ?? "";
+  const accentColor = CHAPTER_COLORS[getSubjectIndex(subjectId) % CHAPTER_COLORS.length] ?? "#58CC02";
 
   const [phase, setPhase] = useState<ResultPhase>("result");
   const [mcSelected, setMcSelected] = useState<number | null>(null);
@@ -91,13 +90,7 @@ export default function QuizScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitDone, setSubmitDone] = useState(false);
   const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
-  const [conceptTitle, setConceptTitle] = useState<string>("");
   const submitAttempted = useRef(false);
-
-  const conceptIdNum = Number(id ?? "1");
-  const subjectIdx = getSubjectIndexByConceptId(conceptIdNum);
-  const subjectName = getSubjectByConceptId(conceptIdNum)?.name ?? "";
-  const accentColor = CHAPTER_COLORS[subjectIdx % CHAPTER_COLORS.length] ?? "#58CC02";
 
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
@@ -148,50 +141,37 @@ export default function QuizScreen() {
   useEffect(() => {
     resetQuiz();
     setIsLoading(true);
-    fetchQuizConceptData(conceptIdNum)
+    fetchBatchQuizData(subjectId, batchIndex)
       .then((data) => {
-        setConceptMeta(data.conceptId, data.randomSeed);
-        setConceptTitle(data.conceptTitle);
-
-        const pooled = popFromPool(conceptIdNum, QUIZ_COUNT);
-        if (pooled.length >= QUIZ_COUNT) {
-          setQuestions(pooled);
-        } else {
-          const all = generateQuestionsFromConceptData(data);
-          const { selected, rest } = selectBalancedQuestions(all, QUIZ_COUNT, data.randomSeed);
-          initPool(conceptIdNum, rest);
-          setQuestions(selected);
-        }
+        setBatchMeta(data.subjectId, data.batchIndex, data.randomSeed);
+        setQuestions(generateQuestionsFromBatchData(data));
       })
-      .catch(() => {
-        setQuestions([]);
-      })
+      .catch(() => setQuestions([]))
       .finally(() => setIsLoading(false));
 
     return () => {
       setPhase("result");
       setServerResult(null);
       setSubmitDone(false);
-      setConceptTitle("");
       submitAttempted.current = false;
     };
-  }, [conceptIdNum, setQuestions, resetQuiz, setConceptMeta, popFromPool, initPool]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchKey]);
 
   useEffect(() => {
-    if (!isFinished || !conceptId || !randomSeed || submitAttempted.current) return;
+    if (!isFinished || !randomSeed || submitAttempted.current) return;
     submitAttempted.current = true;
-    const body = { conceptId, randomSeed, isCompleted: true, userAnswers };
-    console.log("[submit] request body:", JSON.stringify(body));
-    submitQuizResult(body)
+    const body = { subjectId, batchIndex, randomSeed, isCompleted: true, userAnswers };
+    submitBatchResult(body)
       .then((result) => {
         setServerResult(result);
         applyQuizReward(result.dotoriEarned, result.streak.currentStreak);
       })
       .catch((err) => {
-        console.error("[submit] 400 error response:", err?.response?.data ?? err);
+        console.error("[submit-batch] error:", err?.response?.data ?? err);
       })
       .finally(() => setSubmitDone(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFinished]);
 
   useEffect(() => {
@@ -199,12 +179,13 @@ export default function QuizScreen() {
     setOxSelected(null);
   }, [currentIndex]);
 
+  const retryHeadId = retryQueue[0]?.id;
   useEffect(() => {
     if (isRetrying) {
       setMcSelected(null);
       setOxSelected(null);
     }
-  }, [retryQueue[0]?.id, isRetrying]);
+  }, [retryHeadId, isRetrying]);
 
   if (isLoading) {
     return (
@@ -243,7 +224,7 @@ export default function QuizScreen() {
     }
     return (
       <ResultScreen
-        conceptId={conceptId || conceptIdNum}
+        conceptId={subjectId}
         correct={correct}
         total={total}
         accentColor={accentColor}
@@ -268,8 +249,8 @@ export default function QuizScreen() {
       if (hasWrong) {
         enterRetry();
       } else {
-        triggerEating(id ?? "1");
-        finishQuiz(id ?? "1");
+        triggerEating(batchKey);
+        finishQuiz(batchKey);
       }
     } else {
       nextQuestion();
@@ -278,7 +259,7 @@ export default function QuizScreen() {
 
   const handleRetryNext = () => {
     if (retryQueue.length === 1 && retryIsCorrect === true) {
-      triggerEating(id ?? "1");
+      triggerEating(batchKey);
     }
     setMcSelected(null);
     setOxSelected(null);
@@ -362,9 +343,7 @@ export default function QuizScreen() {
               Object.entries(pairs).every(
                 ([li, ri]) => mt.correctPairs[Number(li)] === ri,
               );
-            onRecord?.(
-              Object.fromEntries(Object.entries(pairs)) as Record<string, number>,
-            );
+            onRecord?.(Object.fromEntries(Object.entries(pairs)) as Record<string, number>);
             onMark(allCorrect);
           }}
         />
@@ -421,7 +400,7 @@ export default function QuizScreen() {
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerChapter}>{subjectName}</Text>
-          <Text style={styles.headerTitle}>{conceptTitle || `스테이지 ${id}`}</Text>
+          <Text style={styles.headerTitle}>{subjectName} {batchIndex + 1}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
