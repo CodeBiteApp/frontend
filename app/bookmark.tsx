@@ -1,5 +1,7 @@
 import { fetchBookmarks, removeBookmark } from "@/api/bookmark";
 import { BookmarkListResponse } from "@/types/bookmark";
+import { useSubjectStore } from "@/store/useSubjectStore";
+import { buildInterleavedOrder, BATCH_SIZE } from "@/utils/quizGenerator";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -19,6 +21,7 @@ import {
 export default function BookmarkScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { conceptsMap } = useSubjectStore();
   const [selectedSubject, setSelectedSubject] = useState<string>("전체");
 
   // TanStack Query로 북마크 목록 데이터 관리
@@ -76,10 +79,32 @@ export default function BookmarkScreen() {
     removeMutation.mutate(conceptId);
   };
 
-  const handleStartReview = async (conceptId: number) => {
+  const handleStartReview = async (item: BookmarkListResponse) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // 학습 개념 상세/퀴즈 화면으로 즉시 이동하여 복습 시작
-    router.push(`/quiz/${conceptId}` as never);
+
+    if (!item.subjectId) {
+      router.back();
+      return;
+    }
+
+    const ordered = buildInterleavedOrder(conceptsMap[item.subjectId] ?? []);
+    const n = ordered.length;
+    if (n === 0) { router.back(); return; }
+
+    // buildInterleavedOrder 순서 기준으로 conceptId가 속한 batchIndex 역산
+    const totalBatches = Math.ceil(n / BATCH_SIZE);
+    let batchIndex = 0;
+    for (let b = 0; b < totalBatches; b++) {
+      const inBatch = Array.from({ length: BATCH_SIZE },
+        (_, i) => ordered[(b * BATCH_SIZE + i) % n]
+      );
+      if (inBatch.some(c => c.conceptId === item.conceptId)) {
+        batchIndex = b;
+        break;
+      }
+    }
+
+    router.push(`/quiz/${item.subjectId}_${batchIndex}` as never);
   };
 
   if (isLoading) {
@@ -160,7 +185,7 @@ export default function BookmarkScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}
-              onPress={() => handleStartReview(item.conceptId)}
+              onPress={() => handleStartReview(item)}
               activeOpacity={0.9}
             >
               <View style={styles.cardInfo}>

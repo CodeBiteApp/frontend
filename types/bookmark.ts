@@ -8,4 +8,5 @@ export interface BookmarkListResponse {
   title: string;
   subjectName: string;
   hasChild: boolean;
+  subjectId?: number;
 }

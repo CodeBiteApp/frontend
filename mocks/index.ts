@@ -50,11 +50,20 @@ function buildConceptsForSubject(subjectId: number): ConceptStage[] {
   }));
 }
 
+// conceptId → subjectId 역산 헬퍼 (목 전용)
+function getSubjectIdForConcept(conceptId: number): number {
+  for (let i = 0; i < CHAPTER_LETTERS.length; i++) {
+    const letter = CHAPTER_LETTERS[i];
+    if (CHAPTER_STAGES[letter].includes(conceptId)) return i + 1;
+  }
+  return 1;
+}
+
 // 북마크 인메모리 목록
 let mockBookmarks = [
-  { conceptId: 2, title: "Java 프로그래밍이란", subjectName: "Java 기초", hasChild: false },
-  { conceptId: 14, title: "기본형", subjectName: "Java 기초", hasChild: false },
-  { conceptId: 15, title: "참조형", subjectName: "Java 기초", hasChild: false },
+  { conceptId: 2, title: "Java 프로그래밍이란", subjectName: "Java 기초", hasChild: false, subjectId: 1 },
+  { conceptId: 14, title: "기본형", subjectName: "Java 기초", hasChild: false, subjectId: 1 },
+  { conceptId: 15, title: "참조형", subjectName: "Java 기초", hasChild: false, subjectId: 1 },
 ];
 
 export async function seedMockSession() {
@@ -114,11 +123,14 @@ export function setupMocks(api: AxiosInstance) {
     const conceptId = match ? Number(match[1]) : 0;
     if (conceptId > 0 && !mockBookmarks.some((b) => b.conceptId === conceptId)) {
       const info = STAGE_INFO[conceptId];
+      const subjectId = getSubjectIdForConcept(conceptId);
+      const subjectName = MOCK_SUBJECTS.find(s => s.subjectId === subjectId)?.name ?? "Java 기초";
       mockBookmarks.push({
         conceptId,
         title: info ? info.title : `개념 ${conceptId}`,
-        subjectName: "Java 기초",
+        subjectName,
         hasChild: false,
+        subjectId,
       });
     }
     return [200, { conceptId, isMarked: true }];
