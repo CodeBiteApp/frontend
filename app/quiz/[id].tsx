@@ -23,7 +23,7 @@ import {
   SubmitResultResponse,
   UserAnswer,
 } from "@/types/quiz";
-import { generateQuestionsFromConceptData, selectBalancedQuestions } from "@/utils/quizGenerator";
+import { generateQuestionsFromBatchData } from "@/utils/quizGenerator";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useNavigation, Stack } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -48,6 +48,10 @@ type ResultPhase = "result" | "streak" | "quest";
 
 export default function QuizScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [subjectIdStr, batchIndexStr] = id?.split('_') ?? ['', ''];
+  const subjectId = Number(subjectIdStr);
+  const batchIndex = Number(batchIndexStr);
+  const batchKey = `${subjectId}_${batchIndex}`;
   const router = useRouter();
   const navigation = useNavigation();
   const {

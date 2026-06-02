@@ -1,6 +1,7 @@
 import {
   AnyQuizQuestion,
   ConceptSlot,
+  ConceptStage,
   MatchingQuestion,
   OXQuestion,
   QuizConceptData,
@@ -10,6 +11,38 @@ import {
 } from "@/types/quiz";
 
 export const BATCH_SIZE = 5;
+
+/**
+ * 백엔드 SubjectBatchQuizDataService.getSlotConcepts와 동일한 인터리빙 순서.
+ * parentId 기준 그룹 → TreeMap(오름차순) → 라운드로빈 인터리빙.
+ * index.tsx에서 배치별 isStudied 체크에 사용.
+ */
+export function buildInterleavedOrder(concepts: ConceptStage[]): ConceptStage[] {
+  const n = concepts.length;
+  if (n === 0) return [];
+
+  const groupMap = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    const c = concepts[i];
+    const key = c.parentId != null ? c.parentId : -c.conceptId;
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key)!.push(i);
+  }
+
+  const groups = Array.from(groupMap.keys())
+    .sort((a, b) => a - b)
+    .map(k => groupMap.get(k)!);
+
+  const maxLen = Math.max(...groups.map(g => g.length));
+  const interleaved: number[] = [];
+  for (let round = 0; round < maxLen; round++) {
+    for (const g of groups) {
+      if (round < g.length) interleaved.push(g[round]);
+    }
+  }
+
+  return interleaved.map(i => concepts[i]);
+}
 
 // 백엔드 SeededRandom과 동일한 Numerical Recipes LCG (2^32)
 // state = (1664525 * state + 1013904223) & 0xFFFFFFFF
