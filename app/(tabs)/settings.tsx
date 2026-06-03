@@ -126,16 +126,6 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
     }
   }, [isFocused, handleFocus]);
 
-  const longestStreak = user?.longestStreak || 0;
-  const solvedCount = user?.studiedConceptCount || 0;
-
-  const badgesWithStatus = [
-    { id: "1", emoji: "🔥", label: "3일 연속", isEarned: longestStreak >= 3 },
-    { id: "2", emoji: "💡", label: "힌트왕", isEarned: solvedCount >= 3 },
-    { id: "3", emoji: "🎯", label: "첫 만점", isEarned: solvedCount >= 1 },
-    { id: "4", emoji: "🏅", label: "퀴즈 10회", isEarned: solvedCount >= 10 },
-  ];
-
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
       { text: "취소", style: "cancel" },
@@ -216,23 +206,6 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
         <Text style={styles.streakSub}>
           이번 주 {Math.min(user?.currentStreak || 0, 7)}/7일 완료
         </Text>
-      </View>
-
-      {/* ── 배지 ── */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>🏆 획득 배지</Text>
-        <View style={styles.badgeRow}>
-          {badgesWithStatus.map((b) => (
-            <View key={b.id} style={[styles.badge, !b.isEarned && styles.badgeLocked]}>
-              <Text style={[styles.badgeEmoji, !b.isEarned && styles.emojiLocked]}>
-                {b.isEarned ? b.emoji : "🔒"}
-              </Text>
-              <Text style={[styles.badgeLabel, !b.isEarned && styles.labelLocked]}>
-                {b.label}
-              </Text>
-            </View>
-          ))}
-        </View>
       </View>
 
       <FriendSearchModal

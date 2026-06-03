@@ -3,7 +3,6 @@ import { Button } from "@/components/common/Button";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
 import { OXOptions } from "@/components/quiz/OXOptions";
-import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
@@ -219,12 +218,9 @@ export default function QuizScreen() {
         <StreakScreen
           streakDays={streakDays}
           serverStreak={serverResult?.streak}
-          onNext={() => setPhase("quest")}
+          onNext={() => router.back()}
         />
       );
-    }
-    if (phase === "quest") {
-      return <QuestRewardScreen onDone={() => router.back()} />;
     }
     return (
       <ResultScreen
@@ -234,7 +230,7 @@ export default function QuizScreen() {
         accentColor={accentColor}
         score={serverResult?.score}
         dotoriEarned={serverResult?.dotoriEarned}
-        onNext={() => setPhase(serverResult?.streak.alreadyCheckedIn ? "quest" : "streak")}
+        onNext={() => setPhase("streak")}
       />
     );
   }
