@@ -66,8 +66,6 @@ export default function QuizScreen() {
     retryIsCorrect,
     retryRoundTotal,
     retryRoundIndex,
-    randomSeed,
-    userAnswers,
     setQuestions,
     markAnswer,
     nextQuestion,
@@ -162,9 +160,12 @@ export default function QuizScreen() {
   }, [batchKey]);
 
   useEffect(() => {
-    if (!isFinished || !randomSeed || submitAttempted.current) return;
+    if (!isFinished || submitAttempted.current) return;
+    // 마운트 직후 stale closure를 방지하기 위해 실행 시점의 최신 스토어 상태를 직접 읽음
+    const { isFinished: storeFinished, randomSeed: storeSeed, userAnswers: storeAnswers } = useQuizStore.getState();
+    if (!storeFinished || !storeSeed || storeAnswers.length === 0) return;
     submitAttempted.current = true;
-    const body = { subjectId, batchIndex, randomSeed, isCompleted: true, userAnswers };
+    const body = { subjectId, batchIndex, randomSeed: storeSeed, isCompleted: true, userAnswers: storeAnswers };
     submitBatchResult(body)
       .then((result) => {
         setServerResult(result);
@@ -174,7 +175,7 @@ export default function QuizScreen() {
         console.error("[submit-batch] error:", err?.response?.data ?? err);
       })
       .finally(() => setSubmitDone(true));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // isFinished 변경 시에만 실행, 실제 값은 getState()로 직접 조회
   }, [isFinished]);
 
   useEffect(() => {
@@ -222,9 +223,10 @@ export default function QuizScreen() {
         />
       );
     }
+    const firstConceptId = Number(questions[0]?.categoryId ?? 0);
     return (
       <ResultScreen
-        conceptId={subjectId}
+        conceptId={firstConceptId}
         correct={correct}
         total={total}
         accentColor={accentColor}
