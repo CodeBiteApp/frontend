@@ -1,6 +1,8 @@
 import Acorn from "@/components/charactor/Acorn";
 import DobiShop from "@/components/charactor/dobi-shop";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import React, { useEffect, useState, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -12,7 +14,6 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useItemStore } from "@/store/useItemStore";
 import { useUserStore } from "@/store/useUserStore";
@@ -33,6 +34,8 @@ export default function RewardScreen({ isFocused }: { isFocused?: boolean }) {
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
   const { shopItems, inventory, protectorCount, isLoading, fetchShopItems, fetchInventory, buyItem, toggleEquip } = useItemStore();
+
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
 
   const [tabMode, setTabMode] = useState<"SHOP" | "INVENTORY">("SHOP");
   const [selected, setSelected] = useState<ShopItemResponse | null>(null);
@@ -70,7 +73,7 @@ export default function RewardScreen({ isFocused }: { isFocused?: boolean }) {
     const success = await buyItem(selected.id);
     if (success) {
       setSelected(null);
-      Alert.alert("구매 성공", "구매완료 되었습니다.");
+      showAlert("구매 성공", "구매완료 되었습니다.");
     }
   };
 
@@ -283,6 +286,13 @@ export default function RewardScreen({ isFocused }: { isFocused?: boolean }) {
           </View>
         )}
       </Modal>
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
     </View>
   );
 }

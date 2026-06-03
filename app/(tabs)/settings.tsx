@@ -1,13 +1,14 @@
 import { getGlobalRanking } from "@/api/ranking";
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import FriendSearchModal from "@/components/social/FriendSearchModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useState, useCallback, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -88,6 +89,8 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
   const isSocialLogin = useUserStore((s) => s.isSocialLogin);
   const refreshUser = useUserStore((s) => s.refreshUser);
 
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
+
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
@@ -127,18 +130,25 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
   }, [isFocused, handleFocus]);
 
   const handleLogout = () => {
-    Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
+    showAlert("로그아웃", "정말 로그아웃 하시겠어요?", [
       { text: "취소", style: "cancel" },
       {
         text: "로그아웃",
         style: "destructive",
-        onPress: () =>
-          void logout().then(() => router.replace("/(auth)/login")),
+        onPress: () => void logout().then(() => router.replace("/(auth)/login")),
       },
     ]);
   };
 
   return (
+    <>
+    <ConfirmModal
+      visible={alertVisible}
+      title={alertConfig?.title ?? ""}
+      message={alertConfig?.message}
+      buttons={alertConfig?.buttons}
+      onDismiss={hideAlert}
+    />
     <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
@@ -310,6 +320,7 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
         textStyle={{ fontSize: 15 }}
       />
     </ScrollView>
+    </>
   );
 }
 

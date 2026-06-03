@@ -1,5 +1,6 @@
 import { fetchBatchQuizData, submitBatchResult } from "@/api/quiz";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
 import { OXOptions } from "@/components/quiz/OXOptions";
@@ -9,6 +10,7 @@ import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { CHAPTER_COLORS } from "@/constants/stageInfo";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useSubjectStore } from "@/store/useSubjectStore";
@@ -28,7 +30,6 @@ import { useLocalSearchParams, useRouter, useNavigation, Stack } from "expo-rout
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   BackHandler,
   ScrollView,
   StyleSheet,
@@ -92,6 +93,8 @@ export default function QuizScreen() {
   const [submitDone, setSubmitDone] = useState(false);
   const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
   const submitAttempted = useRef(false);
+  const pendingNavAction = useRef<any>(null);
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
 
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
@@ -102,25 +105,23 @@ export default function QuizScreen() {
       }
 
       e.preventDefault();
-
-      Alert.alert(
+      pendingNavAction.current = e.data.action;
+      showAlert(
         "학습을 종료하시겠습니까?",
         "지금 나가시면 진행 중인 퀴즈 데이터와 점수가 기록되지 않습니다.",
         [
-          { text: "계속 풀기", style: "cancel", onPress: () => {} },
+          { text: "계속 풀기", style: "cancel" },
           {
             text: "나가기",
             style: "destructive",
-            onPress: () => {
-              navigation.dispatch(e.data.action);
-            },
+            onPress: () => navigation.dispatch(pendingNavAction.current),
           },
-        ]
+        ],
       );
     });
 
     return unsubscribe;
-  }, [navigation, isFinished, isLoading, questions.length]);
+  }, [navigation, isFinished, isLoading, questions.length, showAlert]);
 
   useEffect(() => {
     const onHardwareBack = () => {
@@ -392,6 +393,13 @@ export default function QuizScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ gestureEnabled: isFinished }} />
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.closeBtn}
