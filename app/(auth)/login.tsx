@@ -1,4 +1,5 @@
 import { Button } from "@/components/common/Button";
+import { ALERT_TITLES, AUTH_MESSAGES } from "@/constants/messages";
 import { useUserStore } from "@/store/useUserStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -27,14 +28,14 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.login.emptyFields);
       return;
     }
     try {
       await login({ email: email.trim(), password });
       router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
     } catch {
-      Alert.alert("로그인 실패", "이메일 또는 비밀번호를 확인해주세요.");
+      Alert.alert(ALERT_TITLES.loginFailed, AUTH_MESSAGES.login.failed);
     }
   };
 

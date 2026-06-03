@@ -1,7 +1,8 @@
 import { Button } from "@/components/common/Button";
+import { ALERT_TITLES, AUTH_MESSAGES } from "@/constants/messages";
+import { useAuthError } from "@/hooks/useAuthError";
 import { useUserStore } from "@/store/useUserStore";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -17,10 +18,12 @@ import {
   View,
 } from "react-native";
 
+
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export default function SignupScreen() {
   const register = useUserStore((s) => s.register);
+  const { handleSignupError } = useAuthError();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,49 +36,26 @@ export default function SignupScreen() {
     const nickname = name.trim();
     const emailTrim = email.trim();
     if (!nickname || !emailTrim || !password) {
-      Alert.alert("알림", "모든 항목을 입력해주세요.");
+      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.signup.emptyFields);
       return;
     }
     if (nickname.length < 2 || nickname.length > 20) {
-      Alert.alert("알림", "닉네임은 2~20자여야 합니다.");
+      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.signup.nicknameLength);
       return;
     }
     if (password !== confirm) {
-      Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
+      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.signup.passwordMismatch);
       return;
     }
     if (!PASSWORD_PATTERN.test(password)) {
-      Alert.alert(
-        "알림",
-        "비밀번호는 8자 이상이며 영문, 숫자, 특수문자를 모두 포함해야 합니다.",
-      );
+      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.signup.passwordPattern);
       return;
     }
     try {
       await register({ email: emailTrim, password, nickname });
       router.replace("/(tabs)");
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const serverMessage: string | undefined = error.response?.data?.message;
-        console.log("[signup] Axios 에러 status:", status, "data:", JSON.stringify(error.response?.data));
-
-        if (!error.response) {
-          Alert.alert("연결 오류", "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.");
-        } else if (status === 409) {
-          Alert.alert("회원가입 실패", "이미 사용 중인 이메일입니다.");
-        } else if (status === 400) {
-          Alert.alert("회원가입 실패", serverMessage ?? "입력 값을 확인해주세요.");
-        } else if (status === 500) {
-          Alert.alert("서버 오류", "서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
-        } else {
-          Alert.alert("회원가입 실패", `[${status}] ${serverMessage ?? "잠시 후 다시 시도해주세요."}`);
-        }
-      } else {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.log("[signup] 비Axios 에러:", msg);
-        Alert.alert("회원가입 실패", msg);
-      }
+      handleSignupError(error);
     }
   };
 
