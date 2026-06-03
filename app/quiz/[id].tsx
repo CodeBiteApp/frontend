@@ -234,7 +234,7 @@ export default function QuizScreen() {
         accentColor={accentColor}
         score={serverResult?.score}
         dotoriEarned={serverResult?.dotoriEarned}
-        onNext={() => setPhase("streak")}
+        onNext={() => setPhase(serverResult?.streak.alreadyCheckedIn ? "quest" : "streak")}
       />
     );
   }

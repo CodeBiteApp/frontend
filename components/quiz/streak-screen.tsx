@@ -84,7 +84,7 @@ export function StreakScreen({ streakDays, serverStreak, onNext }: Props) {
       </View>
 
       <Animated.View style={[styles.textContainer, titleStyle]}>
-        <Text style={styles.daysNumber}>{displayDays + 1}</Text>
+        <Text style={styles.daysNumber}>{displayDays}</Text>
         <Text style={styles.daysLabel}>일째</Text>
         <Text style={styles.mainLabel}>연속 학습중!</Text>
       </Animated.View>
