@@ -33,14 +33,17 @@ export default function StageModal({ selected, onClose, onStart }: Props) {
     if (lastStudy) {
       const today = new Date().toISOString().split("T")[0];
       if (lastStudy.split("T")[0] === today) {
-        alert.show(
-          "오늘 학습 완료",
-          "오늘 학습이 완료되어, 퀴즈를 진행해도 스트릭이 오르지 않습니다.\n그래도 진행하시겠습니까?",
-          [
-            { text: "취소", style: "cancel" },
-            { text: "계속 진행", onPress: () => onStart(subjectId, batchIndex) },
-          ],
-        );
+        onClose();
+        setTimeout(() => {
+          alert.show(
+            "오늘 학습 완료",
+            "오늘 학습이 완료되어, 퀴즈를 진행해도 스트릭이 오르지 않습니다.\n그래도 진행하시겠습니까?",
+            [
+              { text: "취소", style: "cancel" },
+              { text: "계속 진행", onPress: () => onStart(subjectId, batchIndex) },
+            ],
+          );
+        }, 300);
         return;
       }
     }

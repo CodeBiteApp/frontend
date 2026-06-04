@@ -213,9 +213,17 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       setTimeout(() => {
         const virtualId = sid * 10000 + bi;
         const ref = buttonRefs.current[virtualId];
-        if (!ref) return;
+        if (!ref) {
+          confirmComplete(justCompletedStageId);
+          animatedStageRef.current = null;
+          return;
+        }
         ref.measureInWindow((x, y, w, h) => {
-          if (w === 0 || h === 0) return;
+          if (w === 0 || h === 0) {
+            confirmComplete(justCompletedStageId);
+            animatedStageRef.current = null;
+            return;
+          }
           const color = subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
 
           // 다음 배치 계산
@@ -414,7 +422,9 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
         onClose={() => setSelected(null)}
         onStart={(subjectId, batchIndex) => {
           setSelected(null);
-          router.push(`/quiz/${subjectId}_${batchIndex}` as never);
+          setTimeout(() => {
+            router.push(`/quiz/${subjectId}_${batchIndex}` as never);
+          }, 300);
         }}
       />
 
