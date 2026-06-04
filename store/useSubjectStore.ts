@@ -48,9 +48,16 @@ export const useSubjectStore = create<SubjectState>((set, get) => ({
         const raw = await AsyncStorage.getItem(CACHE_KEY);
         if (raw) {
           const cache: SubjectCache = JSON.parse(raw);
+          const seen = new Set<number>();
+          const dedupedSubjects = cache.subjects.filter((s) => {
+            if (seen.has(s.subjectId)) return false;
+            seen.add(s.subjectId);
+            return true;
+          });
           set({
-            subjects: cache.subjects,
+            subjects: dedupedSubjects,
             conceptsMap: cache.conceptsMap,
+            subjectPage: Math.ceil(dedupedSubjects.length / 20),
             isHydrated: true,
           });
 
@@ -63,11 +70,9 @@ export const useSubjectStore = create<SubjectState>((set, get) => ({
       } catch {}
     }
 
-    // 기존 데이터가 없을 때만 로딩 스피너 표시
+    // isLoading으로 loadMoreSubjects 동시 실행 방지 (스피너는 데이터 없을 때만)
     const hasExistingData = get().subjects.length > 0;
-    if (!hasExistingData) {
-      set({ isLoading: true });
-    }
+    set({ isLoading: true });
 
     try {
       if (reset && !hasExistingData) {
@@ -124,8 +129,10 @@ export const useSubjectStore = create<SubjectState>((set, get) => ({
       console.log(
         `[useSubjectStore] 추가 subjects 로드: ${newSubjects.length}개 (page ${subjectPage})`,
       );
+      const existingIds = new Set(subjects.map(s => s.subjectId));
+      const uniqueNewSubjects = newSubjects.filter(s => !existingIds.has(s.subjectId));
       set({
-        subjects: [...subjects, ...newSubjects],
+        subjects: [...subjects, ...uniqueNewSubjects],
         subjectPage: subjectPage + 1,
         hasMoreSubjects: page.hasNext,
       });
