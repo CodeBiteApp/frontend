@@ -42,29 +42,31 @@ export function ConfirmModal({
       statusBarTranslucent
       onRequestClose={onDismiss}
     >
-      <Pressable style={styles.backdrop} onPress={onDismiss} />
-      <View style={styles.center} pointerEvents="box-none">
-        <View style={styles.card}>
-          <View style={styles.body}>
-            <Text style={styles.title}>{title}</Text>
-            {message ? <Text style={styles.message}>{message}</Text> : null}
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.btnRow}>
-            {buttons.map((btn, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && <View style={styles.btnDivider} />}
-                <TouchableOpacity
-                  style={styles.btn}
-                  onPress={() => handlePress(btn)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.btnText, btnColor(btn.style)]}>
-                    {btn.text}
-                  </Text>
-                </TouchableOpacity>
-              </React.Fragment>
-            ))}
+      <View style={styles.root}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} />
+        <View style={styles.center} pointerEvents="box-none">
+          <View style={styles.card}>
+            <View style={styles.body}>
+              <Text style={styles.title}>{title}</Text>
+              {message ? <Text style={styles.message}>{message}</Text> : null}
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.btnRow}>
+              {buttons.map((btn, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <View style={styles.btnDivider} />}
+                  <TouchableOpacity
+                    style={styles.btn}
+                    onPress={() => handlePress(btn)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.btnText, btnColor(btn.style)]}>
+                      {btn.text}
+                    </Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -73,18 +75,15 @@ export function ConfirmModal({
 }
 
 function btnColor(style?: AppAlertButton["style"]) {
-  if (style === "destructive") return { color: "#FF4B4B", fontWeight: "700" as const };
+  if (style === "destructive")
+    return { color: "#FF4B4B", fontWeight: "700" as const };
   if (style === "cancel") return { color: "#888", fontWeight: "500" as const };
   return { color: "#58CC02", fontWeight: "700" as const };
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  root: {
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.65)",
   },
   center: {
