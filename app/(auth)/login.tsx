@@ -1,11 +1,12 @@
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { ALERT_TITLES, AUTH_MESSAGES } from "@/constants/messages";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useUserStore } from "@/store/useUserStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -22,20 +23,22 @@ export default function LoginScreen() {
   const login = useUserStore((s) => s.login);
   const hasOnboarded = useUserStore((s) => s.hasOnboarded);
 
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert(ALERT_TITLES.notice, AUTH_MESSAGES.login.emptyFields);
+      showAlert(ALERT_TITLES.notice, AUTH_MESSAGES.login.emptyFields);
       return;
     }
     try {
       await login({ email: email.trim(), password });
       router.replace(hasOnboarded ? "/(tabs)" : ("/(onboarding)" as never));
     } catch {
-      Alert.alert(ALERT_TITLES.loginFailed, AUTH_MESSAGES.login.failed);
+      showAlert(ALERT_TITLES.loginFailed, AUTH_MESSAGES.login.failed);
     }
   };
 
@@ -44,6 +47,13 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
       <ScrollView
         contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"

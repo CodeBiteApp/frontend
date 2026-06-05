@@ -1,13 +1,14 @@
 import { getGlobalRanking } from "@/api/ranking";
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import FriendSearchModal from "@/components/social/FriendSearchModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useState, useCallback, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -88,6 +89,8 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
   const isSocialLogin = useUserStore((s) => s.isSocialLogin);
   const refreshUser = useUserStore((s) => s.refreshUser);
 
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
+
   const [notification, setNotification] = useState(true);
   const [sound, setSound] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
@@ -126,29 +129,26 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
     }
   }, [isFocused, handleFocus]);
 
-  const longestStreak = user?.longestStreak || 0;
-  const solvedCount = user?.studiedConceptCount || 0;
-
-  const badgesWithStatus = [
-    { id: "1", emoji: "🔥", label: "3일 연속", isEarned: longestStreak >= 3 },
-    { id: "2", emoji: "💡", label: "힌트왕", isEarned: solvedCount >= 3 },
-    { id: "3", emoji: "🎯", label: "첫 만점", isEarned: solvedCount >= 1 },
-    { id: "4", emoji: "🏅", label: "퀴즈 10회", isEarned: solvedCount >= 10 },
-  ];
-
   const handleLogout = () => {
-    Alert.alert("로그아웃", "정말 로그아웃 하시겠어요?", [
+    showAlert("로그아웃", "정말 로그아웃 하시겠어요?", [
       { text: "취소", style: "cancel" },
       {
         text: "로그아웃",
         style: "destructive",
-        onPress: () =>
-          void logout().then(() => router.replace("/(auth)/login")),
+        onPress: () => void logout().then(() => router.replace("/(auth)/login")),
       },
     ]);
   };
 
   return (
+    <>
+    <ConfirmModal
+      visible={alertVisible}
+      title={alertConfig?.title ?? ""}
+      message={alertConfig?.message}
+      buttons={alertConfig?.buttons}
+      onDismiss={hideAlert}
+    />
     <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
@@ -216,23 +216,6 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
         <Text style={styles.streakSub}>
           이번 주 {Math.min(user?.currentStreak || 0, 7)}/7일 완료
         </Text>
-      </View>
-
-      {/* ── 배지 ── */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>🏆 획득 배지</Text>
-        <View style={styles.badgeRow}>
-          {badgesWithStatus.map((b) => (
-            <View key={b.id} style={[styles.badge, !b.isEarned && styles.badgeLocked]}>
-              <Text style={[styles.badgeEmoji, !b.isEarned && styles.emojiLocked]}>
-                {b.isEarned ? b.emoji : "🔒"}
-              </Text>
-              <Text style={[styles.badgeLabel, !b.isEarned && styles.labelLocked]}>
-                {b.label}
-              </Text>
-            </View>
-          ))}
-        </View>
       </View>
 
       <FriendSearchModal
@@ -337,6 +320,7 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
         textStyle={{ fontSize: 15 }}
       />
     </ScrollView>
+    </>
   );
 }
 

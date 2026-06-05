@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,15 @@ export function ShortAnswerInput({
   const [value, setValue] = useState("");
   const [submittedValue, setSubmittedValue] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+
+  // 재시도 시 같은 문제가 다시 나올 때 isAnswered가 true→false로 바뀌면 내부 상태 초기화
+  useEffect(() => {
+    if (!isAnswered) {
+      setValue("");
+      setSubmittedValue("");
+      setIsCorrect(null);
+    }
+  }, [isAnswered]);
 
   const isSubmitted = isCorrect !== null;
   const locked = isAnswered || isSubmitted;

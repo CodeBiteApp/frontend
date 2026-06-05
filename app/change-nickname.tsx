@@ -1,11 +1,12 @@
 import { updateNickname } from "@/api/users";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useUserStore } from "@/store/useUserStore";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -23,6 +24,8 @@ export default function ChangeNicknameScreen() {
   const setUser = useUserStore((s) => s.setUser);
 
   const currentNickname = user?.nickname ?? "";
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
+
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,11 +38,11 @@ export default function ChangeNicknameScreen() {
     try {
       const updated = await updateNickname(trimmed);
       setUser(updated);
-      Alert.alert("완료", "닉네임이 변경되었습니다.", [
+      showAlert("완료", "닉네임이 변경되었습니다.", [
         { text: "확인", onPress: () => router.back() },
       ]);
     } catch {
-      Alert.alert("오류", "닉네임 변경에 실패했습니다. 다시 시도해주세요.");
+      showAlert("오류", "닉네임 변경에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
@@ -50,6 +53,13 @@ export default function ChangeNicknameScreen() {
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

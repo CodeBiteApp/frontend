@@ -13,9 +13,10 @@ import { useUserStore } from "@/store/useUserStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   Modal,
@@ -87,6 +88,8 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
 
   const { subjects, conceptsMap, isLoading, isHydrated, hasMoreSubjects, refreshConcepts, loadMoreSubjects } = useSubjectStore();
   const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
+
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
 
   const [selected, setSelected] = useState<SelectedStage | null>(null);
   const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
@@ -210,9 +213,17 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       setTimeout(() => {
         const virtualId = sid * 10000 + bi;
         const ref = buttonRefs.current[virtualId];
-        if (!ref) return;
+        if (!ref) {
+          confirmComplete(justCompletedStageId);
+          animatedStageRef.current = null;
+          return;
+        }
         ref.measureInWindow((x, y, w, h) => {
-          if (w === 0 || h === 0) return;
+          if (w === 0 || h === 0) {
+            confirmComplete(justCompletedStageId);
+            animatedStageRef.current = null;
+            return;
+          }
           const color = subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
 
           // 다음 배치 계산
@@ -305,11 +316,11 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
     setIsRestoring(true);
     try {
       await restoreStreak();
-      Alert.alert("스트릭 유지 완료", "보호권이 소모되었으며 스트릭이 보존되었습니다! 🛡️");
       setShowStreakModal(false);
       await refreshUser();
+      showAlert("스트릭 유지 완료", "보호권이 소모되었으며 스트릭이 보존되었습니다! 🛡️");
     } catch (e: any) {
-      Alert.alert("에러", e.message || "스트릭 복구에 실패했습니다.");
+      showAlert("에러", e.message || "스트릭 복구에 실패했습니다.");
     } finally {
       setIsRestoring(false);
     }
@@ -319,11 +330,11 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
     setIsRestoring(true);
     try {
       await resetStreak();
-      Alert.alert("스트릭 초기화", "연속 학습 스트릭이 0일로 재설정되었습니다.");
       setShowStreakModal(false);
       await refreshUser();
+      showAlert("스트릭 초기화", "연속 학습 스트릭이 0일로 재설정되었습니다.");
     } catch (e: any) {
-      Alert.alert("에러", e.message || "스트릭 초기화에 실패했습니다.");
+      showAlert("에러", e.message || "스트릭 초기화에 실패했습니다.");
     } finally {
       setIsRestoring(false);
     }
@@ -411,7 +422,9 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
         onClose={() => setSelected(null)}
         onStart={(subjectId, batchIndex) => {
           setSelected(null);
-          router.push(`/quiz/${subjectId}_${batchIndex}` as never);
+          setTimeout(() => {
+            router.push(`/quiz/${subjectId}_${batchIndex}` as never);
+          }, 300);
         }}
       />
 
@@ -484,6 +497,14 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
           </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
     </>
   );
 }

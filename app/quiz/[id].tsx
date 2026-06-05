@@ -1,15 +1,16 @@
 import { fetchBatchQuizData, submitBatchResult } from "@/api/quiz";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { MatchingOptions } from "@/components/quiz/MatchingOptions";
 import { MultipleChoiceOptions } from "@/components/quiz/MultipleChoiceOptions";
 import { OXOptions } from "@/components/quiz/OXOptions";
-import { QuestRewardScreen } from "@/components/quiz/quest-reward-screen";
 import { QuizCard } from "@/components/quiz/QuizCard";
 import { ResultScreen } from "@/components/quiz/result-screen";
 import { RetryBanner } from "@/components/quiz/RetryBanner";
 import { ShortAnswerInput } from "@/components/quiz/ShortAnswerInput";
 import { StreakScreen } from "@/components/quiz/streak-screen";
 import { CHAPTER_COLORS } from "@/constants/stageInfo";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useQuizStore } from "@/store/useQuizStore";
 import { useStageStore } from "@/store/useStageStore";
 import { useSubjectStore } from "@/store/useSubjectStore";
@@ -29,7 +30,6 @@ import { useLocalSearchParams, useRouter, useNavigation, Stack } from "expo-rout
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   BackHandler,
   ScrollView,
   StyleSheet,
@@ -67,8 +67,6 @@ export default function QuizScreen() {
     retryIsCorrect,
     retryRoundTotal,
     retryRoundIndex,
-    randomSeed,
-    userAnswers,
     setQuestions,
     markAnswer,
     nextQuestion,
@@ -95,6 +93,8 @@ export default function QuizScreen() {
   const [submitDone, setSubmitDone] = useState(false);
   const [serverResult, setServerResult] = useState<SubmitResultResponse | null>(null);
   const submitAttempted = useRef(false);
+  const pendingNavAction = useRef<any>(null);
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
 
   const streakDays = Math.max(1, Math.min(completedStages.length, 30));
 
@@ -105,25 +105,23 @@ export default function QuizScreen() {
       }
 
       e.preventDefault();
-
-      Alert.alert(
+      pendingNavAction.current = e.data.action;
+      showAlert(
         "학습을 종료하시겠습니까?",
         "지금 나가시면 진행 중인 퀴즈 데이터와 점수가 기록되지 않습니다.",
         [
-          { text: "계속 풀기", style: "cancel", onPress: () => {} },
+          { text: "계속 풀기", style: "cancel" },
           {
             text: "나가기",
             style: "destructive",
-            onPress: () => {
-              navigation.dispatch(e.data.action);
-            },
+            onPress: () => navigation.dispatch(pendingNavAction.current),
           },
-        ]
+        ],
       );
     });
 
     return unsubscribe;
-  }, [navigation, isFinished, isLoading, questions.length]);
+  }, [navigation, isFinished, isLoading, questions.length, showAlert]);
 
   useEffect(() => {
     const onHardwareBack = () => {
@@ -163,9 +161,12 @@ export default function QuizScreen() {
   }, [batchKey]);
 
   useEffect(() => {
-    if (!isFinished || !randomSeed || submitAttempted.current) return;
+    if (!isFinished || submitAttempted.current) return;
+    // 마운트 직후 stale closure를 방지하기 위해 실행 시점의 최신 스토어 상태를 직접 읽음
+    const { isFinished: storeFinished, randomSeed: storeSeed, userAnswers: storeAnswers } = useQuizStore.getState();
+    if (!storeFinished || !storeSeed || storeAnswers.length === 0) return;
     submitAttempted.current = true;
-    const body = { subjectId, batchIndex, randomSeed, isCompleted: true, userAnswers };
+    const body = { subjectId, batchIndex, randomSeed: storeSeed, isCompleted: true, userAnswers: storeAnswers };
     submitBatchResult(body)
       .then((result) => {
         setServerResult(result);
@@ -175,7 +176,7 @@ export default function QuizScreen() {
         console.error("[submit-batch] error:", err?.response?.data ?? err);
       })
       .finally(() => setSubmitDone(true));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // isFinished 변경 시에만 실행, 실제 값은 getState()로 직접 조회
   }, [isFinished]);
 
   useEffect(() => {
@@ -219,22 +220,20 @@ export default function QuizScreen() {
         <StreakScreen
           streakDays={streakDays}
           serverStreak={serverResult?.streak}
-          onNext={() => setPhase("quest")}
+          onNext={() => router.back()}
         />
       );
     }
-    if (phase === "quest") {
-      return <QuestRewardScreen onDone={() => router.back()} />;
-    }
+    const firstConceptId = Number(questions[0]?.categoryId ?? 0);
     return (
       <ResultScreen
-        conceptId={subjectId}
+        conceptId={firstConceptId}
         correct={correct}
         total={total}
         accentColor={accentColor}
         score={serverResult?.score}
         dotoriEarned={serverResult?.dotoriEarned}
-        onNext={() => setPhase(serverResult?.streak.alreadyCheckedIn ? "quest" : "streak")}
+        onNext={() => setPhase("streak")}
       />
     );
   }
@@ -394,6 +393,13 @@ export default function QuizScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ gestureEnabled: isFinished }} />
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.closeBtn}

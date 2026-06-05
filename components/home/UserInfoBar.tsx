@@ -11,9 +11,8 @@ type Props = {
   acornCount: number;
 };
 
-function positionLabel(pos: string | null): string {
-  if (!pos) return "개발자";
-  return pos.replace(" 개발자", "");
+function positionLabel(_pos: string | null): string {
+  return "자바 개발자";
 }
 
 function useCountUp(value: number) {

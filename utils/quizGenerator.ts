@@ -114,8 +114,13 @@ function generateSlotQuestion(
     .filter((v): v is string => v !== undefined);
   const siblingDefs = Array.from(new Set(rawDefs)).sort();
 
+  // cross-slot distractor 병합: 정답 제거 후 사전순 정렬
+  const seenDefs = new Set([...siblingDefs, ...(slot.crossSlotDefs ?? [])]);
+  if (conceptDef) seenDefs.delete(conceptDef.value);
+  const allDefs = Array.from(seenDefs).sort();
+
   const id = `${subjectId}-${slot.conceptId}`;
-  const canMultipleCase = !!conceptDef && siblingDefs.length >= 3;
+  const canMultipleCase = !!conceptDef && allDefs.length >= 3;
   const canShortAnswer = !!conceptDef;
   const canOX = siblings.length >= 1;
 
@@ -124,7 +129,7 @@ function generateSlotQuestion(
 
   for (const type of tryOrder) {
     if (type === 'MULTIPLE_CASE' && canMultipleCase) {
-      const distractors = [...siblingDefs];
+      const distractors = [...allDefs];
       rng.shuffle(distractors);
       const options = [...distractors.slice(0, 3), conceptDef!.value];
       rng.shuffle(options);

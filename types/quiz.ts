@@ -153,6 +153,7 @@ export type ConceptSlot = {
   parentId: number | null;
   detailsList: ConceptDetail[];
   siblings: SiblingConcept[];
+  crossSlotDefs: string[];
 };
 
 export type SubjectBatchQuizData = {

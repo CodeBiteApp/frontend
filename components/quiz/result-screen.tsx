@@ -1,12 +1,18 @@
-import { addBookmark, removeBookmark, fetchBookmarks } from "@/api/bookmark";
-import { BookmarkListResponse } from "@/types/bookmark";
+import { addBookmark, fetchBookmarks, removeBookmark } from "@/api/bookmark";
 import { Button } from "@/components/common/Button";
 import { QuizResultCharacter } from "@/components/quiz/QuizResultCharacter";
+import { BookmarkListResponse } from "@/types/bookmark";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useRef, useMemo } from "react";
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type Props = {
   conceptId: number;
@@ -37,20 +43,25 @@ export function ResultScreen({
     queryFn: () => fetchBookmarks(),
   });
 
-  const isMarked = bookmarks.some((b) => b.conceptId === conceptId);
-
   // 북마크 등록 Mutation
   const addMutation = useMutation({
     mutationFn: (id: number) => addBookmark(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["bookmarks"] });
-      const previous = queryClient.getQueryData<BookmarkListResponse[]>(["bookmarks"]);
-      
+      const previous = queryClient.getQueryData<BookmarkListResponse[]>([
+        "bookmarks",
+      ]);
+
       queryClient.setQueryData<BookmarkListResponse[]>(["bookmarks"], (old) => {
         if (!old) return [];
         return [
           ...old,
-          { conceptId: id, title: "학습 완료 개념", subjectName: "Java", hasChild: false },
+          {
+            conceptId: id,
+            title: "학습 완료 개념",
+            subjectName: "Java",
+            hasChild: false,
+          },
         ];
       });
 
@@ -71,7 +82,9 @@ export function ResultScreen({
     mutationFn: (id: number) => removeBookmark(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["bookmarks"] });
-      const previous = queryClient.getQueryData<BookmarkListResponse[]>(["bookmarks"]);
+      const previous = queryClient.getQueryData<BookmarkListResponse[]>([
+        "bookmarks",
+      ]);
 
       queryClient.setQueryData<BookmarkListResponse[]>(["bookmarks"], (old) =>
         old ? old.filter((b) => b.conceptId !== id) : [],
@@ -89,20 +102,71 @@ export function ResultScreen({
     },
   });
 
+  const isBookmarkPending = addMutation.isPending || removeMutation.isPending;
+
+  const isMarked = useMemo(() => {
+    if (addMutation.isPending) return true;
+    if (removeMutation.isPending) return false;
+    return bookmarks.some((b) => b.conceptId === conceptId);
+  }, [bookmarks, conceptId, addMutation.isPending, removeMutation.isPending]);
+
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastMessage = useRef("북마크에 저장되었습니다");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (message: string) => {
+    toastMessage.current = message;
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1600),
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    toastTimer.current = setTimeout(() => {
+      toastOpacity.setValue(0);
+    }, 2100);
+  };
+
   const handleToggleBookmark = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (isBookmarkPending) return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {}
     if (isMarked) {
       removeMutation.mutate(conceptId);
+      showToast("북마크가 해제되었습니다");
     } else {
       addMutation.mutate(conceptId);
+      showToast("북마크에 저장되었습니다");
     }
   };
 
   return (
     <View style={styles.container}>
+      <Animated.View
+        style={[styles.toast, { opacity: toastOpacity }]}
+        pointerEvents="none"
+      >
+        <Ionicons name="bookmark" size={15} color="#58CC02" />
+        <Text style={styles.toastText}>{toastMessage.current}</Text>
+      </Animated.View>
       {/* 상단 액션 바 */}
       <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.actionBtn} onPress={handleToggleBookmark} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleToggleBookmark}
+          activeOpacity={0.7}
+          disabled={isBookmarkPending}
+        >
           <Ionicons
             name={isMarked ? "bookmark" : "bookmark-outline"}
             size={22}
@@ -200,4 +264,20 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: "#333537" },
   label: { color: "#888", fontSize: 15 },
   value: { fontSize: 20, fontWeight: "800" },
+  toast: {
+    position: "absolute",
+    top: 20,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#2A2D2F",
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#58CC02",
+    zIndex: 100,
+  },
+  toastText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 });

@@ -1,10 +1,11 @@
 import { updatePassword } from "@/api/users";
 import { Button } from "@/components/common/Button";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -18,6 +19,8 @@ const MIN_LENGTH = 8;
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+
+  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
 
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -36,11 +39,11 @@ export default function ChangePasswordScreen() {
     setLoading(true);
     try {
       await updatePassword(current, next);
-      Alert.alert("완료", "비밀번호가 변경되었습니다.", [
+      showAlert("완료", "비밀번호가 변경되었습니다.", [
         { text: "확인", onPress: () => router.back() },
       ]);
     } catch {
-      Alert.alert("오류", "비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인해주세요.");
+      showAlert("오류", "비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인해주세요.");
     } finally {
       setLoading(false);
     }
@@ -51,6 +54,13 @@ export default function ChangePasswordScreen() {
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ConfirmModal
+        visible={alertVisible}
+        title={alertConfig?.title ?? ""}
+        message={alertConfig?.message}
+        buttons={alertConfig?.buttons}
+        onDismiss={hideAlert}
+      />
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

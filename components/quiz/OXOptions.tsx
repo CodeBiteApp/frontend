@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { QuizColors } from "@/constants/quiz";
 
 type Props = {
   selected: boolean | null; // true = O, false = X, null = 미선택
@@ -13,30 +14,30 @@ export function OXOptions({
   selected,
   correctAnswer,
   isAnswered,
-  accentColor = "#1CB0F6",
+  accentColor = QuizColors.accent,
   onSelect,
 }: Props) {
   const getStyle = (value: boolean) => {
     const isSelected = selected === value;
     if (!isAnswered) {
       return {
-        borderColor: isSelected ? accentColor : "#333537",
-        backgroundColor: isSelected ? "#1e2022" : "#242628",
+        borderColor: isSelected ? accentColor : QuizColors.border,
+        backgroundColor: isSelected ? QuizColors.selectedBg : QuizColors.itemBg,
       };
     }
     const isCorrect = value === correctAnswer;
-    if (isCorrect) return { borderColor: "#58CC02", backgroundColor: "#0A2A14" };
-    if (isSelected) return { borderColor: "#FF4B4B", backgroundColor: "#2A0A0A" };
-    return { borderColor: "#333537", backgroundColor: "#242628" };
+    if (isCorrect) return { borderColor: QuizColors.correct, backgroundColor: QuizColors.correctBg };
+    if (isSelected) return { borderColor: QuizColors.wrong, backgroundColor: QuizColors.wrongBg };
+    return { borderColor: QuizColors.border, backgroundColor: QuizColors.itemBg };
   };
 
   const getTextColor = (value: boolean) => {
     const isSelected = selected === value;
-    if (!isAnswered) return isSelected ? accentColor : "#444";
+    if (!isAnswered) return isSelected ? accentColor : QuizColors.textFaint;
     const isCorrect = value === correctAnswer;
-    if (isCorrect) return "#58CC02";
-    if (isSelected) return "#FF4B4B";
-    return "#333";
+    if (isCorrect) return QuizColors.correct;
+    if (isSelected) return QuizColors.wrong;
+    return QuizColors.textFainter;
   };
 
   return (

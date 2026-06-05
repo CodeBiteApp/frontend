@@ -1,3 +1,4 @@
+import { QuizColors } from "@/constants/quiz";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -8,7 +9,12 @@ type Props = {
   accentColor?: string;
 };
 
-export function QuizCard({ questionNumber, total, question, accentColor = "#58CC02" }: Props) {
+export function QuizCard({
+  questionNumber,
+  total,
+  question,
+  accentColor = QuizColors.correct,
+}: Props) {
   const progress = questionNumber / total;
   return (
     <View style={styles.card}>

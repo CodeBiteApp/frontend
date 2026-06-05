@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { QuizColors } from "@/constants/quiz";
 
 type Props = {
   label: string;
@@ -16,37 +17,37 @@ export function QuizOption({
   selected,
   correct,
   onPress,
-  accentColor = "#1CB0F6",
+  accentColor = QuizColors.accent,
 }: Props) {
   const letters = ["A", "B", "C", "D"];
   const answered = correct !== null && correct !== undefined;
 
   const getBorderColor = () => {
-    if (!answered) return selected ? accentColor : "#333537";
-    if (correct) return "#58CC02";
-    if (selected && !correct) return "#FF4B4B";
-    return "#333537";
+    if (!answered) return selected ? accentColor : QuizColors.border;
+    if (correct) return QuizColors.correct;
+    if (selected && !correct) return QuizColors.wrong;
+    return QuizColors.border;
   };
 
   const getBgColor = () => {
-    if (!answered) return selected ? "#1e2022" : "#242628";
-    if (correct) return "#0A2A14";
-    if (selected && !correct) return "#2A0A0A";
-    return "#242628";
+    if (!answered) return selected ? QuizColors.selectedBg : QuizColors.itemBg;
+    if (correct) return QuizColors.correctBg;
+    if (selected && !correct) return QuizColors.wrongBg;
+    return QuizColors.itemBg;
   };
 
   const getTextColor = () => {
-    if (!answered) return selected ? accentColor : "#ccc";
-    if (correct) return "#58CC02";
-    if (selected && !correct) return "#FF4B4B";
-    return "#555";
+    if (!answered) return selected ? accentColor : QuizColors.text;
+    if (correct) return QuizColors.correct;
+    if (selected && !correct) return QuizColors.wrong;
+    return QuizColors.textMuted;
   };
 
   const getBadgeBg = () => {
-    if (!answered) return selected ? accentColor : "#333537";
-    if (correct) return "#58CC02";
-    if (selected && !correct) return "#FF4B4B";
-    return "#2a2c2e";
+    if (!answered) return selected ? accentColor : QuizColors.badgeBg;
+    if (correct) return QuizColors.correct;
+    if (selected && !correct) return QuizColors.wrong;
+    return QuizColors.badgeBgAnswered;
   };
 
   const textColor = getTextColor();
@@ -64,7 +65,7 @@ export function QuizOption({
         <Text
           style={[
             styles.letter,
-            { color: selected || correct ? "#fff" : "#888" },
+            { color: selected || correct ? QuizColors.white : QuizColors.badgeLetter },
           ]}
         >
           {letters[index]}
