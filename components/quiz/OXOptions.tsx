@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { QuizColors } from "@/constants/quiz";
+import { QuizColors } from "@/constants/colors";
 
 type Props = {
   selected: boolean | null; // true = O, false = X, null = 미선택
@@ -21,14 +21,14 @@ export function OXOptions({
     const isSelected = selected === value;
     if (!isAnswered) {
       return {
-        borderColor: isSelected ? accentColor : QuizColors.border,
+        borderColor: isSelected ? accentColor : QuizColors.surface,
         backgroundColor: isSelected ? QuizColors.selectedBg : QuizColors.itemBg,
       };
     }
     const isCorrect = value === correctAnswer;
     if (isCorrect) return { borderColor: QuizColors.correct, backgroundColor: QuizColors.correctBg };
     if (isSelected) return { borderColor: QuizColors.wrong, backgroundColor: QuizColors.wrongBg };
-    return { borderColor: QuizColors.border, backgroundColor: QuizColors.itemBg };
+    return { borderColor: QuizColors.surface, backgroundColor: QuizColors.itemBg };
   };
 
   const getTextColor = (value: boolean) => {
@@ -37,7 +37,7 @@ export function OXOptions({
     const isCorrect = value === correctAnswer;
     if (isCorrect) return QuizColors.correct;
     if (isSelected) return QuizColors.wrong;
-    return QuizColors.textFainter;
+    return QuizColors.textGhost;
   };
 
   return (

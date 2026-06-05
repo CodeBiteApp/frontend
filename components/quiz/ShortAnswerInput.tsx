@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { QuizColors } from "@/constants/colors";
 
 type Props = {
   correctAnswer: string;
@@ -17,7 +18,7 @@ type Props = {
 export function ShortAnswerInput({
   correctAnswer,
   isAnswered,
-  accentColor = "#1CB0F6",
+  accentColor = QuizColors.accent,
   onSubmit,
 }: Props) {
   const [value, setValue] = useState("");
@@ -50,8 +51,8 @@ export function ShortAnswerInput({
     isCorrect === null
       ? accentColor
       : isCorrect
-      ? "#58CC02"
-      : "#FF4B4B";
+      ? QuizColors.correct
+      : QuizColors.wrong;
 
   return (
     <View style={styles.container}>
@@ -60,7 +61,7 @@ export function ShortAnswerInput({
         value={value}
         onChangeText={setValue}
         placeholder="정답을 입력하세요"
-        placeholderTextColor="#555"
+        placeholderTextColor={QuizColors.textPlaceholder}
         editable={!locked}
         onSubmitEditing={handleSubmit}
         returnKeyType="done"
@@ -80,7 +81,7 @@ export function ShortAnswerInput({
             styles.feedback,
             {
               borderColor,
-              backgroundColor: isCorrect ? "#0A2A14" : "#2A0A0A",
+              backgroundColor: isCorrect ? QuizColors.correctBg : QuizColors.wrongBg,
             },
           ]}
         >
@@ -96,11 +97,11 @@ export function ShortAnswerInput({
 const styles = StyleSheet.create({
   container: { gap: 10 },
   input: {
-    backgroundColor: "#242628",
+    backgroundColor: QuizColors.itemBg,
     borderWidth: 2,
     borderRadius: 14,
     padding: 14,
-    color: "#fff",
+    color: QuizColors.white,
     fontSize: 15,
   },
   submitBtn: {
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
   },
-  submitBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  submitBtnText: { color: QuizColors.white, fontWeight: "700", fontSize: 15 },
   feedback: {
     padding: 14,
     borderRadius: 14,

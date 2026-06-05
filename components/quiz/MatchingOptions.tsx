@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { QuizColors } from "@/constants/quiz";
+import { QuizColors } from "@/constants/colors";
 
 type Props = {
   leftItems: string[];
@@ -92,7 +92,7 @@ export function MatchingOptions({
                     styles.badge,
                     {
                       backgroundColor:
-                        color || (isSelected ? accentColor : QuizColors.badgeBg),
+                        color || (isSelected ? accentColor : QuizColors.surface),
                     },
                   ]}
                 >
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   column: { flex: 1, gap: 8 },
   divider: {
     width: 1,
-    backgroundColor: QuizColors.divider,
+    backgroundColor: QuizColors.surface,
     marginHorizontal: 10,
     alignSelf: "stretch",
   },
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderWidth: 2,
-    borderColor: QuizColors.border,
+    borderColor: QuizColors.surface,
     backgroundColor: QuizColors.itemBg,
     flexDirection: "row",
     alignItems: "center",
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexShrink: 0,
   },
-  badgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  badgeText: { color: QuizColors.white, fontSize: 12, fontWeight: "700" },
   itemText: {
     fontSize: 13,
     color: QuizColors.text,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     textAlign: "center",
-    color: QuizColors.hintText,
+    color: QuizColors.textHint,
     fontSize: 13,
   },
   icon: {

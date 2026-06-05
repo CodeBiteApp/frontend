@@ -1,4 +1,4 @@
-import { QuizColors } from "@/constants/quiz";
+import { QuizColors } from "@/constants/colors";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -38,7 +38,7 @@ export function QuizCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#242628",
+    backgroundColor: QuizColors.itemBg,
     borderRadius: 20,
     padding: 24,
   },
@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginBottom: 10,
   },
-  progress: { fontSize: 13, fontWeight: "600", color: "#888" },
+  progress: { fontSize: 13, fontWeight: "600", color: QuizColors.textLabel },
   progressTrack: {
     height: 6,
-    backgroundColor: "#333537",
+    backgroundColor: QuizColors.surface,
     borderRadius: 3,
     marginBottom: 20,
     overflow: "hidden",
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 19,
     fontWeight: "700",
-    color: "#fff",
+    color: QuizColors.white,
     lineHeight: 30,
   },
 });
