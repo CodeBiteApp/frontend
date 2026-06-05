@@ -55,8 +55,10 @@ export default function LoginScreen() {
         onDismiss={hideAlert}
       />
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.inner}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <Image
           source={require("@/assets/images/logo.png")}
@@ -119,6 +121,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#191A1C" },
+  scroll: { flex: 1, backgroundColor: "#191A1C" },
   inner: {
     flexGrow: 1,
     justifyContent: "center",

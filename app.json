@@ -18,6 +18,7 @@
         "backgroundColor": "#FFB6C1"
       },
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "pan",
       "predictiveBackGestureEnabled": false,
       "package": "com.jajup.codebite"
     },
