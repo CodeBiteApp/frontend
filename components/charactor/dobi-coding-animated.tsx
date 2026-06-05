@@ -8,7 +8,7 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 export default function DobiCodingAnimated({ size = 300 }: DobiAnimatedProps) {
   const leftArmY = useRef(new Animated.Value(0)).current;
   const rightArmY = useRef(new Animated.Value(0)).current;
-  const tailAngle = useRef(new Animated.Value(0)).current;
+  const tailAngle = useRef(new Animated.Value(-2)).current;
   const eyeAnim = useRef(new Animated.Value(0)).current;
 
   // 0 -> 1 로 갈 때 x:+4, y:+5 이동

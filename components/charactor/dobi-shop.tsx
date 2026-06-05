@@ -15,7 +15,7 @@ const AnimatedG = Animated.createAnimatedComponent(G) as React.ComponentType<{
 type Props = { width?: number; height?: number };
 
 export default function DobiShop({ width = 400, height = 400 }: Props) {
-  const tailAngle = useRef(new Animated.Value(0)).current;
+  const tailAngle = useRef(new Animated.Value(-2)).current;
   const eyeX = useRef(new Animated.Value(0)).current;
   const eyeY = useRef(new Animated.Value(0)).current;
   const bottleY = useRef(new Animated.Value(0)).current;
