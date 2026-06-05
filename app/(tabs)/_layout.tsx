@@ -8,7 +8,7 @@ import RewardScreen from "./reward";
 import SettingsScreen from "./settings";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const ICON_SIZE = 30;
+const ICON_SIZE = 36;
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -102,7 +102,7 @@ export default function TabLayout() {
         style={[
           styles.tabBar,
           {
-            height: 60 + Math.max(insets.bottom, 8),
+            height: 75 + Math.max(insets.bottom, 8),
             paddingBottom: Math.max(insets.bottom, 8),
           },
         ]}
