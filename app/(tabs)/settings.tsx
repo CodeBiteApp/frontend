@@ -1,4 +1,5 @@
 import { getGlobalRanking } from "@/api/ranking";
+import { scheduleQuizNotification } from "@/lib/notifications";
 import Acorn from "@/components/charactor/Acorn";
 import { Button } from "@/components/common/Button";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
@@ -274,6 +275,11 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
               trackColor={{ true: "#FFC800" }}
             />
           }
+        />
+        <View style={styles.divider} />
+        <SettingRow
+          label="퀴즈 알림 테스트 (5초 후)"
+          onPress={() => void scheduleQuizNotification(5)}
         />
       </View>
 
