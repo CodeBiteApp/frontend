@@ -1,4 +1,4 @@
-import { QuizColors } from "@/constants/quiz";
+import { QuizColors } from "@/constants/colors";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { QuizOption } from "./QuizOption";

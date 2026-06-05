@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { QuizColors } from "@/constants/quiz";
+import { QuizColors } from "@/constants/colors";
 
 type Props = {
   label: string;
@@ -23,10 +23,10 @@ export function QuizOption({
   const answered = correct !== null && correct !== undefined;
 
   const getBorderColor = () => {
-    if (!answered) return selected ? accentColor : QuizColors.border;
+    if (!answered) return selected ? accentColor : QuizColors.surface;
     if (correct) return QuizColors.correct;
     if (selected && !correct) return QuizColors.wrong;
-    return QuizColors.border;
+    return QuizColors.surface;
   };
 
   const getBgColor = () => {
@@ -40,14 +40,14 @@ export function QuizOption({
     if (!answered) return selected ? accentColor : QuizColors.text;
     if (correct) return QuizColors.correct;
     if (selected && !correct) return QuizColors.wrong;
-    return QuizColors.textMuted;
+    return QuizColors.textPlaceholder;
   };
 
   const getBadgeBg = () => {
-    if (!answered) return selected ? accentColor : QuizColors.badgeBg;
+    if (!answered) return selected ? accentColor : QuizColors.surface;
     if (correct) return QuizColors.correct;
     if (selected && !correct) return QuizColors.wrong;
-    return QuizColors.badgeBgAnswered;
+    return QuizColors.surfaceAlt;
   };
 
   const textColor = getTextColor();
@@ -65,7 +65,7 @@ export function QuizOption({
         <Text
           style={[
             styles.letter,
-            { color: selected || correct ? QuizColors.white : QuizColors.badgeLetter },
+            { color: selected || correct ? QuizColors.white : QuizColors.textLabel },
           ]}
         >
           {letters[index]}

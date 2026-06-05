@@ -1,4 +1,5 @@
 import { Button } from "@/components/common/Button";
+import { QuizColors } from "@/constants/colors";
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -100,7 +101,7 @@ export function StreakScreen({ streakDays, serverStreak, onNext }: Props) {
       <Button
         label="다음"
         onPress={onNext}
-        color="#FF9600"
+        color={QuizColors.streak}
         style={{ width: "100%", paddingVertical: 16, marginBottom: 40 }}
         textStyle={{ fontWeight: "800", fontSize: 18 }}
       />
@@ -111,7 +112,7 @@ export function StreakScreen({ streakDays, serverStreak, onNext }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#191A1C",
+    backgroundColor: QuizColors.pageBg,
     alignItems: "center",
     paddingHorizontal: 28,
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: "#242628",
+    backgroundColor: QuizColors.itemBg,
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "flex-start",
@@ -150,26 +151,26 @@ const styles = StyleSheet.create({
   daysNumber: {
     fontSize: 88,
     fontWeight: "900",
-    color: "#FF9600",
+    color: QuizColors.streak,
     lineHeight: 96,
     letterSpacing: -2,
   },
   daysLabel: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#FFC800",
+    color: QuizColors.dotori,
     marginTop: -8,
   },
   mainLabel: {
     fontSize: 32,
     fontWeight: "900",
-    color: "#fff",
+    color: QuizColors.white,
     marginTop: 8,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
-    color: "#aaa",
+    color: QuizColors.textSub,
     marginTop: 16,
     fontWeight: "600",
   },

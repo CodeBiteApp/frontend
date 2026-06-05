@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { QuizColors } from "@/constants/colors";
 
 type Props = {
   correctCount: number;
@@ -29,11 +30,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FF9600",
+    backgroundColor: QuizColors.streak,
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  label: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  label: { color: QuizColors.white, fontWeight: "700", fontSize: 14 },
   right: { flexDirection: "row", alignItems: "center", gap: 10 },
   track: {
     width: 80,
@@ -44,8 +45,8 @@ const styles = StyleSheet.create({
   },
   fill: {
     height: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: QuizColors.white,
     borderRadius: 3,
   },
-  count: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  count: { color: QuizColors.white, fontWeight: "700", fontSize: 13 },
 });
