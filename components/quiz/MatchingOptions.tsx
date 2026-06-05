@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-
-const PAIR_COLORS = ["#FF9600", "#CE82FF", "#00CD9C"];
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { QuizColors } from "@/constants/quiz";
 
 type Props = {
   leftItems: string[];
@@ -17,7 +16,7 @@ export function MatchingOptions({
   rightItems,
   correctPairs,
   isAnswered,
-  accentColor = "#1CB0F6",
+  accentColor = QuizColors.accent,
   onComplete,
 }: Props) {
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
@@ -49,14 +48,14 @@ export function MatchingOptions({
   const getLeftColor = (i: number): string | null => {
     if (selectedLeft === i) return accentColor;
     if (!(i in userPairs)) return null;
-    return correctPairs[i] === userPairs[i] ? "#58CC02" : "#FF4B4B";
+    return correctPairs[i] === userPairs[i] ? QuizColors.correct : QuizColors.wrong;
   };
 
   const getRightColor = (rightIndex: number): string | null => {
     const entry = Object.entries(userPairs).find(([, v]) => v === rightIndex);
     if (!entry) return null;
     const leftIndex = Number(entry[0]);
-    return correctPairs[leftIndex] === rightIndex ? "#58CC02" : "#FF4B4B";
+    return correctPairs[leftIndex] === rightIndex ? QuizColors.correct : QuizColors.wrong;
   };
 
   const getRightIcon = (rightIndex: number): string | null => {
@@ -82,8 +81,8 @@ export function MatchingOptions({
                   color
                     ? { borderColor: color, backgroundColor: color + "22" }
                     : isSelected
-                    ? { borderColor: accentColor, backgroundColor: "#1e2022" }
-                    : null,
+                      ? { borderColor: accentColor, backgroundColor: QuizColors.selectedBg }
+                      : null,
                 ]}
                 onPress={() => handleLeftPress(i)}
                 activeOpacity={0.8}
@@ -91,7 +90,10 @@ export function MatchingOptions({
                 <View
                   style={[
                     styles.badge,
-                    { backgroundColor: color || (isSelected ? accentColor : "#333537") },
+                    {
+                      backgroundColor:
+                        color || (isSelected ? accentColor : QuizColors.badgeBg),
+                    },
                   ]}
                 >
                   <Text style={styles.badgeText}>{i + 1}</Text>
@@ -125,8 +127,8 @@ export function MatchingOptions({
                   color
                     ? { borderColor: color, backgroundColor: color + "22" }
                     : isTargetable
-                    ? { borderColor: accentColor + "55" }
-                    : null,
+                      ? { borderColor: accentColor + "55" }
+                      : null,
                 ]}
                 onPress={() => handleRightPress(i)}
                 activeOpacity={0.8}
@@ -135,7 +137,9 @@ export function MatchingOptions({
                   {item}
                 </Text>
                 {icon && (
-                  <Text style={[styles.icon, color ? { color } : undefined]}>{icon}</Text>
+                  <Text style={[styles.icon, color ? { color } : undefined]}>
+                    {icon}
+                  </Text>
                 )}
               </TouchableOpacity>
             );
@@ -150,7 +154,6 @@ export function MatchingOptions({
             : "왼쪽 항목을 먼저 선택하세요"}
         </Text>
       )}
-
     </View>
   );
 }
@@ -161,7 +164,7 @@ const styles = StyleSheet.create({
   column: { flex: 1, gap: 8 },
   divider: {
     width: 1,
-    backgroundColor: "#333537",
+    backgroundColor: QuizColors.divider,
     marginHorizontal: 10,
     alignSelf: "stretch",
   },
@@ -169,8 +172,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     borderWidth: 2,
-    borderColor: "#333537",
-    backgroundColor: "#242628",
+    borderColor: QuizColors.border,
+    backgroundColor: QuizColors.itemBg,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -187,13 +190,13 @@ const styles = StyleSheet.create({
   badgeText: { color: "#fff", fontSize: 12, fontWeight: "700" },
   itemText: {
     fontSize: 13,
-    color: "#ccc",
+    color: QuizColors.text,
     flex: 1,
     lineHeight: 18,
   },
   hint: {
     textAlign: "center",
-    color: "#666",
+    color: QuizColors.hintText,
     fontSize: 13,
   },
   icon: {

@@ -1,5 +1,6 @@
+import { QuizColors } from "@/constants/quiz";
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { QuizOption } from "./QuizOption";
 
 type Props = {
@@ -16,7 +17,7 @@ export function MultipleChoiceOptions({
   selected,
   answerIndex,
   isAnswered,
-  accentColor = "#1CB0F6",
+  accentColor = QuizColors.accent,
   onSelect,
 }: Props) {
   return (
@@ -26,8 +27,8 @@ export function MultipleChoiceOptions({
           isAnswered && i === answerIndex
             ? true
             : isAnswered && i === selected && i !== answerIndex
-            ? false
-            : null;
+              ? false
+              : null;
         return (
           <QuizOption
             key={i}
