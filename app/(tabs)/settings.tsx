@@ -279,7 +279,11 @@ export default function SettingsScreen({ isFocused }: { isFocused?: boolean }) {
         <View style={styles.divider} />
         <SettingRow
           label="퀴즈 알림 테스트 (5초 후)"
-          onPress={() => void scheduleQuizNotification(5)}
+          onPress={async () => {
+            const ok = await scheduleQuizNotification(5);
+            if (ok) showAlert("알림 예약됨", "5초 후 알림이 표시됩니다.\n앱을 백그라운드로 내려보세요.");
+            else showAlert("권한 없음", "설정에서 알림을 허용해주세요.");
+          }}
         />
       </View>
 
