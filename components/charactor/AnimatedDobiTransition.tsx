@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 const DOBI_SIZE = 130;
+const ACORN_ANIM_SCALE = 1.6;
 const PARTICLE_COUNT = 10;
 const PARTICLE_COLORS = ["#6D4C41", "#8D6E63", "#EFAC00", "#BCAAA4", "#795548"];
 
@@ -99,6 +100,13 @@ export function AnimatedDobiTransition({
   const acornFlyDistance = position.height / 2 + DOBI_SIZE * 0.45 - 14;
   const particleX = dobiLeft + DOBI_SIZE / 2;
   const particleY = dobiTop + DOBI_SIZE * 0.55;
+
+  // 확대된 도토리 크기 및 위치 (원래 도토리 중심 기준으로 중앙 정렬)
+  const acornW = position.width * ACORN_ANIM_SCALE;
+  const acornH = position.height * ACORN_ANIM_SCALE;
+  const acornLeft = position.x + position.width / 2 - acornW / 2;
+  const acornTop = position.y + position.height / 2 - acornH / 2;
+  const stageNum = (Number(stageId.split("_")[1]) || 0) + 1;
 
   const acornTranslateY = useSharedValue(0);
   const acornScale = useSharedValue(1);
@@ -223,10 +231,15 @@ export function AnimatedDobiTransition({
           style={[
             {
               position: "absolute",
-              left: position.x,
-              top: position.y,
-              width: position.width,
-              height: position.height,
+              left: acornLeft,
+              top: acornTop,
+              width: acornW,
+              height: acornH,
+              shadowColor: "#EFAC00",
+              shadowOpacity: 0.55,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 8,
             },
             acornStyle,
           ]}
@@ -234,12 +247,12 @@ export function AnimatedDobiTransition({
           <AcornSvg
             bodyColor={color}
             bodyDark={darkColor}
-            capColor="#6D4C41"
-            capStripe="#8D6E63"
+            capColor="#8B6147"
+            capStripe="#A67B5B"
             textColor="#fff"
-            stageNum={Number(stageId)}
-            width={position.width}
-            height={position.height}
+            stageNum={stageNum}
+            width={acornW}
+            height={acornH}
           />
         </Animated.View>
 

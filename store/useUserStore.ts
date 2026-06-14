@@ -92,7 +92,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await registerApi(body);
-      console.log("[register] 서버 응답:", JSON.stringify(response));
+      // console.log("[register] 서버 응답:", JSON.stringify(response));
 
       if (!response.accessToken) {
         throw new Error(
@@ -172,15 +172,13 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   completeOnboarding: (position) => {
-    AsyncStorage.multiSet([
-      [POSITION_KEY, position],
-    ]).catch(() => {});
+    AsyncStorage.multiSet([[POSITION_KEY, position]]).catch(() => {});
     set({ hasOnboarded: true, position });
   },
 
   setUnauthorized: () => {
     clearTokenRefreshTimer();
-    set({ user: null, isLoggedIn: false });
+    set({ user: null, isLoggedIn: false, isLoading: false });
   },
 
   setUser: (user) => set({ user }),

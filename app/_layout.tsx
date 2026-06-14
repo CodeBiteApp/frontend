@@ -28,15 +28,19 @@ export default function RootLayout() {
     });
 
     // 앱 시작 시 세션 복원 - index.tsx가 store 상태를 감지해 자동 분기
-    restoreSession().catch(() => {});
+    // recordVisit은 세션 복원 완료 후 실행해 401 경쟁 조건 방지
+    restoreSession()
+      .then(() => { recordVisit().catch(() => {}); })
+      .catch(() => {});
 
-    // 알림 초기화
-    setupAndroidChannel();
+    // 알림 초기화 (Expo Go SDK 53+에서는 푸시 토큰 발급 불가 → 에러 무시)
+    setupAndroidChannel().catch(() => {});
     const removeNotificationHandlers = setupNotificationHandlers();
-    getOrRefreshToken().then((token) => {
-      if (token) registerPushToken(token).catch(() => {});
-    });
-    recordVisit().catch(() => {});
+    getOrRefreshToken()
+      .then((token) => {
+        if (token) registerPushToken(token).catch(() => {});
+      })
+      .catch(() => {});
 
     // 백그라운드 → 포그라운드 전환 시 자동 로그인 시도 + 방문 기록
     const subscription = AppState.addEventListener(

@@ -74,7 +74,9 @@ export const setupAuthInterceptors = (api: AxiosInstance) => {
       );
 
       // 401 에러 && 계정 관련 엔드포인트가 아니면
-      if (error.response?.status === 401 && !isAuthEndpoint) {
+      if (error.response?.status === 401 && !isAuthEndpoint && !originalRequest._retry) {
+        originalRequest._retry = true;
+
         if (isRefreshing) {
           return new Promise<string>((resolve, reject) => {
             pendingQueue.push({ resolve, reject });
@@ -88,6 +90,7 @@ export const setupAuthInterceptors = (api: AxiosInstance) => {
 
         try {
           const { data } = await api.post("/api/auth/refresh");
+          if (!data?.accessToken) throw new Error("No accessToken in refresh response");
           await saveSecureStore("accessToken", data.accessToken);
           flushQueue(null, data.accessToken);
           originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
@@ -96,7 +99,7 @@ export const setupAuthInterceptors = (api: AxiosInstance) => {
           flushQueue(refreshError);
           await deleteSecureStore("accessToken");
           if (!originalRequest._skipUnauthorizedCallback) {
-            unauthorizedCallback?.(); // 강제 로그아웃 화면 이동
+            unauthorizedCallback?.();
           }
           return Promise.reject(refreshError);
         } finally {

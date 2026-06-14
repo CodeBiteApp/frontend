@@ -1,20 +1,32 @@
+import { resetStreak, restoreStreak } from "@/api/streak";
 import { AnimatedDobiTransition } from "@/components/charactor/AnimatedDobiTransition";
 import { ACORN_H } from "@/components/common/AcornButton";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 import ChapterSection from "@/components/home/ChapterSection";
 import HomeSkeleton from "@/components/home/HomeSkeleton";
 import StageModal, { SelectedStage } from "@/components/home/StageModal";
 import StickyChapterBar from "@/components/home/StickyChapterBar";
 import UserInfoBar from "@/components/home/UserInfoBar";
-import { BANNER_H, computeBreakpoints, ROW_HEIGHT, STAGES_TOP_PAD } from "@/constants/homeLayout";
+import {
+  BANNER_H,
+  computeBreakpoints,
+  ROW_HEIGHT,
+  STAGES_TOP_PAD,
+} from "@/constants/homeLayout";
 import { CHAPTER_COLORS } from "@/constants/stageInfo";
+import { useAppAlert } from "@/hooks/useAppAlert";
 import { useStageStore } from "@/store/useStageStore";
 import { useSubjectStore } from "@/store/useSubjectStore";
 import { useUserStore } from "@/store/useUserStore";
+import { buildInterleavedOrder } from "@/utils/quizGenerator";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ConfirmModal } from "@/components/common/ConfirmModal";
-import { useAppAlert } from "@/hooks/useAppAlert";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -26,8 +38,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { restoreStreak, resetStreak } from "@/api/streak";
-import { buildInterleavedOrder } from "@/utils/quizGenerator";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -38,7 +49,6 @@ type AnimatingStage = {
   position: { x: number; y: number; width: number; height: number };
   nextPosition: { x: number; y: number; width: number; height: number } | null;
 };
-
 
 function getSeoulDate(dateInput: string | Date | null): string | null {
   if (!dateInput) return null;
@@ -86,13 +96,33 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   const { position, user, refreshUser } = useUserStore();
   const streak = user?.currentStreak ?? 0;
 
-  const { subjects, conceptsMap, isLoading, isHydrated, hasMoreSubjects, refreshConcepts, loadMoreSubjects } = useSubjectStore();
-  const { completedStages, justCompletedStageId, confirmComplete, resetStages } = useStageStore();
+  const {
+    subjects,
+    conceptsMap,
+    isLoading,
+    isHydrated,
+    hasMoreSubjects,
+    refreshConcepts,
+    loadMoreSubjects,
+  } = useSubjectStore();
+  const {
+    completedStages,
+    justCompletedStageId,
+    confirmComplete,
+    resetStages,
+  } = useStageStore();
 
-  const { show: showAlert, hide: hideAlert, config: alertConfig, isVisible: alertVisible } = useAppAlert();
+  const {
+    show: showAlert,
+    hide: hideAlert,
+    config: alertConfig,
+    isVisible: alertVisible,
+  } = useAppAlert();
 
   const [selected, setSelected] = useState<SelectedStage | null>(null);
-  const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(null);
+  const [animatingStage, setAnimatingStage] = useState<AnimatingStage | null>(
+    null,
+  );
   const [currentChapter, setCurrentChapter] = useState(0);
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [missedDays, setMissedDays] = useState(0);
@@ -111,10 +141,11 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
 
   // 챕터별 배치 수 배열
   const batchCountPerSubject = useMemo(
-    () => subjects.map((s) => {
-      const n = (conceptsMap[s.subjectId] ?? []).length;
-      return n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
-    }),
+    () =>
+      subjects.map((s) => {
+        const n = (conceptsMap[s.subjectId] ?? []).length;
+        return n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
+      }),
     [subjects, conceptsMap],
   );
 
@@ -122,13 +153,18 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   const studiedBatchKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const subject of subjects) {
-      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const concepts = buildInterleavedOrder(
+        conceptsMap[subject.subjectId] ?? [],
+      );
       const n = concepts.length;
       if (n === 0) continue;
       const totalBatches = Math.ceil(n / BATCH_SIZE);
       for (let b = 0; b < totalBatches; b++) {
-        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
-        if (batchConcepts.every(c => c.isStudied)) {
+        const batchConcepts = Array.from(
+          { length: BATCH_SIZE },
+          (_, i) => concepts[(b * BATCH_SIZE + i) % n],
+        );
+        if (batchConcepts.every((c) => c.isStudied)) {
           keys.add(`${subject.subjectId}_${b}`);
         }
       }
@@ -139,15 +175,24 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   // 다음에 풀어야 할 배치 (BE 인터리빙 순서 기준 미완료 첫 번째)
   const currentBatch = useMemo(() => {
     for (const subject of subjects) {
-      const concepts = buildInterleavedOrder(conceptsMap[subject.subjectId] ?? []);
+      const concepts = buildInterleavedOrder(
+        conceptsMap[subject.subjectId] ?? [],
+      );
       const n = concepts.length;
       if (n === 0) continue;
       const totalBatches = Math.ceil(n / BATCH_SIZE);
       for (let b = 0; b < totalBatches; b++) {
         const batchKey = `${subject.subjectId}_${b}`;
         if (completedStages.includes(batchKey)) continue;
-        const batchConcepts = Array.from({ length: BATCH_SIZE }, (_, i) => concepts[(b * BATCH_SIZE + i) % n]);
-        if (!batchConcepts.every(c => c.isStudied)) {
+        // 애니메이션 진행 중인 스테이지는 서버 데이터가 업데이트되어도 도비 위치를 유지
+        if (justCompletedStageId === batchKey) {
+          return { subjectId: subject.subjectId, batchIndex: b };
+        }
+        const batchConcepts = Array.from(
+          { length: BATCH_SIZE },
+          (_, i) => concepts[(b * BATCH_SIZE + i) % n],
+        );
+        if (!batchConcepts.every((c) => c.isStudied)) {
           return { subjectId: subject.subjectId, batchIndex: b };
         }
       }
@@ -155,8 +200,11 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
     const last = subjects[subjects.length - 1];
     if (!last) return { subjectId: 0, batchIndex: 0 };
     const n = (conceptsMap[last.subjectId] ?? []).length;
-    return { subjectId: last.subjectId, batchIndex: Math.max(0, Math.ceil(n / BATCH_SIZE) - 1) };
-  }, [subjects, conceptsMap, completedStages]);
+    return {
+      subjectId: last.subjectId,
+      batchIndex: Math.max(0, Math.ceil(n / BATCH_SIZE) - 1),
+    };
+  }, [subjects, conceptsMap, completedStages, justCompletedStageId]);
 
   // 스크롤 기반 챕터 감지용 breakpoints
   const chapterBreakpoints = useMemo(
@@ -202,12 +250,18 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       const [sidStr, biStr] = justCompletedStageId.split("_");
       const sid = Number(sidStr);
       const bi = Number(biStr);
-      const chapterIdx = subjects.findIndex(s => s.subjectId === sid);
+      const chapterIdx = subjects.findIndex((s) => s.subjectId === sid);
       const stageInChapter = bi;
 
       const estimatedStageY =
-        chapterBreakpoints[chapterIdx >= 0 ? chapterIdx : 0] + BANNER_H + STAGES_TOP_PAD + stageInChapter * ROW_HEIGHT;
-      const scrollTarget = Math.max(0, estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2);
+        chapterBreakpoints[chapterIdx >= 0 ? chapterIdx : 0] +
+        BANNER_H +
+        STAGES_TOP_PAD +
+        stageInChapter * ROW_HEIGHT;
+      const scrollTarget = Math.max(
+        0,
+        estimatedStageY - SCREEN_HEIGHT / 2 + ACORN_H / 2,
+      );
       scrollViewRef.current?.scrollTo({ y: scrollTarget, animated: true });
 
       setTimeout(() => {
@@ -224,18 +278,23 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
             animatedStageRef.current = null;
             return;
           }
-          const color = subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
+          const color =
+            subjectColors[chapterIdx >= 0 ? chapterIdx : 0] ?? "#58CC02";
 
           // 다음 배치 계산
           const allBatchKeys = subjects.flatMap((s) => {
             const n = (conceptsMap[s.subjectId] ?? []).length;
             const total = n === 0 ? 0 : Math.ceil(n / BATCH_SIZE);
-            return Array.from({ length: total }, (_, i) => `${s.subjectId}_${i}`);
+            return Array.from(
+              { length: total },
+              (_, i) => `${s.subjectId}_${i}`,
+            );
           });
           const currentPos = allBatchKeys.indexOf(justCompletedStageId);
-          const nextBatchKey = currentPos !== -1 && currentPos < allBatchKeys.length - 1
-            ? allBatchKeys[currentPos + 1]
-            : null;
+          const nextBatchKey =
+            currentPos !== -1 && currentPos < allBatchKeys.length - 1
+              ? allBatchKeys[currentPos + 1]
+              : null;
 
           const showWithNextRef = (nextVirtualId: number | null) => {
             if (nextVirtualId !== null) {
@@ -247,7 +306,10 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
                     color,
                     darkColor: darken(color, 0.25),
                     position: { x, y, width: w, height: h },
-                    nextPosition: nw > 0 && nh > 0 ? { x: nx, y: ny, width: nw, height: nh } : null,
+                    nextPosition:
+                      nw > 0 && nh > 0
+                        ? { x: nx, y: ny, width: nw, height: nh }
+                        : null,
                   });
                 });
                 return;
@@ -270,7 +332,13 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
           }
         });
       }, 650);
-    }, [justCompletedStageId, chapterBreakpoints, subjects, conceptsMap, subjectColors]),
+    }, [
+      justCompletedStageId,
+      chapterBreakpoints,
+      subjects,
+      conceptsMap,
+      subjectColors,
+    ]),
   );
 
   const handleEatingFinish = useCallback(() => {
@@ -283,7 +351,8 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
 
   const handleScroll = useCallback(
     (event: any) => {
-      const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+      const { contentOffset, layoutMeasurement, contentSize } =
+        event.nativeEvent;
       const y = contentOffset.y;
 
       // 챕터 sticky bar 감지
@@ -297,19 +366,34 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       if (chapter !== prevChapterRef.current) {
         prevChapterRef.current = chapter;
         Animated.sequence([
-          Animated.timing(fadeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
-          Animated.timing(fadeAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 60,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 80,
+            useNativeDriver: true,
+          }),
         ]).start();
         setCurrentChapter(chapter);
       }
 
       // 하단 200px 이내 진입 시 다음 페이지 로드
-      const isNearBottom = y + layoutMeasurement.height >= contentSize.height - 200;
+      const isNearBottom =
+        y + layoutMeasurement.height >= contentSize.height - 200;
       if (isNearBottom && hasMoreSubjects && !isLoading) {
         loadMoreSubjects();
       }
     },
-    [fadeAnim, chapterBreakpoints, hasMoreSubjects, isLoading, loadMoreSubjects],
+    [
+      fadeAnim,
+      chapterBreakpoints,
+      hasMoreSubjects,
+      isLoading,
+      loadMoreSubjects,
+    ],
   );
 
   const handleRestoreStreak = async () => {
@@ -318,7 +402,10 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
       await restoreStreak();
       setShowStreakModal(false);
       await refreshUser();
-      showAlert("스트릭 유지 완료", "보호권이 소모되었으며 스트릭이 보존되었습니다! 🛡️");
+      showAlert(
+        "스트릭 유지 완료",
+        "보호권이 소모되었으며 스트릭이 보존되었습니다! 🛡️",
+      );
     } catch (e: any) {
       showAlert("에러", e.message || "스트릭 복구에 실패했습니다.");
     } finally {
@@ -344,9 +431,17 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
     return (
       <View style={styles.container}>
         <View style={styles.fixedTop}>
-          <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
+          <UserInfoBar
+            position={position}
+            streak={streak}
+            acornCount={acornCount}
+          />
         </View>
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} scrollEnabled={false}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          scrollEnabled={false}
+        >
           <HomeSkeleton />
         </ScrollView>
       </View>
@@ -356,11 +451,17 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
   return (
     <>
       <View style={styles.container}>
-        <View style={[styles.fixedTop, { paddingTop: Math.max(insets.top, 16) }]}>
-          <UserInfoBar position={position} streak={streak} acornCount={acornCount} />
-          <TouchableOpacity style={styles.resetBtn} onPress={resetStages} activeOpacity={0.7}>
+        <View
+          style={[styles.fixedTop, { paddingTop: Math.max(insets.top, 16) }]}
+        >
+          <UserInfoBar
+            position={position}
+            streak={streak}
+            acornCount={acornCount}
+          />
+          {/* <TouchableOpacity style={styles.resetBtn} onPress={resetStages} activeOpacity={0.7}>
             <Text style={styles.resetBtnText}>🔄 테스트 초기화</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <StickyChapterBar
             currentChapter={currentChapter}
             fadeAnim={fadeAnim}
@@ -453,23 +554,33 @@ export default function HomeScreen({ isFocused }: { isFocused?: boolean }) {
             <Text style={styles.modalDesc}>
               {missedDays}일 동안 접속하지 않으셨네요!{"\n"}
               보유한 스트릭 보호권{" "}
-              <Text style={styles.highlightText}>{missedDays}개</Text>를 소모하여 스트릭을 유지할 수 있습니다.
+              <Text style={styles.highlightText}>{missedDays}개</Text>를
+              소모하여 스트릭을 유지할 수 있습니다.
             </Text>
 
             <View style={styles.modalInfoBox}>
               <View style={styles.modalInfoItem}>
                 <Text style={styles.modalInfoLabel}>보유 보호권</Text>
-                <Text style={styles.modalInfoVal}>{user?.protector ?? 0}개</Text>
+                <Text style={styles.modalInfoVal}>
+                  {user?.protector ?? 0}개
+                </Text>
               </View>
               <View style={styles.modalInfoItem}>
                 <Text style={styles.modalInfoLabel}>소모 보호권</Text>
-                <Text style={[styles.modalInfoVal, { color: "#ff4b4b", fontWeight: "700" }]}>
+                <Text
+                  style={[
+                    styles.modalInfoVal,
+                    { color: "#ff4b4b", fontWeight: "700" },
+                  ]}
+                >
                   -{missedDays}개
                 </Text>
               </View>
               <View style={styles.modalInfoItem}>
                 <Text style={styles.modalInfoLabel}>현재 스트릭</Text>
-                <Text style={styles.modalInfoVal}>🔥 {user?.currentStreak ?? 0}일</Text>
+                <Text style={styles.modalInfoVal}>
+                  🔥 {user?.currentStreak ?? 0}일
+                </Text>
               </View>
             </View>
 
@@ -544,8 +655,19 @@ const styles = StyleSheet.create({
     borderColor: "#333537",
   },
   modalEmoji: { fontSize: 56, marginBottom: 16 },
-  modalTitle: { color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 12 },
-  modalDesc: { color: "#aaa", fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 20 },
+  modalTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  modalDesc: {
+    color: "#aaa",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 20,
+  },
   highlightText: { color: "#FFC800", fontWeight: "700" },
   modalInfoBox: {
     width: "100%",
@@ -555,13 +677,27 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
   },
-  modalInfoItem: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  modalInfoItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   modalInfoLabel: { color: "#888", fontSize: 13, fontWeight: "600" },
   modalInfoVal: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  modalBtn: { width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginBottom: 10 },
+  modalBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
   modalBtnConfirm: { backgroundColor: "#FFC800" },
   modalBtnConfirmText: { color: "#191A1C", fontSize: 15, fontWeight: "800" },
-  modalBtnCancel: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "#444" },
+  modalBtnCancel: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#444",
+  },
   modalBtnCancelText: { color: "#888", fontSize: 14, fontWeight: "700" },
   bottomLoader: { paddingVertical: 16, alignItems: "center" },
 });
