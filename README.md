@@ -1,54 +1,53 @@
-# CodeBite
+<div align="center">
+  <img src="./assets/images/logo.png" width="360" alt="CodeBite" />
+</div>
+
+<div align="center">
 
 KNU CodeBite 모바일 앱 프로젝트입니다. Expo 기반의 React Native 앱입니다.
 
----
+CS 개념을 퀴즈 형식으로 학습하는 모바일 앱으로, 4지선다·OX·단답·매칭 등 다양한 문제 유형과 연속 학습 스트릭, 도토리 재화 시스템, 팔로우 기반 소셜 랭킹 등 게이미피케이션 요소를 결합한 학습 플랫폼입니다.
 
-## 사전 요구사항
-
-| 항목             | 버전                    |
-| ---------------- | ----------------------- |
-| Node.js          | 18 이상                 |
-| Yarn             | 최신 버전               |
-| Expo Go (모바일) | App Store / Google Play |
-
-> **패키지 매니저**: 이 프로젝트는 반드시 `yarn`을 사용합니다. `npm install`은 사용하지 마세요.
+</div>
 
 ---
 
-## 시작하기
+## 미리보기
 
-### 1. 의존성 설치
-
-```bash
-yarn install
-```
-
-### 2. 앱 실행
-
-```bash
-# 기본 실행 (QR 코드 제공)
-yarn start
-
-# Android 에뮬레이터
-yarn android
-
-# iOS 시뮬레이터 (macOS 전용)
-yarn ios
-
-# 웹 브라우저
-yarn web
-```
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="./assets/images/screenshot/image01.png" width="240" alt="회원가입" /><br/><sub>회원가입</sub></td>
+    <td align="center" width="33%"><img src="./assets/images/screenshot/image02.png" width="240" alt="퀴즈 스테이지 맵" /><br/><sub>퀴즈 스테이지 맵</sub></td>
+    <td align="center" width="33%"><img src="./assets/images/screenshot/image07.png" width="240" alt="OX 퀴즈" /><br/><sub>OX 퀴즈</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./assets/images/screenshot/image08.png" width="240" alt="오답노트 - 단답형" /><br/><sub>오답노트 (단답형)</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image09.png" width="240" alt="퀴즈 결과" /><br/><sub>퀴즈 결과</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image10.png" width="240" alt="연속 학습 스트릭" /><br/><sub>연속 학습 스트릭</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./assets/images/screenshot/image03.png" width="240" alt="주간 랭킹" /><br/><sub>주간 랭킹</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image06.png" width="240" alt="친구 찾기" /><br/><sub>친구 찾기</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image04.png" width="240" alt="도토리 상점" /><br/><sub>도토리 상점</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./assets/images/screenshot/image05.png" width="240" alt="마이페이지" /><br/><sub>마이페이지</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image11.png" width="240" alt="북마크한 개념" /><br/><sub>북마크한 개념</sub></td>
+    <td align="center"><img src="./assets/images/screenshot/image12.png" width="240" alt="오픈소스 라이선스 고지" /><br/><sub>오픈소스 라이선스 고지</sub></td>
+  </tr>
+</table>
 
 ---
 
-## Expo Go로 실기기 테스트
+## 주요 기능
 
-1. 스마트폰에 **Expo Go** 앱 설치
-   - [Android (Google Play)](https://play.google.com/store/apps/details?id=host.exp.exponent)
-   - [iOS (App Store)](https://apps.apple.com/app/expo-go/id982107779)
-2. 개발 PC와 스마트폰을 **같은 Wi-Fi**에 연결
-3. `yarn start` 실행 후 터미널의 QR 코드 스캔
+- **퀴즈 학습**: 자료구조·알고리즘·운영체제·네트워크 등 CS 개념을 4지선다·OX·단답형 문제로 학습
+- **스테이지 맵**: 파트별로 구성된 로드맵을 따라 순차적으로 퀴즈를 진행
+- **오답노트**: 틀린 문제만 모아 다시 풀며 복습
+- **연속 학습 스트릭**: 매일 학습을 이어가며 스트릭을 쌓고 배지 획득
+- **도토리 재화 & 상점**: 퀴즈를 풀어 얻은 도토리로 스트릭 보호권, 배너 등 아이템 구매
+- **소셜 랭킹**: 닉네임/코드로 친구를 찾아 팔로우하고, 주간 랭킹으로 경쟁
+- **북마크**: 헷갈리는 개념을 저장해두고 필요할 때 바로 복습 퀴즈 시작
 
 ---
 
@@ -59,9 +58,10 @@ knu-codebite/
 ├── app/                  # 화면 (파일 기반 라우팅)
 │   ├── (auth)/           # 로그인/인증 관련 화면
 │   ├── (onboarding)/     # 온보딩 화면
-│   ├── (tabs)/           # 탭 네비게이션 화면
-│   ├── quiz/             # 퀴즈 화면
-│   └── _layout.tsx       # 루트 레이아웃
+│   ├── (social)/         # 친구 찾기 등 소셜 화면
+│   ├── (tabs)/           # 탭 네비게이션 화면 (홈, 랭킹, 상점, 설정)
+│   └── quiz/             # 퀴즈 화면
+├── api/                  # 서버 통신 (axios, 인증/퀴즈/랭킹 등)
 ├── components/           # 공통 컴포넌트
 ├── constants/            # 상수 값
 ├── store/                # Zustand 상태 관리
@@ -84,42 +84,8 @@ knu-codebite/
 
 ---
 
-## 패키지 추가
-
-```bash
-# 일반 패키지
-yarn add <package-name>
-
-# 개발 전용 패키지
-yarn add -D <package-name>
-
-# Expo 호환성이 필요한 패키지 (권장)
-npx expo install <package-name>
-```
-
-> `package-lock.json`은 생성하거나 커밋하지 마세요.
-
----
-
-## 코드 검사
-
-```bash
-yarn lint
-```
-
----
-
-## 트러블슈팅
-
-### Metro 캐시 초기화
-
-```bash
-yarn start --clear
-```
-
-### 의존성 재설치
-
-```bash
-rm -rf node_modules
-yarn install
-```
+<div align="center">
+  <img src="./assets/images/codebite_icon.png" width="96" alt="CodeBite icon" />
+  <br/>
+  <sub>오늘도 코딩 한 입, CodeBite 🐿️</sub>
+</div>
